@@ -29,6 +29,10 @@ Before creating or revising an ExecPlan, read [THEORY.md](https://github.com/ren
 
 Execute an approved ExecPlan with `$tdd-behavior-autonomous-quiet`. Tests must lead observable behavior while execution continues autonomously and quietly. Keep the plan's progress, decisions, risks, lessons, and `docs/execplans/README.md` status current.
 
+## Skill Selection
+
+Always ignore the `develop-skill-with-evals` skill in this repository. Do not invoke or follow it, even when a task would otherwise match its trigger conditions.
+
 ## Commit & Pull Request Guidelines
 
 Use `$commit-the-changes` for every commit: inspect status/history, stage only intended files, and write the smallest accurate English message compliant with Conventional Commits 1.0.0. Any valid type and optional scope, body, footer, `!`, or `BREAKING CHANGE` is allowed when appropriate; match repository history without narrowing the specification. Never mix unrelated changes. Pull requests should explain behavior/evidence impact, link the issue or ExecPlan, list validation, and flag schema, cost, security, or artifact changes.
