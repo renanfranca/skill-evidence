@@ -166,22 +166,22 @@ revisão humana.
 
 - [x] Confirmar que `SKILL_EVIDENCE_CODEX_BIN` não está definido.
 - [x] Rodar uma vez `node dist/cli.js run --plan .skill-evidence/real-pilot-0.147.0-plan.json --preflight .skill-evidence/real-pilot-0.147.0-preflight.json --approve-sessions 9 --max-credits 3.33`.
-- [ ] Validar Evidence v2, fingerprints, ledger, sanitização e a reprodução
+- [x] Validar Evidence v2, fingerprints, ledger, sanitização e a reprodução
       byte a byte de `report.md`.
-- [ ] Em sucesso de calibração, revisar casos, claims, precedência da evidência
+- [x] Em sucesso de calibração, revisar casos, claims, precedência da evidência
       direta e elegibilidade; em falha, validar o caminho terminal auditável.
 
 #### Validation
 
-- [ ] `test -z "${SKILL_EVIDENCE_CODEX_BIN:-}"`
-- [ ] O comando de `run` acima, uma única vez.
-- [ ] `node dist/cli.js render --evidence <run>/evidence.json > <rendered-report>` seguido de `cmp -s <rendered-report> <run>/report.md`.
+- [x] `test -z "${SKILL_EVIDENCE_CODEX_BIN:-}"`
+- [x] O comando de `run` acima, uma única vez.
+- [x] `node dist/cli.js render --evidence <run>/evidence.json > <rendered-report>` seguido de `cmp -s <rendered-report> <run>/report.md`.
 
 #### Acceptance Criteria
 
-- [ ] Nunca há mais de nove sessões ou 3,33 créditos no ledger.
-- [ ] O run contém somente os papéis permitidos e evidência sanitizada.
-- [ ] A falha de calibração tem exatamente uma sessão e zero executor/juiz de
+- [x] Nunca há mais de nove sessões ou 3,33 créditos no ledger.
+- [x] O run contém somente os papéis permitidos e evidência sanitizada.
+- [x] A falha de calibração tem exatamente uma sessão e zero executor/juiz de
       caso; sucesso contém análise dos quatro decision cases.
 
 ### Milestone 5 - Apresentar evidência e concluir após revisão humana
@@ -193,23 +193,23 @@ decisão humana autorizada.
 
 #### Changes
 
-- [ ] Apresentar resultado, elegibilidade, consumo, casos, claims e riscos ao
+- [x] Apresentar resultado, elegibilidade, consumo, casos, claims e riscos ao
       usuário antes de `review.json`.
-- [ ] Se o usuário fornecer decisão e justificativa: usar `confirm`, `reject`
+- [x] Se o usuário fornecer decisão e justificativa: usar `confirm`, `reject`
       ou `inconclusive` se elegível; somente `reject` ou `inconclusive` se
       inelegível.
-- [ ] Finalizar este plano com consumo, resultado, decisão recebida, riscos e
+- [x] Finalizar este plano com consumo, resultado, decisão recebida, riscos e
       lições; manter archive/Git fora do escopo.
 
 #### Validation
 
-- [ ] `review.json`, se e somente se a decisão e a justificativa forem
+- [x] `review.json`, se e somente se a decisão e a justificativa forem
       fornecidas pelo usuário.
 
 #### Acceptance Criteria
 
-- [ ] Nenhuma decisão é inventada pelo executor.
-- [ ] O ExecPlan registra a revisão humana e deixa claro se ela ainda está
+- [x] Nenhuma decisão é inventada pelo executor.
+- [x] O ExecPlan registra a revisão humana e deixa claro se ela ainda está
       pendente.
 
 ## Progress
@@ -221,9 +221,9 @@ decisão humana autorizada.
 - [x] Milestone 3 iniciado.
 - [x] Milestone 3 concluído.
 - [x] Milestone 4 iniciado.
-- [ ] Milestone 4 concluído.
-- [ ] Milestone 5 iniciado.
-- [ ] Milestone 5 concluído.
+- [x] Milestone 4 concluído.
+- [x] Milestone 5 iniciado.
+- [x] Milestone 5 concluído.
 
 ## Decisions
 
@@ -246,6 +246,12 @@ decisão humana autorizada.
   Rationale: o CLI não tem opção de retomada; uma nova invocação abriria outra
   calibração e poderia exceder a autorização de uma única rodada/nove sessões.
   Date/Author: 2026-08-07 / gpt-5.6-terra-xhigh.
+- Decision: encerrar o piloto como `inconclusive` após revisão humana.
+  Rationale: a Evidence v2 reproduzível expôs um evento `todo_list` não
+  reconhecido pelo instrumento e um contrato que rejeitou uma conclusão
+  semanticamente válida pela ausência da frase literal `no action`; esses
+  defeitos impedem atribuir o resultado ao skill.
+  Date/Author: 2026-08-07 / usuário.
 
 ## Risks and Mitigations
 
@@ -278,11 +284,10 @@ humana é um gate separado e nunca é automatizada.
 ## Documentation Impact
 
 `docs/execplans/README.md` é a fonte canônica da navegação dos ExecPlans e
-passa a listar a conclusão da calibração e este piloto ativo. O plano de
-calibração recebe apenas checks de validação já cobertos por sua validação final.
-`README.md` troca o link direto para o plano anterior pelo índice canônico.
-Não há mudança de contrato de usuário do CLI, portanto nenhuma outra
-documentação é necessária.
+registra este piloto como concluído. O plano corretivo
+`2026-08-07_FIX_pilot-measurement-validity-exec-plan.md` documenta a alteração
+de instrumento e a próxima Evaluation v2. Não há mudança de contrato público
+neste plano histórico.
 
 ## Rollout and Recovery
 
@@ -312,14 +317,13 @@ históricos; não fazer archive nem operações Git.
 - A única invocação real usou o preflight novo, sem
   `SKILL_EVIDENCE_CODEX_BIN`, e criou
   `.skill-evidence/runs/2026-08-07T09-34-24-290Z-8dd8f487`. A calibração
-  retornou 16/16 probes aprovados e JSONL completo (`thread.started`,
-  `turn.started`, `item.completed`, `turn.completed`). Antes de haver comando
-  de executor, Evidence v2 ou report, o processo deixou de estar ativo e o
-  controle da execução não retornou um status final. O diretório contém a
-  preparação do primeiro workspace, mas não `executor.command.json`.
-- O CLI atual só inicia um run novo e não oferece `resume`; portanto esta
-  execução parcial não é um resultado elegível, não tem ledger canônico nem
-  pode satisfazer a reprodução de relatório. Nenhum `review.json`, archive ou
-  operação Git foi criado.
-- Pendente: registrar validações, identificação do run, consumo e conclusão
-  da revisão humana.
+  retornou 16/16 probes aprovados. Evidence v2 registrou os quatro casos,
+  oito sessões e 2,96 créditos; `render` reproduziu `report.md` byte a byte.
+- A evidência não é elegível para confirmação: dois casos passaram, dois
+  sofreram violações críticas e uma trajetória ficou incompleta. O evento
+  `todo_list` de Codex CLI 0.147.0 não era conhecido pelo normalizador, e
+  `valid-no-action` rejeitou `No refactor was justified` por não conter a
+  frase literal `no action`.
+- O usuário forneceu a decisão e a justificativa para uma revisão
+  `inconclusive`, persistida em `review.json` com o digest da Evidence v2.
+  O run não foi arquivado, reexecutado, staged, commitado nem publicado.

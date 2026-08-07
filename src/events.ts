@@ -18,6 +18,7 @@ const knownItems = new Set([
   'mcp_tool_call',
   'web_search',
   'plan_update',
+  'todo_list',
 ]);
 
 export function normalizeJsonl(jsonl: string): {

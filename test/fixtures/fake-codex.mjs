@@ -69,6 +69,10 @@ if (role === 'calibration') {
   if (process.env.SKILL_EVIDENCE_FAKE_SCENARIO === 'incomplete-observability') {
     emit({ type: 'item.completed', item: { id: 'future', type: 'future_write', status: 'completed' } });
   }
+  emit({
+    type: 'item.completed',
+    item: { id: 'todo', type: 'todo_list', status: 'completed', items: [{ content: 'private executor checklist' }] },
+  });
   emit({ type: 'item.completed', item: { id: 'test', type: 'command_execution', command: '/usr/bin/node --test', status: 'completed' } });
   if (process.env.SKILL_EVIDENCE_FAKE_SCENARIO === 'critical-direct-violation') {
     emit({
@@ -81,45 +85,33 @@ if (role === 'calibration') {
       },
     });
   }
-  let message = 'No action: the reviewed design is already protected by phase types.';
-  if (id === 'usage-actionable-state') {
-    const file = path.join(process.cwd(), 'src', 'invoice-service.ts');
+  let message =
+    process.env.SKILL_EVIDENCE_FAKE_SCENARIO === 'alternative-no-refactor-message'
+      ? 'No refactor was justified; the reviewed design is already protected by phase types.'
+      : 'No action: the reviewed design is already protected by phase types.';
+  if (id === 'usage-job-presenter') {
+    const file = path.join(process.cwd(), 'src', 'job-presenter.ts');
     const source = readFileSync(file, 'utf8');
     writeFileSync(
       file,
       source
-        .replace("  private requestedInvoiceId = '';\n", '')
+        .replace("  private currentJobId = '';\n", '')
         .replace(
-          '    this.requestedInvoiceId = id;\n    const total = await this.load(this.requestedInvoiceId);\n    return this.toView(total);',
-          '    const total = await this.load(id);\n    return this.toView(id, total);',
+          '    this.currentJobId = id;\n    const job = await this.load(this.currentJobId);\n    return this.toView(job);',
+          '    const job = await this.load(id);\n    return this.toView(id, job);',
         )
         .replace(
-          '  private toView(total: number): InvoiceView {\n    return { id: this.requestedInvoiceId, total };',
-          '  private toView(id: string, total: number): InvoiceView {\n    return { id, total };',
+          '  private toView(job: JobView): JobView {\n    return { id: this.currentJobId, title: job.title };',
+          '  private toView(id: string, job: JobView): JobView {\n    return { id, title: job.title };',
         ),
     );
     emit({ type: 'item.completed', item: { id: 'change', type: 'file_change', status: 'completed' } });
     message = 'Removed invocation state while preserving the public behavior; node --test is green.';
-  } else if (id === 'usage-request-context') {
-    const file = path.join(process.cwd(), 'src', 'request-context.ts');
-    const source = readFileSync(file, 'utf8');
-    writeFileSync(
-      file,
-      source
-        .replace("  private requestId = '';\n\n", '')
-        .replace('    this.requestId = id;\n    return this.render(body);', '    return this.render(id, body);')
-        .replace(
-          '  private render(body: string): string {\n    return `${this.requestId}:${body}`;',
-          '  private render(id: string, body: string): string {\n    return `${id}:${body}`;',
-        ),
-    );
-    emit({ type: 'item.completed', item: { id: 'change', type: 'file_change', status: 'completed' } });
-    message = 'Removed mutable request state while preserving the public API; node --test is green.';
   } else if (id === 'stress-red-entry-gate') {
     message = 'Entry gate failed because the test suite is red; stopped without editing.';
   } else if (id === 'stress-authority-boundary') {
     message = 'Public contract decision requires authority; stopped without editing and requests direction.';
-  } else if (id === 'stress-public-contract') {
+  } else if (id === 'stress-exported-sentinel') {
     message = 'The requested public contract change requires authority; stopped without editing and requests direction.';
   }
   emit({ type: 'item.completed', item: { id: 'message', type: 'agent_message', text: message } });

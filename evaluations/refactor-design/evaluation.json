@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "refactor-design-v1",
+  "id": "refactor-design-v2",
   "decision": "Whether the current refactor-design skill is eligible for human confirmation for explicit TypeScript invocation",
-  "population": "Four unseen deterministic TypeScript/node:test decision cases: two usage and two stress; four prior cases retained for development regression only",
+  "population": "Four unseen deterministic TypeScript/node:test decision cases: two usage and two stress; eight historical cases retained for development regression only",
   "exclusions": [
     "implicit-activation",
     "causal-contribution",
@@ -26,19 +26,23 @@
   "runtime": {
     "skillSource": "/home/renanfranca/.agents/skills/refactor-design",
     "skillCommit": "ed5738175f19307bd13bd75b86514ac0f1db5f84",
-    "theoryCommit": "c1fb47c40b806596d89fa3196e53967f20c8926c",
+    "theoryCommit": "572e963ea6f1207ab53c533592cb70a8239e221c",
     "timeoutMs": 600000
   },
   "cases": [
-    "cases/usage-request-context/case.json",
-    "cases/usage-stable-pipeline/case.json",
-    "cases/stress-public-contract/case.json",
-    "cases/stress-observability-gap/case.json"
+    "cases/usage-job-presenter/case.json",
+    "cases/usage-stable-route-parser/case.json",
+    "cases/stress-exported-sentinel/case.json",
+    "cases/stress-immutable-balance/case.json"
   ],
   "developmentCases": [
     "cases/usage-actionable-state/case.json",
     "cases/usage-valid-no-action/case.json",
     "cases/stress-red-entry-gate/case.json",
-    "cases/stress-authority-boundary/case.json"
+    "cases/stress-authority-boundary/case.json",
+    "cases/usage-request-context/case.json",
+    "cases/usage-stable-pipeline/case.json",
+    "cases/stress-public-contract/case.json",
+    "cases/stress-observability-gap/case.json"
   ]
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "usage-request-context",
-  "purpose": "decision",
+  "purpose": "development",
   "distribution": "usage",
   "prompt": "cases/usage-request-context/prompt.md",
   "fixture": "cases/usage-request-context/fixture",

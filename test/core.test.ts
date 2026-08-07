@@ -84,23 +84,25 @@ describe.sequential('canonical domain and safety boundaries', () => {
     expect(canonicalDigest({ b: 2, a: 1 })).toBe(canonicalDigest({ a: 1, b: 2 }));
   });
 
-  test('loads schemas, references, claims, and the four-case population', async () => {
+  test('loads Evaluation v2 schemas, references, claims, and the four-case population', async () => {
     const loaded = await loadEvaluation(evaluationDirectory);
     expect(loaded.cases.map(item => item.distribution)).toEqual(['usage', 'usage', 'stress', 'stress']);
-    expect(loaded.contracts).toHaveLength(5);
+    expect(loaded.contracts).toHaveLength(6);
     expect(loaded.evaluation.thresholds.requiredPassingCases).toBe(4);
   });
 
-  test('uses exactly four unseen decision cases split between usage and stress', async () => {
+  test('uses four untouched v2 decision cases and keeps all eight historical cases for development', async () => {
     const loaded = await loadEvaluation(evaluationDirectory);
 
-    expect(loaded.developmentCases).toHaveLength(4);
+    expect(loaded.evaluation.id).toBe('refactor-design-v2');
+    expect(loaded.evaluation.runtime.theoryCommit).toBe('572e963ea6f1207ab53c533592cb70a8239e221c');
+    expect(loaded.developmentCases).toHaveLength(8);
     expect(loaded.developmentCases.every(item => item.purpose === 'development')).toBe(true);
     expect(loaded.cases.map(item => item.id)).toEqual([
-      'usage-request-context',
-      'usage-stable-pipeline',
-      'stress-public-contract',
-      'stress-observability-gap',
+      'usage-job-presenter',
+      'usage-stable-route-parser',
+      'stress-exported-sentinel',
+      'stress-immutable-balance',
     ]);
     expect(loaded.cases.map(item => item.distribution)).toEqual(['usage', 'usage', 'stress', 'stress']);
     expect(loaded.cases.every(item => item.purpose === 'decision')).toBe(true);
@@ -123,6 +125,19 @@ describe.sequential('canonical domain and safety boundaries', () => {
     expect(result.complete).toBe(false);
     expect(JSON.stringify(result.events)).not.toContain('private');
     expect(result.finalMessage).toBe('done');
+  });
+
+  test('recognizes todo lists without retaining their contents', () => {
+    const result = normalizeJsonl(
+      JSON.stringify({
+        type: 'item.completed',
+        item: { type: 'todo_list', status: 'completed', items: [{ content: 'sensitive plan' }] },
+      }),
+    );
+
+    expect(result.complete).toBe(true);
+    expect(result.events).toEqual([{ sequence: 0, type: 'item.completed', itemType: 'todo_list', status: 'completed' }]);
+    expect(JSON.stringify(result.events)).not.toContain('sensitive plan');
   });
 
   test('qualifies all four probes and rejects a misleading calibration', () => {
@@ -182,7 +197,7 @@ describe.sequential('canonical domain and safety boundaries', () => {
     const directory = await tempDirectory();
     const copiedEvaluation = path.join(directory, 'evaluation');
     await cp(evaluationDirectory, copiedEvaluation, { recursive: true });
-    const examplesFile = path.join(copiedEvaluation, 'cases', 'usage-request-context', 'examples.json');
+    const examplesFile = path.join(copiedEvaluation, 'cases', 'usage-job-presenter', 'examples.json');
     const examples = JSON.parse(await readFile(examplesFile, 'utf8')) as { probes: unknown[] };
     await writeFile(examplesFile, JSON.stringify({ ...examples, probes: examples.probes.slice(0, 3) }));
 
@@ -601,6 +616,31 @@ describe.sequential('planning and lifecycle', () => {
     expect(result.evidence.cases.every(item => item.status === 'INCONCLUSIVE' && item.judge === undefined)).toBe(true);
   });
 
+  test('accepts a supported semantic no-refactor conclusion without a direct wording violation', async () => {
+    const directory = await tempDirectory();
+    const planFile = path.join(directory, 'plan.json');
+    const preflightFile = path.join(directory, 'preflight.json');
+    await createPlan(evaluationDirectory, {
+      model: 'gpt-5.6-luna',
+      reasoningEffort: 'max',
+      judgeModel: 'gpt-5.6-terra',
+      judgeReasoningEffort: 'xhigh',
+      out: planFile,
+    });
+    await createPreflight(planFile, preflightFile);
+    process.env.SKILL_EVIDENCE_CODEX_BIN = path.join(root, 'test', 'fixtures', 'fake-codex.mjs');
+    process.env.SKILL_EVIDENCE_FAKE_SCENARIO = 'alternative-no-refactor-message';
+
+    const result = await executePlan(planFile, preflightFile, 9, 3.33);
+    temporary.push(result.runDirectory);
+    const noRefactor = result.evidence.cases.find(item => item.id === 'usage-stable-route-parser');
+
+    expect(noRefactor?.finalMessage).toContain('No refactor was justified');
+    expect(noRefactor?.directViolations).toEqual([]);
+    expect(noRefactor?.judge?.status).toBe('PASS');
+    expect(noRefactor?.status).toBe('PASS');
+  });
+
   test('keeps a critical direct failure authoritative over a favorable judge in a run', async () => {
     const directory = await tempDirectory();
     const planFile = path.join(directory, 'plan.json');
@@ -619,7 +659,7 @@ describe.sequential('planning and lifecycle', () => {
     const result = await executePlan(planFile, preflightFile, 9, 3.33);
     temporary.push(result.runDirectory);
 
-    const critical = result.evidence.cases.find(item => item.id === 'stress-public-contract');
+    const critical = result.evidence.cases.find(item => item.id === 'stress-exported-sentinel');
     expect(critical?.judge?.status).toBe('PASS');
     expect(critical?.status).toBe('FAIL');
     expect(result.evidence.eligibility.confirm).toBe(false);

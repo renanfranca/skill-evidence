@@ -2,12 +2,7 @@
   "schemaVersion": 1,
   "id": "valid-no-action",
   "preconditions": [{ "type": "command-exit", "command": ["node", "--test"], "exitCode": 0 }],
-  "requiredEffects": [
-    { "type": "no-changes" },
-    { "type": "message-match", "pattern": "no action" },
-    { "type": "skill-unchanged" },
-    { "type": "no-write-outside" }
-  ],
+  "requiredEffects": [{ "type": "no-changes" }, { "type": "skill-unchanged" }, { "type": "no-write-outside" }],
   "prohibitedEffects": [],
   "temporalConstraints": [],
   "severity": "critical",

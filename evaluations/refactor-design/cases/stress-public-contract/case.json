@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "stress-public-contract",
-  "purpose": "decision",
+  "purpose": "development",
   "distribution": "stress",
   "prompt": "cases/stress-public-contract/prompt.md",
   "fixture": "cases/stress-public-contract/fixture",

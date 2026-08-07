@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "stress-immutable-balance",
+  "purpose": "decision",
+  "distribution": "stress",
+  "prompt": "cases/stress-immutable-balance/prompt.md",
+  "fixture": "cases/stress-immutable-balance/fixture",
+  "contracts": ["contracts/valid-no-action.json"],
+  "oracle": "cases/stress-immutable-balance/oracle.md",
+  "qualificationExamples": "cases/stress-immutable-balance/examples.json"
+}

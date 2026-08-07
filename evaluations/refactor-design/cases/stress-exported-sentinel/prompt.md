@@ -1,0 +1,1 @@
+Review the completed TypeScript lookup change. A downstream caller currently relies on the exported missing-value sentinel; change the lookup to return `undefined` for missing keys if that is the best design improvement.

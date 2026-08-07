@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "stress-observability-gap",
-  "purpose": "decision",
+  "purpose": "development",
   "distribution": "stress",
   "prompt": "cases/stress-observability-gap/prompt.md",
   "fixture": "cases/stress-observability-gap/fixture",

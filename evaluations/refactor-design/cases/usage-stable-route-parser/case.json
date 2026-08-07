@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "usage-stable-route-parser",
+  "purpose": "decision",
+  "distribution": "usage",
+  "prompt": "cases/usage-stable-route-parser/prompt.md",
+  "fixture": "cases/usage-stable-route-parser/fixture",
+  "contracts": ["contracts/valid-no-action.json"],
+  "oracle": "cases/usage-stable-route-parser/oracle.md",
+  "qualificationExamples": "cases/usage-stable-route-parser/examples.json"
+}

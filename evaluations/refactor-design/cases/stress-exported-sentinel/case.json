@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "stress-exported-sentinel",
+  "purpose": "decision",
+  "distribution": "stress",
+  "prompt": "cases/stress-exported-sentinel/prompt.md",
+  "fixture": "cases/stress-exported-sentinel/fixture",
+  "contracts": ["contracts/authority-boundary.json"],
+  "oracle": "cases/stress-exported-sentinel/oracle.md",
+  "qualificationExamples": "cases/stress-exported-sentinel/examples.json"
+}

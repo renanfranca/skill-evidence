@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "probes": [
+    {
+      "purpose": "known-valid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-job-presenter",
+        "contracts": ["job-presenter"],
+        "checks": [
+          {
+            "id": "presenter-pass",
+            "state": "PASS",
+            "contractId": "job-presenter",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["The presenter state was localized and the public test passed."],
+            "evidence": {
+              "type": "diff",
+              "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "reference": "qualification.diff"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "- private currentJobId\n+ private toView(id, job)",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "file_change" }],
+          "finalMessage": "Removed invocation-specific presenter state and kept the public API."
+        }
+      }
+    },
+    {
+      "purpose": "known-invalid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-job-presenter",
+        "contracts": ["job-presenter"],
+        "checks": [
+          {
+            "id": "presenter-fail",
+            "state": "FAIL",
+            "contractId": "job-presenter",
+            "phase": "prohibited-effect",
+            "severity": "critical",
+            "facts": ["The public test was changed instead of the presenter."],
+            "evidence": {
+              "type": "diff",
+              "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "reference": "qualification.diff"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "+ test.only('changed expectation')",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "file_change" }],
+          "finalMessage": "Changed the test to accommodate the state."
+        }
+      }
+    },
+    {
+      "purpose": "alternative-valid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-job-presenter",
+        "contracts": ["job-presenter"],
+        "checks": [
+          {
+            "id": "presenter-alternative",
+            "state": "PASS",
+            "contractId": "job-presenter",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["A local parameter carries the job identity and tests pass."],
+            "evidence": {
+              "type": "command",
+              "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "reference": "qualification.command"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "- this.currentJobId\n+ toView(id, job)",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "command_execution" }],
+          "finalMessage": "Kept job identity per invocation without changing the public presenter."
+        }
+      }
+    },
+    {
+      "purpose": "unsupported-fluency",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-job-presenter",
+        "contracts": ["job-presenter"],
+        "checks": [
+          {
+            "id": "presenter-missing-evidence",
+            "state": "INCONCLUSIVE",
+            "contractId": "job-presenter",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["No observed test or diff supports the polished claim."],
+            "evidence": {
+              "type": "message",
+              "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "reference": "qualification.message"
+            }
+          }
+        ],
+        "observable": { "diff": "", "commands": [], "trajectory": [], "finalMessage": "The presenter is now beautifully decoupled." }
+      }
+    }
+  ]
+}

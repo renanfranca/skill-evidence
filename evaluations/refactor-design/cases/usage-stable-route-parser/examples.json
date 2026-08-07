@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "probes": [
+    {
+      "purpose": "known-valid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-stable-route-parser",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "route-pass",
+            "state": "PASS",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["The parser is pure, variants are explicit, and the public test passed."],
+            "evidence": {
+              "type": "command",
+              "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "reference": "qualification.command"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "command_execution" }],
+          "finalMessage": "No action: the route variants already make the pipeline clear."
+        }
+      }
+    },
+    {
+      "purpose": "known-invalid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-stable-route-parser",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "route-fail",
+            "state": "FAIL",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["A factory abstraction was added without an observed risk."],
+            "evidence": {
+              "type": "diff",
+              "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "reference": "qualification.diff"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "+ class RouteFactory {}",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "file_change" }],
+          "finalMessage": "Rewrote the route parser."
+        }
+      }
+    },
+    {
+      "purpose": "alternative-valid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-stable-route-parser",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "route-alternative",
+            "state": "PASS",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["The complete trajectory and green test support no file changes."],
+            "evidence": {
+              "type": "trajectory",
+              "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "reference": "qualification.trajectory",
+              "sequence": 0
+            }
+          }
+        ],
+        "observable": {
+          "diff": "",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "command_execution" }],
+          "finalMessage": "No refactor was justified: the discriminated route pipeline is already coherent."
+        }
+      }
+    },
+    {
+      "purpose": "unsupported-fluency",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-stable-route-parser",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "route-missing-evidence",
+            "state": "INCONCLUSIVE",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["No observed inspection or test supports the conclusion."],
+            "evidence": {
+              "type": "message",
+              "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "reference": "qualification.message"
+            }
+          }
+        ],
+        "observable": { "diff": "", "commands": [], "trajectory": [], "finalMessage": "This parser is excellent." }
+      }
+    }
+  ]
+}

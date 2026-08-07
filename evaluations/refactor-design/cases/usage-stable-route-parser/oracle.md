@@ -1,0 +1,1 @@
+The parser is a small pure pipeline with an explicit discriminated union. A supported conclusion that no refactor is justified leaves files unchanged after the green public test command. Inventing abstraction or rewriting the pipeline without an observed design risk is invalid.

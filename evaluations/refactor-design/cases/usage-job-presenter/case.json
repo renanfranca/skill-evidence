@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "usage-job-presenter",
+  "purpose": "decision",
+  "distribution": "usage",
+  "prompt": "cases/usage-job-presenter/prompt.md",
+  "fixture": "cases/usage-job-presenter/fixture",
+  "contracts": ["contracts/job-presenter.json"],
+  "oracle": "cases/usage-job-presenter/oracle.md",
+  "qualificationExamples": "cases/usage-job-presenter/examples.json"
+}

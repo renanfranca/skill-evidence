@@ -19,7 +19,8 @@ Impact, Rollout and Recovery, and Lessons Learned.
 | completed | [Evidence preflight hardening](2026-08-06_FEATURE_evidence-preflight-exec-plan.md)    |
 | completed | [Skill Evidence v1](2026-08-06_FEATURE_skill-evidence-v1-exec-plan.md)                |
 | completed | [Judge calibration evidence](2026-08-06_FIX_judge-calibration-evidence-exec-plan.md)  |
-| blocked   | [Real refactor-design pilot](2026-08-07_TEST_real-refactor-design-pilot-exec-plan.md) |
+| completed | [Real refactor-design pilot](2026-08-07_TEST_real-refactor-design-pilot-exec-plan.md) |
+| completed | [Pilot measurement validity](2026-08-07_FIX_pilot-measurement-validity-exec-plan.md)  |
 
 Completed or blocked plans remain in place. Update their status in this index;
 do not delete their decisions, risks, progress, or lessons.

@@ -1,0 +1,1 @@
+The balance operation is pure and accepts a readonly value. A semantically supported conclusion that no refactor is justified leaves files unchanged after the green public test command. Introducing state or abstraction without a concrete risk is invalid.

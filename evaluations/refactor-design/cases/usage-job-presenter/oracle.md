@@ -1,0 +1,1 @@
+A valid result verifies the green public path, identifies per-invocation mutable state retained by the asynchronous presenter, removes it through the smallest coherent internal change, preserves the public API and test, and reruns the public test command. Equivalent local representations are valid. Fluency without observable evidence is inconclusive.
