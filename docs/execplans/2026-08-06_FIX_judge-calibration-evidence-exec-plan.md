@@ -232,9 +232,9 @@ os 16 probes das quatro decision cases, todos com judge input válido.
 
 #### Validation
 
-- [ ] `env SKILL_EVIDENCE_CODEX_BIN="$PWD/test/fixtures/fake-codex.mjs" npm test`
-- [ ] `npm run lint && npm run typecheck`
-- [ ] `node dist/cli.js check evaluations/refactor-design`
+- [x] `env SKILL_EVIDENCE_CODEX_BIN="$PWD/test/fixtures/fake-codex.mjs" npm test`
+- [x] `npm run lint && npm run typecheck`
+- [x] `node dist/cli.js check evaluations/refactor-design`
 
 #### Acceptance Criteria
 
@@ -261,8 +261,8 @@ auditável.
 
 #### Validation
 
-- [ ] `env SKILL_EVIDENCE_CODEX_BIN="$PWD/test/fixtures/fake-codex.mjs" npm test`
-- [ ] `npm run build && node dist/cli.js check evaluations/refactor-design`
+- [x] `env SKILL_EVIDENCE_CODEX_BIN="$PWD/test/fixtures/fake-codex.mjs" npm test`
+- [x] `npm run build && node dist/cli.js check evaluations/refactor-design`
 
 #### Acceptance Criteria
 
@@ -288,9 +288,9 @@ posteriores e faz a CLI retornar código não zero depois de escrever o report.
 
 #### Validation
 
-- [ ] `env SKILL_EVIDENCE_CODEX_BIN="$PWD/test/fixtures/fake-codex.mjs" npm test`
-- [ ] `npm run build`
-- [ ] Run fake público explicitado em Validation Strategy.
+- [x] `env SKILL_EVIDENCE_CODEX_BIN="$PWD/test/fixtures/fake-codex.mjs" npm test`
+- [x] `npm run build`
+- [x] Run fake público explicitado em Validation Strategy.
 
 #### Acceptance Criteria
 

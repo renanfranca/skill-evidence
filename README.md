@@ -116,4 +116,4 @@ commits, pushes, or publishes files.
 
 Executor and judge behavior remains probabilistic and correlated. One future execution per decision case cannot establish repeatability, stability, broad robustness, causal contribution, or population-level generalization. The calibration checks rubric discrimination, not judge independence. A human confirmation accepts only the bounded Evidence v2 record; it does not turn `NOT_EVALUATED` claims into supported claims.
 
-The living implementation record is [the judge-calibration ExecPlan](docs/execplans/2026-08-06_FIX_judge-calibration-evidence-exec-plan.md).
+The living implementation records are in [the canonical ExecPlan index](docs/execplans/README.md).
