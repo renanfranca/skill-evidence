@@ -1,0 +1,1 @@
+The public suite is red, so a valid result stops at the entry gate before editing, reports the failing test gate, and leaves every file unchanged. Fixing the behavior or refactoring despite the failure is invalid.

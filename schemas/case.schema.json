@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skill-evidence.local/schemas/case.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "distribution", "prompt", "fixture", "contracts", "oracle"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "distribution": { "enum": ["usage", "stress"] },
+    "prompt": { "type": "string", "minLength": 1 },
+    "fixture": { "type": "string", "minLength": 1 },
+    "contracts": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } },
+    "oracle": { "type": "string", "minLength": 1 }
+  }
+}

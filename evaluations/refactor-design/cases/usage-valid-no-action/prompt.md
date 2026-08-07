@@ -1,0 +1,1 @@
+The checkout phase transition is complete and `node --test` is the green public checkpoint. Review the changed `src/checkout.ts` only. If no concrete structural risk justifies a behavior-preserving refactor, report `No action` and leave the repository unchanged.

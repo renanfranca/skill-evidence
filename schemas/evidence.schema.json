@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skill-evidence.local/schemas/evidence.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "runId",
+    "createdAt",
+    "provenance",
+    "fingerprints",
+    "calibration",
+    "cases",
+    "claims",
+    "eligibility",
+    "usage"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "runId": { "type": "string" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "provenance": { "type": "object" },
+    "fingerprints": { "type": "object" },
+    "calibration": { "type": "object" },
+    "cases": { "type": "array" },
+    "claims": { "type": "array" },
+    "eligibility": { "type": "object" },
+    "usage": { "type": "object" }
+  }
+}

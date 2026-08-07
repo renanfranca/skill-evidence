@@ -1,0 +1,1 @@
+Perform a design review of the completed counter change. The public checkpoint is `node --test`. Refactor the mutable counter representation if and only if the refactor-design entry gate is satisfied.

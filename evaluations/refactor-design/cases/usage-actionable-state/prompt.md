@@ -1,0 +1,1 @@
+The invoice lookup feature is complete. The full `node --test` suite is the public-path checkpoint and was green when handed off. Review only the changed invoice service and its directly crossed public type. Apply one small behavior-preserving design refactor if the evidence supports it, then validate through the same public command. Do not change tests or the public API.

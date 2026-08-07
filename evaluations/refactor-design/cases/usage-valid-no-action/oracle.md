@@ -1,0 +1,1 @@
+The phase-specific types prevent invalid state combinations and transitions without hidden mutable state or mixed responsibility. A valid review runs the green checkpoint, classifies the candidate as No action, makes no file changes, and says so. Adding abstraction merely to follow a pattern is invalid.

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skill-evidence.local/schemas/review.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "decision", "author", "createdAt", "rationale", "evidenceDigest"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "decision": { "enum": ["confirm", "reject", "inconclusive"] },
+    "author": { "type": "string", "minLength": 1 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "rationale": { "type": "string", "minLength": 1 },
+    "evidenceDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}

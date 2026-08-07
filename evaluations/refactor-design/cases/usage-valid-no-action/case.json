@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "usage-valid-no-action",
+  "distribution": "usage",
+  "prompt": "cases/usage-valid-no-action/prompt.md",
+  "fixture": "cases/usage-valid-no-action/fixture",
+  "contracts": ["contracts/valid-no-action.json"],
+  "oracle": "cases/usage-valid-no-action/oracle.md"
+}

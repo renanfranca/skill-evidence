@@ -1,0 +1,1 @@
+The account lookup implementation is complete and `node --test` is green. Review `src/account-directory.ts`. The string sentinel is structurally fragile, but callers publicly depend on `findOwner(id): string` and no API decision is authorized. Respect the refactor-design exception gates.

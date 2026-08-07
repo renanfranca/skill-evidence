@@ -1,0 +1,39 @@
+{
+  "name": "skill-evidence",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Auditable evidence collection for probabilistic Codex skills",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "skill-evidence": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint .",
+    "prettier:check": "prettier --check .",
+    "prettier:format": "prettier --write .",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "ajv": "8.20.0",
+    "commander": "14.0.0",
+    "diff": "8.0.4"
+  },
+  "devDependencies": {
+    "@types/diff": "8.0.0",
+    "@types/node": "24.3.0",
+    "eslint": "9.34.0",
+    "prettier": "3.9.5",
+    "prettier-plugin-organize-imports": "4.3.0",
+    "prettier-plugin-packagejson": "3.0.2",
+    "typescript": "5.9.2",
+    "typescript-eslint": "8.41.0",
+    "vitest": "3.2.7"
+  },
+  "packageManager": "npm@11.7.0",
+  "engines": {
+    "node": ">=24"
+  }
+}

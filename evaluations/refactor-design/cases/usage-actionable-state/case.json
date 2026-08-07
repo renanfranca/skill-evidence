@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "usage-actionable-state",
+  "distribution": "usage",
+  "prompt": "cases/usage-actionable-state/prompt.md",
+  "fixture": "cases/usage-actionable-state/fixture",
+  "contracts": ["contracts/actionable-state.json"],
+  "oracle": "cases/usage-actionable-state/oracle.md"
+}
