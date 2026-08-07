@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skill-evidence.local/schemas/judge-input.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "caseId", "contracts", "checks", "observable"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "caseId": { "$ref": "#/$defs/id" },
+    "contracts": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+    "checks": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/check" } },
+    "observable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["diff", "commands", "trajectory", "finalMessage"],
+      "properties": {
+        "diff": { "type": "string" },
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["argv", "exitCode", "stdout", "stderr"],
+            "properties": {
+              "argv": { "type": "array", "items": { "type": "string" } },
+              "exitCode": { "type": "integer" },
+              "stdout": { "type": "string" },
+              "stderr": { "type": "string" }
+            }
+          }
+        },
+        "trajectory": { "type": "array" },
+        "finalMessage": { "type": "string" }
+      }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "state", "contractId", "phase", "severity", "facts", "evidence"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "state": { "enum": ["PASS", "FAIL", "INCONCLUSIVE", "ERROR"] },
+        "contractId": { "$ref": "#/$defs/id" },
+        "phase": { "enum": ["precondition", "required-effect", "prohibited-effect", "temporal"] },
+        "severity": { "enum": ["critical", "major", "minor"] },
+        "facts": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "digest", "reference"],
+          "properties": {
+            "type": { "enum": ["diff", "command", "trajectory", "message", "path-audit", "skill-fingerprint"] },
+            "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "reference": { "type": "string", "minLength": 1 },
+            "sequence": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}

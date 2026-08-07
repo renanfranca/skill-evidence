@@ -25,6 +25,7 @@ export async function reviewRun(
   const evidence = await readJson<Evidence>(evidenceFile);
   await validateSchema('evidence', evidence, evidenceFile);
   if (decision === 'confirm' && !evidence.eligibility.confirm) throw new Error('Cannot confirm an ineligible run');
+  if (decision === 'confirm' && evidence.schemaVersion !== 2) throw new Error('Evidence v2 is required for confirmation');
   const rationale = await readFile(rationaleFile, 'utf8');
   assertArchiveSafe(rationale, 100_000);
   const review = {

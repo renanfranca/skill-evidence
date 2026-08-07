@@ -1,0 +1,8 @@
+{
+  "name": "stress-observability-gap",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

@@ -53,6 +53,6 @@ export async function runProcess(
 }
 
 export function reducedEnvironment(): NodeJS.ProcessEnv {
-  const allowed = ['PATH', 'CODEX_HOME', 'CODEX_API_KEY', 'OPENAI_API_KEY', 'USER', 'LOGNAME', 'LANG', 'LC_ALL', 'TMPDIR'];
+  const allowed = ['PATH', 'CODEX_HOME', 'CODEX_API_KEY', 'OPENAI_API_KEY', 'USER', 'LOGNAME', 'LANG', 'LC_ALL'];
   return Object.fromEntries(allowed.flatMap(key => (process.env[key] === undefined ? [] : [[key, process.env[key]]]))) as NodeJS.ProcessEnv;
 }

@@ -1,0 +1,6 @@
+{
+  "alternative": "A request-scoped immutable value object replaces the field and preserves behavior.",
+  "invalid": "The shared requestId field remains or tests are weakened.",
+  "unsupported": "The response says state was removed without diff and green command evidence.",
+  "valid": "The identifier becomes a local parameter, the field disappears, and tests pass."
+}

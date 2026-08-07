@@ -1,5 +1,6 @@
+import { canonicalDigest } from './canonical.js';
 import { runProcess } from './process.js';
-import type { CheckSpec, Contract, NormalizedEvent } from './types.js';
+import type { CheckEvidence, CheckSpec, Contract, NormalizedEvent } from './types.js';
 
 interface CheckContext {
   workspace: string;
@@ -8,6 +9,34 @@ interface CheckContext {
   events: NormalizedEvent[];
   skillChanged: boolean;
   timeoutMs: number;
+}
+
+function evidenceType(check: CheckSpec): CheckEvidence['evidence']['type'] {
+  if (check.type === 'command-exit') return 'command';
+  if (check.type === 'message-match') return 'message';
+  if (check.type === 'no-write-outside') return 'path-audit';
+  if (check.type === 'skill-unchanged') return 'skill-fingerprint';
+  return 'diff';
+}
+
+function evidenceRecord(
+  contract: Contract,
+  phase: CheckEvidence['phase'],
+  index: number,
+  check: CheckSpec,
+  state: CheckEvidence['state'],
+  detail: string,
+): CheckEvidence {
+  const type = evidenceType(check);
+  return {
+    id: `${contract.id}:${phase}:${index}`,
+    state,
+    contractId: contract.id,
+    phase,
+    severity: contract.severity,
+    facts: [detail],
+    evidence: { type, digest: canonicalDigest({ check, detail, state }), reference: `${type}:${contract.id}:${index}` },
+  };
 }
 
 export function isSkillPreserved(skillChanged: boolean): boolean {
@@ -59,31 +88,60 @@ export async function evaluateContracts(
 ): Promise<{
   violations: { contractId: string; severity: string; detail: string }[];
   commands: { argv: string[]; exitCode: number; stdout: string; stderr: string }[];
+  checks: CheckEvidence[];
 }> {
   const violations: { contractId: string; severity: string; detail: string }[] = [];
   const commands: { argv: string[]; exitCode: number; stdout: string; stderr: string }[] = [];
+  const checks: CheckEvidence[] = [];
   for (const contract of contracts) {
-    for (const check of contract.requiredEffects) {
+    for (const [index, check] of contract.requiredEffects.entries()) {
       const result = await satisfied(check, context);
       if (result.command) commands.push(result.command);
       if (!result.passed) violations.push({ contractId: contract.id, severity: contract.severity, detail: result.detail });
+      checks.push(evidenceRecord(contract, 'required-effect', index, check, result.passed ? 'PASS' : 'FAIL', result.detail));
     }
-    for (const check of contract.prohibitedEffects) {
+    for (const [index, check] of contract.prohibitedEffects.entries()) {
       const result = await satisfied(check, context);
       if (result.command) commands.push(result.command);
       if (result.passed)
         violations.push({ contractId: contract.id, severity: contract.severity, detail: `Prohibited effect: ${result.detail}` });
+      checks.push(
+        evidenceRecord(
+          contract,
+          'prohibited-effect',
+          index,
+          check,
+          result.passed ? 'FAIL' : 'PASS',
+          result.passed ? `Prohibited effect: ${result.detail}` : result.detail,
+        ),
+      );
     }
-    for (const temporal of contract.temporalConstraints) {
-      if (!temporalOrderObserved(context.events, temporal.before, temporal.after))
+    for (const [index, temporal] of contract.temporalConstraints.entries()) {
+      const passed = temporalOrderObserved(context.events, temporal.before, temporal.after);
+      const detail = `Temporal order ${passed ? 'observed' : 'not observed'}: ${temporal.before} before ${temporal.after}`;
+      if (!passed)
         violations.push({
           contractId: contract.id,
           severity: contract.severity,
           detail: `Temporal order not observed: ${temporal.before} before ${temporal.after}`,
         });
+      checks.push({
+        id: `${contract.id}:temporal:${index}`,
+        state: passed ? 'PASS' : 'FAIL',
+        contractId: contract.id,
+        phase: 'temporal',
+        severity: contract.severity,
+        facts: [detail],
+        evidence: {
+          type: 'trajectory',
+          digest: canonicalDigest({ events: context.events, temporal }),
+          reference: `trajectory:${contract.id}:${index}`,
+          sequence: Math.max(0, context.events.length - 1),
+        },
+      });
     }
   }
-  return { violations, commands };
+  return { violations, commands, checks };
 }
 
 export async function evaluatePreconditions(
@@ -92,15 +150,18 @@ export async function evaluatePreconditions(
 ): Promise<{
   violations: { contractId: string; severity: string; detail: string }[];
   commands: { argv: string[]; exitCode: number; stdout: string; stderr: string }[];
+  checks: CheckEvidence[];
 }> {
   const violations: { contractId: string; severity: string; detail: string }[] = [];
   const commands: { argv: string[]; exitCode: number; stdout: string; stderr: string }[] = [];
+  const checks: CheckEvidence[] = [];
   for (const contract of contracts) {
-    for (const check of contract.preconditions) {
+    for (const [index, check] of contract.preconditions.entries()) {
       const result = await satisfied(check, context);
       if (result.command) commands.push(result.command);
       if (!result.passed) violations.push({ contractId: contract.id, severity: contract.severity, detail: result.detail });
+      checks.push(evidenceRecord(contract, 'precondition', index, check, result.passed ? 'PASS' : 'FAIL', result.detail));
     }
   }
-  return { violations, commands };
+  return { violations, commands, checks };
 }

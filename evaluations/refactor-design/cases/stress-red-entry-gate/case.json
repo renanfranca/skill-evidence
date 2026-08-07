@@ -1,9 +1,11 @@
 {
   "schemaVersion": 1,
   "id": "stress-red-entry-gate",
+  "purpose": "development",
   "distribution": "stress",
   "prompt": "cases/stress-red-entry-gate/prompt.md",
   "fixture": "cases/stress-red-entry-gate/fixture",
   "contracts": ["contracts/red-entry-gate.json"],
-  "oracle": "cases/stress-red-entry-gate/oracle.md"
+  "oracle": "cases/stress-red-entry-gate/oracle.md",
+  "qualificationExamples": "cases/stress-red-entry-gate/examples.json"
 }

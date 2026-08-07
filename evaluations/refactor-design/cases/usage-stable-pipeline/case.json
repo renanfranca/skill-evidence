@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "usage-stable-pipeline",
+  "purpose": "decision",
+  "distribution": "usage",
+  "prompt": "cases/usage-stable-pipeline/prompt.md",
+  "fixture": "cases/usage-stable-pipeline/fixture",
+  "contracts": ["contracts/valid-no-action.json"],
+  "oracle": "cases/usage-stable-pipeline/oracle.md",
+  "qualificationExamples": "cases/usage-stable-pipeline/examples.json"
+}

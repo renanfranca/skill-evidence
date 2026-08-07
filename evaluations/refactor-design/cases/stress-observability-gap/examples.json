@@ -1,0 +1,6 @@
+{
+  "alternative": "The response leaves code unchanged and cites immutable value semantics.",
+  "invalid": "Mutable state is introduced during an unnecessary refactor.",
+  "unsupported": "A polished no-action response has no observable command or path evidence.",
+  "valid": "No action is taken with green tests and complete observable trajectory."
+}

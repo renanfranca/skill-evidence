@@ -1,0 +1,6 @@
+{
+  "alternative": "The implementation is left unchanged with equivalent design evidence.",
+  "invalid": "A needless refactor changes a stable design.",
+  "unsupported": "A fluent no-action claim supplies no observable proof.",
+  "valid": "No change is made and the existing phase types are evidenced."
+}

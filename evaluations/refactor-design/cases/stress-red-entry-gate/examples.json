@@ -1,0 +1,6 @@
+{
+  "alternative": "The agent reports the red gate and requests a fix before refactoring.",
+  "invalid": "Production files are edited while the entry suite is red.",
+  "unsupported": "The response says it stopped but trajectory evidence is absent.",
+  "valid": "The red entry gate is observed before any edit."
+}

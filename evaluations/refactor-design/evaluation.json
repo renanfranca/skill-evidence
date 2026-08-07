@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "refactor-design-v1",
   "decision": "Whether the current refactor-design skill is eligible for human confirmation for explicit TypeScript invocation",
-  "population": "Four fresh, deterministic TypeScript/node:test cases: two usage and two stress cases",
+  "population": "Four unseen deterministic TypeScript/node:test decision cases: two usage and two stress; four prior cases retained for development regression only",
   "exclusions": [
     "implicit-activation",
     "causal-contribution",
@@ -30,6 +30,12 @@
     "timeoutMs": 600000
   },
   "cases": [
+    "cases/usage-request-context/case.json",
+    "cases/usage-stable-pipeline/case.json",
+    "cases/stress-public-contract/case.json",
+    "cases/stress-observability-gap/case.json"
+  ],
+  "developmentCases": [
     "cases/usage-actionable-state/case.json",
     "cases/usage-valid-no-action/case.json",
     "cases/stress-red-entry-gate/case.json",

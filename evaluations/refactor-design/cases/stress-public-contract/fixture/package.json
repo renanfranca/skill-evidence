@@ -1,0 +1,8 @@
+{
+  "name": "stress-public-contract",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

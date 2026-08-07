@@ -1,14 +1,14 @@
 # Skill Evidence
 
-`skill-evidence` is a private, standalone Node/TypeScript CLI for collecting an auditable evidence chain about probabilistic Codex skills. Version 1 evaluates the current `refactor-design` skill only when it is explicitly invoked in four fresh TypeScript cases.
+`skill-evidence` is a private Node/TypeScript CLI for collecting an auditable evidence chain about probabilistic Codex skills. The current pilot evaluates explicit TypeScript invocation of `refactor-design` with deterministic preflight, strict evidence artifacts, isolated execution, calibrated semantic judgment, and explicit session and credit authorization.
 
-The pilot operationalizes the evaluation theory at `renanfranca/skill-evaluation-theory@c1fb47c40b806596d89fa3196e53967f20c8926c` and records the target skill as `renanfranca/codex-skills@ed5738175f19307bd13bd75b86514ac0f1db5f84`. It neither imports `develop-skill-with-evals` nor reads anything under `refactor-design/evals/`.
+The implementation operationalizes `renanfranca/skill-evaluation-theory@c1fb47c40b806596d89fa3196e53967f20c8926c`, which remains normative, and records the target skill as `renanfranca/codex-skills@ed5738175f19307bd13bd75b86514ac0f1db5f84`. It neither imports `develop-skill-with-evals` nor reads anything under `refactor-design/evals/`.
 
 ## Requirements
 
 - Node.js 24 or newer
 - npm 11
-- a healthy, authenticated Codex CLI for real runs
+- a healthy, authenticated Codex CLI only for a separately authorized real run
 
 Install and validate locally:
 
@@ -28,20 +28,29 @@ Validate and fingerprint the evaluation without model calls:
 ```bash
 skill-evidence check evaluations/refactor-design
 skill-evidence plan evaluations/refactor-design \
-  --model gpt-5.6-terra --reasoning-effort xhigh \
+  --model gpt-5.6-luna --reasoning-effort max \
   --judge-model gpt-5.6-terra --judge-reasoning-effort xhigh \
-  --out plan.json
+  --out .skill-evidence/next-plan.json
+skill-evidence preflight \
+  --plan .skill-evidence/next-plan.json \
+  --out .skill-evidence/next-preflight.json
 ```
 
-Run only after approving the exact maximum shown by the plan:
+`preflight` is deterministic and makes no model call. Its strict canonical JSON records stable checks with `PASS`, `FAIL`, `INCONCLUSIVE`, or `ERROR`, plus contract, phase, severity, observed facts, evidence type, digest, reference, and temporal position where applicable. It rejects drift in the engine, schemas, evaluation inputs, original or filtered skill, and the configured executor/judge condition.
+
+A future run requires both explicit approvals:
 
 ```bash
-skill-evidence run --plan plan.json --approve-sessions 9
+skill-evidence run \
+  --plan .skill-evidence/next-plan.json \
+  --preflight .skill-evidence/next-preflight.json \
+  --approve-sessions 9 \
+  --max-credits 3.33
 ```
 
-The runner uses a single judge-calibration session, four sequential executor sessions, and at most four judge sessions. It rechecks the evaluation and filtered skill fingerprints before the first model call. Executors receive only the public prompt, disposable fixture, and a repository-scoped `$refactor-design` snapshot. Contracts, oracles, expected behavior, and judge probes stay outside their workspace.
+The prepared condition uses `gpt-5.6-luna/max` for four executors and `gpt-5.6-terra/xhigh` for one calibration and up to four judges. The projected maximum is nine sessions and 3.33 credits, approximately 61% below the previous Terra/Terra pilot. The credit limit is checked immediately before each next session; it cannot retroactively interrupt a session that already started.
 
-Review, archive, and regenerate a report:
+No real run is part of repository validation. Human review and archive creation remain separate, explicit operator actions:
 
 ```bash
 skill-evidence review --run .skill-evidence/runs/<run-id> \
@@ -50,24 +59,26 @@ skill-evidence archive --run .skill-evidence/runs/<run-id>
 skill-evidence render --evidence archive/<run-id>/evidence.json
 ```
 
-Confirmation is rejected unless all four cases pass, calibration succeeds, observability is complete, and no critical direct violation exists. A favorable judge cannot override direct evidence. Reports are deterministic projections of canonical JSON and have no aggregate score.
+Confirmation requires eligible Evidence v2. Evidence v1 remains renderable for historical audit but cannot be confirmed. A critical direct failure always overrides a favorable judge.
 
-## Evidence model
+## Evidence and judge boundary
 
-Versioned JSON Schemas under `schemas/` define evaluations, cases, contracts, evidence, and human reviews. Prompts, oracles, rubrics, reports, and human rationales remain Markdown. Case states are `PASS`, `FAIL`, `INCONCLUSIVE`, and `ERROR`; claim states are `SUPPORTED`, `NOT_SUPPORTED`, `INCONCLUSIVE`, and `NOT_EVALUATED`.
+Strict schemas under `schemas/` define evaluation inputs, `preflight.json`, `judge-input.json`, Evidence v1/v2, and review. Every contractual check materializes positive or negative facts with a stable ID and evidence digest. Fingerprints, path audits, commands, diffs, trajectories, and final messages are explicit evidence rather than inferred from prose.
 
-The evaluated claims are instructional fidelity, outcome quality, process compliance, and safety/noninterference. Implicit activation, causal contribution, version comparison, stability, robustness, generalization, and other languages are explicitly `NOT_EVALUATED`.
+The judge receives only a sanitized canonical `judge-input/<case-id>.json` plus the private oracle. If required evidence is missing or a relevant executor event is unknown, the case is `INCONCLUSIVE`, no judge packet is created, and no judge session starts. Raw reasoning is discarded. A complete Evidence v2 ledger records each session separately with role, case, input tokens, cached input tokens, output tokens, and credits.
 
-Raw JSONL and failed workspaces remain local under `.skill-evidence/` for diagnosis. Canonical evidence excludes private reasoning and sanitizes credential-like values. Archives contain only the filtered skill snapshot, canonical evidence, matching human review, and regenerable report; raw events, workspaces, and secrets are forbidden. No command stages, commits, pushes, or publishes files.
+Case states are `PASS`, `FAIL`, `INCONCLUSIVE`, and `ERROR`. Claim states are `SUPPORTED`, `NOT_SUPPORTED`, `INCONCLUSIVE`, and `NOT_EVALUATED`. Causal contribution, version comparison, stability, robustness, generalization, implicit activation, and other languages remain `NOT_EVALUATED`.
 
-## Runtime isolation
+## Evaluation isolation
 
-Real executors follow the official [Codex skills discovery](https://developers.openai.com/codex/skills) and [`codex exec` reference](https://developers.openai.com/codex/cli/reference): ephemeral JSONL sessions, ignored user configuration and rules, `workspace-write`, no approvals, and disabled sandbox network access. The global homonymous skill is absent because user configuration is ignored; the filtered snapshot is installed at `.agents/skills/refactor-design` in the disposable repository. The snapshot and original skill are fingerprinted, and any mutation is a critical violation.
+The four cases from the first pilot are now development/regression material and cannot influence eligibility. Four new decision cases—two usage and two stress—alone feed the decision. Each decision case supplies valid, invalid, alternative-valid, and fluent-without-evidence examples; all sixteen examples are qualified in the single future calibration session. These new decision cases have only been exercised with the local fake executable during implementation, not sent to a model.
 
-Fixtures and mechanical commands are trusted local content. They run as direct argv arrays with a reduced environment and timeout, never through a shell. Successful workspaces are removed; failures remain for diagnosis and must not be rerun without a material diagnosis or change.
+Executors receive only the public prompt, disposable fixture, and repository-scoped filtered `$refactor-design` snapshot. Contracts, oracles, qualification examples, expected behavior, and judge packets remain outside their workspace. The executor condition uses `workspace-write`, disabled network access, no additional writable roots, and no `/tmp` or `$TMPDIR` exception. The original skill and filtered snapshot are fingerprinted; relevant unknown events make observability incomplete.
+
+Raw JSONL and failed workspaces remain local under ignored `.skill-evidence/` for diagnosis. Canonical evidence excludes private reasoning and sanitizes credential-like values. No command automatically reviews, archives, stages, commits, pushes, or publishes files.
 
 ## Limits
 
-Using Terra for both executor and judge does not make their judgments independent. Each case runs once, so this pilot does not establish repeatability, stability, robustness, or population-level generalization. A human decision records whether the bounded evidence is accepted; it does not turn unevaluated claims into supported ones.
+Executor and judge behavior remains probabilistic and correlated. One future execution per decision case cannot establish repeatability, stability, broad robustness, causal contribution, or population-level generalization. The calibration checks rubric discrimination, not judge independence. A human confirmation accepts only the bounded Evidence v2 record; it does not turn `NOT_EVALUATED` claims into supported claims.
 
-The living implementation record is [the Skill Evidence v1 ExecPlan](docs/execplans/2026-08-06_FEATURE_skill-evidence-v1-exec-plan.md).
+The living implementation record is [the Evidence preflight ExecPlan](docs/execplans/2026-08-06_FEATURE_evidence-preflight-exec-plan.md).

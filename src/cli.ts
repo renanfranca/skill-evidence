@@ -4,6 +4,7 @@ import { loadEvaluation } from './evaluation.js';
 import { readJson } from './files.js';
 import { archiveRun, reviewRun, writeReport } from './lifecycle.js';
 import { createPlan } from './plan.js';
+import { createPreflight } from './preflight.js';
 import { renderEvidence } from './report.js';
 import { executePlan } from './runner.js';
 import type { Evidence } from './types.js';
@@ -19,7 +20,13 @@ interface PlanOptions {
 }
 interface RunOptions {
   plan: string;
+  preflight: string;
   approveSessions: number;
+  maxCredits: number;
+}
+interface PreflightOptions {
+  plan: string;
+  out: string;
 }
 interface ReviewOptions {
   run: string;
@@ -61,11 +68,22 @@ program
   });
 
 program
+  .command('preflight')
+  .requiredOption('--plan <file>')
+  .requiredOption('--out <file>')
+  .action(async (options: PreflightOptions) => {
+    const preflight = await createPreflight(options.plan, options.out);
+    process.stdout.write(`${preflight.eligible ? 'ELIGIBLE' : 'INELIGIBLE'} ${options.out}\n`);
+  });
+
+program
   .command('run')
   .requiredOption('--plan <file>')
+  .requiredOption('--preflight <file>')
   .requiredOption('--approve-sessions <count>', 'maximum model sessions explicitly approved', (value: string) => Number.parseInt(value, 10))
+  .requiredOption('--max-credits <credits>', 'maximum credits explicitly approved', (value: string) => Number.parseFloat(value))
   .action(async (options: RunOptions) => {
-    const result = await executePlan(options.plan, options.approveSessions);
+    const result = await executePlan(options.plan, options.preflight, options.approveSessions, options.maxCredits);
     await writeReport(`${result.runDirectory}/evidence.json`);
     process.stdout.write(`${result.runDirectory}\n`);
   });

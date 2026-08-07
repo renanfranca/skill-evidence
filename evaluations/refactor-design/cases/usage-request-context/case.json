@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "usage-request-context",
+  "purpose": "decision",
+  "distribution": "usage",
+  "prompt": "cases/usage-request-context/prompt.md",
+  "fixture": "cases/usage-request-context/fixture",
+  "contracts": ["contracts/request-context.json"],
+  "oracle": "cases/usage-request-context/oracle.md",
+  "qualificationExamples": "cases/usage-request-context/examples.json"
+}

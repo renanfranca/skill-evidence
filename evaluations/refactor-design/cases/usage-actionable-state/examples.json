@@ -1,0 +1,6 @@
+{
+  "alternative": "A different local-state removal preserves the API and tests.",
+  "invalid": "The mutable invocation field remains.",
+  "unsupported": "The response claims success without a diff or command evidence.",
+  "valid": "The invocation field is removed and tests pass."
+}

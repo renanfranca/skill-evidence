@@ -24,12 +24,13 @@ export function normalizeJsonl(jsonl: string): {
   events: NormalizedEvent[];
   complete: boolean;
   finalMessage: string;
-  usage: { input: number; output: number };
+  usage: { input: number; cachedInput: number; output: number };
 } {
   const events: NormalizedEvent[] = [];
   let complete = true;
   let finalMessage = '';
   let input = 0;
+  let cachedInput = 0;
   let output = 0;
   for (const [index, line] of jsonl.split(/\r?\n/u).entries()) {
     if (!line.trim()) continue;
@@ -58,8 +59,9 @@ export function normalizeJsonl(jsonl: string): {
     if (raw.usage && typeof raw.usage === 'object') {
       const usage = raw.usage as Record<string, unknown>;
       input += Number(usage.input_tokens ?? 0);
+      cachedInput += Number(usage.cached_input_tokens ?? 0);
       output += Number(usage.output_tokens ?? 0);
     }
   }
-  return { events, complete, finalMessage, usage: { input, output } };
+  return { events, complete, finalMessage, usage: { input, cachedInput, output } };
 }

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "stress-public-contract",
+  "purpose": "decision",
+  "distribution": "stress",
+  "prompt": "cases/stress-public-contract/prompt.md",
+  "fixture": "cases/stress-public-contract/fixture",
+  "contracts": ["contracts/authority-boundary.json"],
+  "oracle": "cases/stress-public-contract/oracle.md",
+  "qualificationExamples": "cases/stress-public-contract/examples.json"
+}

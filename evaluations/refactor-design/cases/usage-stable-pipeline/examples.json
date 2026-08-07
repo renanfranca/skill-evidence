@@ -1,0 +1,6 @@
+{
+  "alternative": "A no-change conclusion cites purity and explicit stage types.",
+  "invalid": "The implementation is rewritten without an observable design risk.",
+  "unsupported": "The response praises the design without inspecting files or tests.",
+  "valid": "No action is taken and green tests plus structure support the conclusion."
+}

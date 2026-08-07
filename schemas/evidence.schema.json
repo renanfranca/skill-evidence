@@ -1,30 +1,246 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://skill-evidence.local/schemas/evidence.schema.json",
-  "type": "object",
-  "additionalProperties": false,
-  "required": [
-    "schemaVersion",
-    "runId",
-    "createdAt",
-    "provenance",
-    "fingerprints",
-    "calibration",
-    "cases",
-    "claims",
-    "eligibility",
-    "usage"
-  ],
-  "properties": {
-    "schemaVersion": { "const": 1 },
-    "runId": { "type": "string" },
-    "createdAt": { "type": "string", "format": "date-time" },
-    "provenance": { "type": "object" },
-    "fingerprints": { "type": "object" },
-    "calibration": { "type": "object" },
-    "cases": { "type": "array" },
-    "claims": { "type": "array" },
-    "eligibility": { "type": "object" },
-    "usage": { "type": "object" }
+  "oneOf": [{ "$ref": "#/$defs/v1" }, { "$ref": "#/$defs/v2" }],
+  "$defs": {
+    "baseProperties": {
+      "runId": { "type": "string", "minLength": 1 },
+      "createdAt": { "type": "string", "format": "date-time" },
+      "provenance": { "type": "object" },
+      "fingerprints": { "type": "object", "additionalProperties": { "type": "string" } },
+      "calibration": { "type": "object" },
+      "cases": { "type": "array" },
+      "claims": { "type": "array" },
+      "eligibility": { "type": "object" }
+    },
+    "v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "runId",
+        "createdAt",
+        "provenance",
+        "fingerprints",
+        "calibration",
+        "cases",
+        "claims",
+        "eligibility",
+        "usage"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "runId": { "$ref": "#/$defs/baseProperties/runId" },
+        "createdAt": { "$ref": "#/$defs/baseProperties/createdAt" },
+        "provenance": { "$ref": "#/$defs/baseProperties/provenance" },
+        "fingerprints": { "$ref": "#/$defs/baseProperties/fingerprints" },
+        "calibration": { "$ref": "#/$defs/baseProperties/calibration" },
+        "cases": { "$ref": "#/$defs/baseProperties/cases" },
+        "claims": { "$ref": "#/$defs/baseProperties/claims" },
+        "eligibility": { "$ref": "#/$defs/baseProperties/eligibility" },
+        "usage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sessions", "inputTokens", "outputTokens"],
+          "properties": {
+            "sessions": { "type": "integer", "minimum": 0 },
+            "inputTokens": { "type": "integer", "minimum": 0 },
+            "outputTokens": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "v2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "runId",
+        "createdAt",
+        "provenance",
+        "fingerprints",
+        "calibration",
+        "cases",
+        "claims",
+        "eligibility",
+        "usage"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 2 },
+        "runId": { "$ref": "#/$defs/baseProperties/runId" },
+        "createdAt": { "$ref": "#/$defs/baseProperties/createdAt" },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": { "anyOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }] }
+        },
+        "fingerprints": { "$ref": "#/$defs/baseProperties/fingerprints" },
+        "calibration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["passed", "probes"],
+          "properties": {
+            "passed": { "type": "boolean" },
+            "probes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "passed"],
+                "properties": { "id": { "type": "string" }, "passed": { "type": "boolean" } }
+              }
+            }
+          }
+        },
+        "cases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "purpose",
+              "distribution",
+              "status",
+              "directViolations",
+              "trajectory",
+              "diff",
+              "commands",
+              "checks",
+              "finalMessage",
+              "observabilityComplete"
+            ],
+            "properties": {
+              "id": { "type": "string" },
+              "purpose": { "const": "decision" },
+              "distribution": { "enum": ["usage", "stress"] },
+              "status": { "$ref": "#/$defs/caseStatus" },
+              "directViolations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["contractId", "severity", "detail"],
+                  "properties": {
+                    "contractId": { "type": "string" },
+                    "severity": { "type": "string" },
+                    "detail": { "type": "string" }
+                  }
+                }
+              },
+              "trajectory": { "type": "array", "items": { "$ref": "#/$defs/event" } },
+              "diff": { "type": "string" },
+              "commands": { "type": "array", "items": { "$ref": "#/$defs/command" } },
+              "checks": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/check" } },
+              "finalMessage": { "type": "string" },
+              "judgeInput": { "type": "string", "minLength": 1 },
+              "judge": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["status", "rationale"],
+                "properties": { "status": { "$ref": "#/$defs/caseStatus" }, "rationale": { "type": "string" } }
+              },
+              "observabilityComplete": { "type": "boolean" }
+            }
+          }
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "status"],
+            "properties": {
+              "id": { "type": "string" },
+              "status": { "enum": ["SUPPORTED", "NOT_SUPPORTED", "INCONCLUSIVE", "NOT_EVALUATED"] }
+            }
+          }
+        },
+        "eligibility": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["confirm", "reasons"],
+          "properties": {
+            "confirm": { "type": "boolean" },
+            "reasons": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "usage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sessions", "inputTokens", "cachedInputTokens", "outputTokens", "credits", "ledger"],
+          "properties": {
+            "sessions": { "type": "integer", "minimum": 0 },
+            "inputTokens": { "type": "integer", "minimum": 0 },
+            "cachedInputTokens": { "type": "integer", "minimum": 0 },
+            "outputTokens": { "type": "integer", "minimum": 0 },
+            "credits": { "type": "number", "minimum": 0 },
+            "ledger": { "type": "array", "items": { "$ref": "#/$defs/session" } }
+          }
+        }
+      }
+    },
+    "caseStatus": { "enum": ["PASS", "FAIL", "INCONCLUSIVE", "ERROR"] },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sequence", "type"],
+      "properties": {
+        "sequence": { "type": "integer", "minimum": 0 },
+        "type": { "type": "string" },
+        "itemType": { "type": "string" },
+        "command": { "type": "string" },
+        "status": { "type": "string" },
+        "message": { "type": "string" }
+      }
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["argv", "exitCode", "stdout", "stderr"],
+      "properties": {
+        "argv": { "type": "array", "items": { "type": "string" } },
+        "exitCode": { "type": "integer" },
+        "stdout": { "type": "string" },
+        "stderr": { "type": "string" }
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "state", "contractId", "phase", "severity", "facts", "evidence"],
+      "properties": {
+        "id": { "type": "string" },
+        "state": { "$ref": "#/$defs/caseStatus" },
+        "contractId": { "type": "string" },
+        "phase": { "enum": ["precondition", "required-effect", "prohibited-effect", "temporal"] },
+        "severity": { "enum": ["critical", "major", "minor"] },
+        "facts": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "digest", "reference"],
+          "properties": {
+            "type": { "enum": ["diff", "command", "trajectory", "message", "path-audit", "skill-fingerprint"] },
+            "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "reference": { "type": "string" },
+            "sequence": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["session", "role", "inputTokens", "cachedInputTokens", "outputTokens", "credits"],
+      "properties": {
+        "session": { "type": "integer", "minimum": 1 },
+        "role": { "enum": ["calibration", "executor", "judge"] },
+        "caseId": { "type": "string" },
+        "inputTokens": { "type": "integer", "minimum": 0 },
+        "cachedInputTokens": { "type": "integer", "minimum": 0 },
+        "outputTokens": { "type": "integer", "minimum": 0 },
+        "credits": { "type": "number", "minimum": 0 }
+      }
+    }
   }
 }

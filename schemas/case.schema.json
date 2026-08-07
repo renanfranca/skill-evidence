@@ -3,14 +3,16 @@
   "$id": "https://skill-evidence.local/schemas/case.schema.json",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "id", "distribution", "prompt", "fixture", "contracts", "oracle"],
+  "required": ["schemaVersion", "id", "purpose", "distribution", "prompt", "fixture", "contracts", "oracle", "qualificationExamples"],
   "properties": {
     "schemaVersion": { "const": 1 },
     "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "purpose": { "enum": ["development", "decision"] },
     "distribution": { "enum": ["usage", "stress"] },
     "prompt": { "type": "string", "minLength": 1 },
     "fixture": { "type": "string", "minLength": 1 },
     "contracts": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } },
-    "oracle": { "type": "string", "minLength": 1 }
+    "oracle": { "type": "string", "minLength": 1 },
+    "qualificationExamples": { "type": "string", "minLength": 1 }
   }
 }

@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { loadEvaluation } from './evaluation.js';
 import { directoryFingerprint, writeCanonicalJson } from './files.js';
 import type { RunPlan } from './types.js';
@@ -17,7 +18,10 @@ export async function createPlan(
     schemaVersion: 1,
     evaluationDirectory: loaded.directory,
     evaluationFingerprint: loaded.fingerprint,
+    engineFingerprint: await directoryFingerprint(path.resolve(import.meta.dirname)),
+    schemaFingerprint: await directoryFingerprint(path.resolve(import.meta.dirname, '..', 'schemas')),
     skillFingerprint: await directoryFingerprint(loaded.evaluation.runtime.skillSource, skillExclusions),
+    skillSnapshotFingerprint: await directoryFingerprint(loaded.evaluation.runtime.skillSource, skillExclusions),
     inputDigests: loaded.inputDigests,
     model: options.model,
     reasoningEffort: options.reasoningEffort,

@@ -1,9 +1,11 @@
 {
   "schemaVersion": 1,
   "id": "usage-valid-no-action",
+  "purpose": "development",
   "distribution": "usage",
   "prompt": "cases/usage-valid-no-action/prompt.md",
   "fixture": "cases/usage-valid-no-action/fixture",
   "contracts": ["contracts/valid-no-action.json"],
-  "oracle": "cases/usage-valid-no-action/oracle.md"
+  "oracle": "cases/usage-valid-no-action/oracle.md",
+  "qualificationExamples": "cases/usage-valid-no-action/examples.json"
 }

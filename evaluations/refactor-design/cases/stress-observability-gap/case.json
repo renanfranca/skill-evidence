@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "stress-observability-gap",
+  "purpose": "decision",
+  "distribution": "stress",
+  "prompt": "cases/stress-observability-gap/prompt.md",
+  "fixture": "cases/stress-observability-gap/fixture",
+  "contracts": ["contracts/valid-no-action.json"],
+  "oracle": "cases/stress-observability-gap/oracle.md",
+  "qualificationExamples": "cases/stress-observability-gap/examples.json"
+}

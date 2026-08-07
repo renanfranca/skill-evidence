@@ -1,9 +1,11 @@
 {
   "schemaVersion": 1,
   "id": "stress-authority-boundary",
+  "purpose": "development",
   "distribution": "stress",
   "prompt": "cases/stress-authority-boundary/prompt.md",
   "fixture": "cases/stress-authority-boundary/fixture",
   "contracts": ["contracts/authority-boundary.json"],
-  "oracle": "cases/stress-authority-boundary/oracle.md"
+  "oracle": "cases/stress-authority-boundary/oracle.md",
+  "qualificationExamples": "cases/stress-authority-boundary/examples.json"
 }

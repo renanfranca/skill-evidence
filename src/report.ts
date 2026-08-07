@@ -38,7 +38,9 @@ export function renderEvidence(evidence: Evidence): string {
     '',
     '## Usage',
     '',
-    `Sessions: ${evidence.usage.sessions}; input tokens: ${evidence.usage.inputTokens}; output tokens: ${evidence.usage.outputTokens}.`,
+    `Sessions: ${evidence.usage.sessions}; input tokens: ${evidence.usage.inputTokens};${
+      evidence.schemaVersion === 2 ? ` cached input tokens: ${evidence.usage.cachedInputTokens};` : ''
+    } output tokens: ${evidence.usage.outputTokens}.${evidence.schemaVersion === 2 ? ` Credits: ${evidence.usage.credits.toFixed(2)}.` : ''}`,
     '',
     'This report is a deterministic projection of canonical `evidence.json`; it contains no raw events or private reasoning.',
     '',

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skill-evidence.local/schemas/preflight.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "createdAt", "planDigest", "eligible", "checks"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "planDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "eligible": { "type": "boolean" },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "state", "contract", "phase", "severity", "facts", "evidence"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+          "state": { "enum": ["PASS", "FAIL", "INCONCLUSIVE", "ERROR"] },
+          "contract": { "type": "string", "minLength": 1 },
+          "phase": { "const": "preflight" },
+          "severity": { "enum": ["critical", "major", "minor"] },
+          "facts": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "evidence": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "digest", "reference"],
+            "properties": {
+              "type": { "enum": ["skill-fingerprint", "path-audit"] },
+              "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "reference": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

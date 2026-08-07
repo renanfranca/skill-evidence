@@ -5,6 +5,13 @@ import { assertNoSymlinks, directoryFingerprint, readJson, safeResolve } from '.
 import { validateSchema } from './schema.js';
 import type { Contract, Evaluation, EvaluationCase, LoadedEvaluation } from './types.js';
 
+export interface QualificationProbe {
+  id: string;
+  kind: 'valid' | 'invalid' | 'alternative' | 'unsupported';
+  text: string;
+  expectedStatus: 'PASS' | 'FAIL' | 'INCONCLUSIVE';
+}
+
 async function requiredFile(root: string, relative: string): Promise<string> {
   const file = safeResolve(root, relative);
   await access(file);
@@ -27,22 +34,30 @@ export async function loadEvaluation(directory: string): Promise<LoadedEvaluatio
   assertUnique(evaluation.cases, 'case references');
 
   const cases: EvaluationCase[] = [];
+  const developmentCases: EvaluationCase[] = [];
   const contracts = new Map<string, Contract>();
   const inputDigests: Record<string, string> = {};
   inputDigests['evaluation.json'] = sha256(await readFile(evaluationFile));
 
-  for (const reference of evaluation.cases) {
+  const caseReferences = [
+    ...evaluation.cases.map(reference => ({ reference, purpose: 'decision' as const })),
+    ...evaluation.developmentCases.map(reference => ({ reference, purpose: 'development' as const })),
+  ];
+  for (const { reference, purpose } of caseReferences) {
     const caseFile = await requiredFile(root, reference);
     const evaluationCase = await readJson<EvaluationCase>(caseFile);
     await validateSchema('case', evaluationCase, reference);
-    cases.push(evaluationCase);
+    if (evaluationCase.purpose !== purpose) throw new Error(`${reference} purpose must be ${purpose}`);
+    (purpose === 'decision' ? cases : developmentCases).push(evaluationCase);
     inputDigests[reference] = sha256(await readFile(caseFile));
     await requiredFile(root, evaluationCase.prompt);
     await requiredFile(root, evaluationCase.oracle);
+    const qualificationExamples = await requiredFile(root, evaluationCase.qualificationExamples);
     const fixture = await requiredFile(root, evaluationCase.fixture);
     await assertNoSymlinks(fixture);
     inputDigests[evaluationCase.prompt] = sha256(await readFile(safeResolve(root, evaluationCase.prompt)));
     inputDigests[evaluationCase.oracle] = sha256(await readFile(safeResolve(root, evaluationCase.oracle)));
+    inputDigests[evaluationCase.qualificationExamples] = sha256(await readFile(qualificationExamples));
     inputDigests[`${evaluationCase.fixture}/`] = await directoryFingerprint(fixture);
 
     for (const contractReference of evaluationCase.contracts) {
@@ -61,7 +76,7 @@ export async function loadEvaluation(directory: string): Promise<LoadedEvaluatio
   }
 
   assertUnique(
-    cases.map(item => item.id),
+    [...cases, ...developmentCases].map(item => item.id),
     'case IDs',
   );
   if (evaluation.thresholds.requiredPassingCases > cases.length) throw new Error('requiredPassingCases exceeds the case population');
@@ -79,8 +94,25 @@ export async function loadEvaluation(directory: string): Promise<LoadedEvaluatio
     directory: root,
     evaluation,
     cases,
+    developmentCases,
     contracts: [...contracts.values()],
     inputDigests,
     fingerprint: canonicalDigest(inputDigests),
   };
+}
+
+export async function qualificationProbes(loaded: LoadedEvaluation): Promise<QualificationProbe[]> {
+  const expected = { valid: 'PASS', invalid: 'FAIL', alternative: 'PASS', unsupported: 'INCONCLUSIVE' } as const;
+  const probes: QualificationProbe[] = [];
+  for (const evaluationCase of loaded.cases) {
+    const examples = await readJson<Record<string, unknown>>(safeResolve(loaded.directory, evaluationCase.qualificationExamples));
+    if (Object.keys(examples).sort().join(',') !== 'alternative,invalid,unsupported,valid')
+      throw new Error(`${evaluationCase.qualificationExamples} must contain exactly valid, invalid, alternative, and unsupported`);
+    for (const kind of ['valid', 'invalid', 'alternative', 'unsupported'] as const) {
+      const text = examples[kind];
+      if (typeof text !== 'string' || !text.trim()) throw new Error(`${evaluationCase.qualificationExamples} has invalid ${kind}`);
+      probes.push({ id: `${evaluationCase.id}:${kind}`, kind, text, expectedStatus: expected[kind] });
+    }
+  }
+  return probes;
 }
