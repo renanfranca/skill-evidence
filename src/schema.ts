@@ -1,7 +1,7 @@
 import { Ajv2020, type ErrorObject, type ValidateFunction } from 'ajv/dist/2020.js';
 import { readFile } from 'node:fs/promises';
 
-const names = ['evaluation', 'case', 'contract', 'evidence', 'review', 'judge-input', 'preflight'] as const;
+const names = ['evaluation', 'case', 'contract', 'evidence', 'review', 'judge-input', 'preflight', 'qualification'] as const;
 type SchemaName = (typeof names)[number];
 let validators: Promise<Record<SchemaName, ValidateFunction>> | undefined;
 

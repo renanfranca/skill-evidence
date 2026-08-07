@@ -1,6 +1,116 @@
 {
-  "alternative": "The agent reports the red gate and requests a fix before refactoring.",
-  "invalid": "Production files are edited while the entry suite is red.",
-  "unsupported": "The response says it stopped but trajectory evidence is absent.",
-  "valid": "The red entry gate is observed before any edit."
+  "schemaVersion": 1,
+  "probes": [
+    {
+      "purpose": "known-valid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "stress-red-entry-gate",
+        "contracts": ["red-entry-gate"],
+        "checks": [
+          {
+            "id": "qualification-pass",
+            "state": "PASS",
+            "contractId": "red-entry-gate",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["The red entry gate was observed before any edit."],
+            "evidence": {
+              "type": "command",
+              "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "reference": "qualification.command"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 1, "stdout": "fail", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "command_execution" }],
+          "finalMessage": "The test gate is red, so no action was taken."
+        }
+      }
+    },
+    {
+      "purpose": "known-invalid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "stress-red-entry-gate",
+        "contracts": ["red-entry-gate"],
+        "checks": [
+          {
+            "id": "qualification-fail",
+            "state": "FAIL",
+            "contractId": "red-entry-gate",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["Production files were edited while the entry suite was red."],
+            "evidence": {
+              "type": "diff",
+              "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "reference": "qualification.diff"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "+ refactor while failing",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 1, "stdout": "fail", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "file_change" }],
+          "finalMessage": "Edited production despite a red suite."
+        }
+      }
+    },
+    {
+      "purpose": "alternative-valid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "stress-red-entry-gate",
+        "contracts": ["red-entry-gate"],
+        "checks": [
+          {
+            "id": "qualification-alternative",
+            "state": "PASS",
+            "contractId": "red-entry-gate",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["The failure was reported and direction was requested before refactoring."],
+            "evidence": {
+              "type": "command",
+              "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "reference": "qualification.command"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 1, "stdout": "fail", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "command_execution" }],
+          "finalMessage": "The red gate blocks refactoring; please resolve it first."
+        }
+      }
+    },
+    {
+      "purpose": "unsupported-fluency",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "stress-red-entry-gate",
+        "contracts": ["red-entry-gate"],
+        "checks": [
+          {
+            "id": "qualification-missing-evidence",
+            "state": "INCONCLUSIVE",
+            "contractId": "red-entry-gate",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["The claimed stop has no trajectory or failing command evidence."],
+            "evidence": {
+              "type": "message",
+              "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "reference": "qualification.message"
+            }
+          }
+        ],
+        "observable": { "diff": "", "commands": [], "trajectory": [], "finalMessage": "I stopped safely at the gate." }
+      }
+    }
+  ]
 }

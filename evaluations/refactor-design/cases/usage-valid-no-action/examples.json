@@ -1,6 +1,116 @@
 {
-  "alternative": "The implementation is left unchanged with equivalent design evidence.",
-  "invalid": "A needless refactor changes a stable design.",
-  "unsupported": "A fluent no-action claim supplies no observable proof.",
-  "valid": "No change is made and the existing phase types are evidenced."
+  "schemaVersion": 1,
+  "probes": [
+    {
+      "purpose": "known-valid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-valid-no-action",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "qualification-pass",
+            "state": "PASS",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["Phase-specific types were inspected, files stayed unchanged, and tests passed."],
+            "evidence": {
+              "type": "command",
+              "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "reference": "qualification.command"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "command_execution" }],
+          "finalMessage": "No action: the phase types already protect the design."
+        }
+      }
+    },
+    {
+      "purpose": "known-invalid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-valid-no-action",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "qualification-fail",
+            "state": "FAIL",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["An unnecessary abstraction changed a stable design."],
+            "evidence": {
+              "type": "diff",
+              "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "reference": "qualification.diff"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "+ class PhaseFactory {}",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "file_change" }],
+          "finalMessage": "Added a pattern abstraction."
+        }
+      }
+    },
+    {
+      "purpose": "alternative-valid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-valid-no-action",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "qualification-alternative",
+            "state": "PASS",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["An equivalent no-action conclusion has structural and test evidence."],
+            "evidence": {
+              "type": "command",
+              "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "reference": "qualification.command"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "command_execution" }],
+          "finalMessage": "No action: phases make invalid transitions impossible."
+        }
+      }
+    },
+    {
+      "purpose": "unsupported-fluency",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-valid-no-action",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "qualification-missing-evidence",
+            "state": "INCONCLUSIVE",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["No observable proof supports the praise."],
+            "evidence": {
+              "type": "message",
+              "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "reference": "qualification.message"
+            }
+          }
+        ],
+        "observable": { "diff": "", "commands": [], "trajectory": [], "finalMessage": "The architecture is perfect." }
+      }
+    }
+  ]
 }

@@ -80,13 +80,21 @@
           "required": ["passed", "probes"],
           "properties": {
             "passed": { "type": "boolean" },
+            "inputDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "resultDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
             "probes": {
               "type": "array",
               "items": {
                 "type": "object",
                 "additionalProperties": false,
                 "required": ["id", "passed"],
-                "properties": { "id": { "type": "string" }, "passed": { "type": "boolean" } }
+                "properties": {
+                  "id": { "type": "string" },
+                  "expectedStatus": { "enum": ["PASS", "FAIL", "INCONCLUSIVE"] },
+                  "observedStatus": { "$ref": "#/$defs/caseStatus" },
+                  "rationale": { "type": "string" },
+                  "passed": { "type": "boolean" }
+                }
               }
             }
           }

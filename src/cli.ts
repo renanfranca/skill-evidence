@@ -86,6 +86,7 @@ program
     const result = await executePlan(options.plan, options.preflight, options.approveSessions, options.maxCredits);
     await writeReport(`${result.runDirectory}/evidence.json`);
     process.stdout.write(`${result.runDirectory}\n`);
+    if (result.outcome === 'calibration-failed') process.exitCode = 1;
   });
 
 program

@@ -14,20 +14,45 @@ emit({ type: 'thread.started', thread_id: 'fake-thread' });
 emit({ type: 'turn.started' });
 
 if (role === 'calibration') {
-  const probes = process.env.SKILL_EVIDENCE_CALIBRATION_PROBES
-    ? JSON.parse(process.env.SKILL_EVIDENCE_CALIBRATION_PROBES)
-    : [
-        { id: 'valid', status: 'PASS' },
-        { id: 'invalid', status: 'FAIL' },
-        { id: 'alternative', status: 'PASS' },
-        { id: 'unsupported', status: 'INCONCLUSIVE' },
-      ];
+  const prompt = process.argv.at(-1);
+  const payload = JSON.parse(prompt.slice(prompt.lastIndexOf('\n\n') + 2));
+  if (process.env.SKILL_EVIDENCE_FAKE_INVOCATION_LOG)
+    writeFileSync(
+      process.env.SKILL_EVIDENCE_FAKE_INVOCATION_LOG,
+      JSON.stringify({ calibration: { payload, environment: Object.keys(process.env).sort() } }),
+    );
+  const scripted = process.env.SKILL_EVIDENCE_FAKE_CALIBRATION_RESULTS
+    ? JSON.parse(process.env.SKILL_EVIDENCE_FAKE_CALIBRATION_RESULTS)
+    : undefined;
+  const probes = payload.map((probe, index) => {
+    const routed = Array.isArray(scripted) ? scripted[index] : scripted;
+    const status =
+      typeof routed?.status === 'string'
+        ? routed.status
+        : probe.judgeInput.checks.some(check => check.state === 'FAIL')
+          ? 'FAIL'
+          : probe.judgeInput.checks.some(check => check.state === 'INCONCLUSIVE' || check.state === 'ERROR')
+            ? 'INCONCLUSIVE'
+            : 'PASS';
+    return { id: probe.id, status, rationale: routed?.rationale ?? 'Classified from the supplied observable evidence.' };
+  });
+  const mode = typeof scripted?.mode === 'string' ? scripted.mode : undefined;
+  const response =
+    mode === 'missing' || mode === 'incomplete'
+      ? { probes: probes.slice(0, -1) }
+      : mode === 'duplicate'
+        ? { probes: [...probes.slice(0, -1), probes[0]] }
+        : mode === 'unknown'
+          ? { probes: [...probes.slice(0, -1), { ...probes[probes.length - 1], id: 'probe-unknown' }] }
+          : mode === 'malformed'
+            ? { probes: [{ id: probes[0].id, status: 'PASS' }, ...probes.slice(1)] }
+            : { probes };
   emit({
     type: 'item.completed',
     item: {
       id: 'message',
       type: 'agent_message',
-      text: JSON.stringify({ probes }),
+      text: JSON.stringify(response),
     },
   });
 } else if (role === 'judge') {

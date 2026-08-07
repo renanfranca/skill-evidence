@@ -65,6 +65,8 @@ async function successfulFakeRun(): Promise<Awaited<NonNullable<typeof sharedSuc
 
 afterEach(async () => {
   delete process.env.SKILL_EVIDENCE_CODEX_BIN;
+  delete process.env.SKILL_EVIDENCE_FAKE_CALIBRATION_RESULTS;
+  delete process.env.SKILL_EVIDENCE_FAKE_INVOCATION_LOG;
   delete process.env.SKILL_EVIDENCE_FAKE_SCENARIO;
   delete process.env.SKILL_EVIDENCE_FAKE_SESSION_LOG;
   await Promise.all(
@@ -141,15 +143,50 @@ describe.sequential('canonical domain and safety boundaries', () => {
     const actual = {
       probes: probes.map(probe => ({
         id: probe.id,
-        status: probe.kind === 'invalid' || probe.kind === 'unsupported' ? 'PASS' : 'PASS',
+        status: probe.purpose === 'known-invalid' || probe.purpose === 'unsupported-fluency' ? 'PASS' : 'PASS',
       })),
     };
 
     const qualified = qualifyCalibration(actual, probes);
 
     expect(probes).toHaveLength(16);
-    expect(qualified.find(item => item.id.endsWith(':invalid'))?.passed).toBe(false);
-    expect(qualified.find(item => item.id.endsWith(':unsupported'))?.passed).toBe(false);
+    expect(qualified.find(item => item.id.endsWith(':known-invalid'))?.passed).toBe(false);
+    expect(qualified.find(item => item.id.endsWith(':unsupported-fluency'))?.passed).toBe(false);
+  });
+
+  test('loads only complete qualification packages with schema-valid judge inputs', async () => {
+    const loaded = await loadEvaluation(evaluationDirectory);
+    const probes = await qualificationProbes(loaded);
+
+    expect(probes).toHaveLength(16);
+    expect(probes.map(probe => probe.purpose)).toEqual([
+      'known-valid',
+      'known-invalid',
+      'alternative-valid',
+      'unsupported-fluency',
+      'known-valid',
+      'known-invalid',
+      'alternative-valid',
+      'unsupported-fluency',
+      'known-valid',
+      'known-invalid',
+      'alternative-valid',
+      'unsupported-fluency',
+      'known-valid',
+      'known-invalid',
+      'alternative-valid',
+      'unsupported-fluency',
+    ]);
+    await Promise.all(probes.map(probe => validateSchema('judge-input', probe.judgeInput, probe.id)));
+
+    const directory = await tempDirectory();
+    const copiedEvaluation = path.join(directory, 'evaluation');
+    await cp(evaluationDirectory, copiedEvaluation, { recursive: true });
+    const examplesFile = path.join(copiedEvaluation, 'cases', 'usage-request-context', 'examples.json');
+    const examples = JSON.parse(await readFile(examplesFile, 'utf8')) as { probes: unknown[] };
+    await writeFile(examplesFile, JSON.stringify({ ...examples, probes: examples.probes.slice(0, 3) }));
+
+    await expect(loadEvaluation(copiedEvaluation)).rejects.toThrow(/qualification|probes|items/u);
   });
 
   test('gives direct evidence and incomplete observability precedence over a favorable judge', () => {
@@ -320,6 +357,174 @@ describe.sequential('planning and lifecycle', () => {
     expect(result.evidence.usage.sessions).toBe(9);
   });
 
+  test('sends complete blind calibration packets without expected responses in the subprocess environment', async () => {
+    const directory = await tempDirectory();
+    const planFile = path.join(directory, 'plan.json');
+    const preflightFile = path.join(directory, 'preflight.json');
+    const invocationLog = path.join(directory, 'invocation.json');
+    await createPlan(evaluationDirectory, {
+      model: 'gpt-5.6-luna',
+      reasoningEffort: 'max',
+      judgeModel: 'gpt-5.6-terra',
+      judgeReasoningEffort: 'xhigh',
+      out: planFile,
+    });
+    await createPreflight(planFile, preflightFile);
+    process.env.SKILL_EVIDENCE_CODEX_BIN = path.join(root, 'test', 'fixtures', 'fake-codex.mjs');
+    process.env.SKILL_EVIDENCE_FAKE_INVOCATION_LOG = invocationLog;
+
+    const result = await executePlan(planFile, preflightFile, 9, 3.33);
+    temporary.push(result.runDirectory);
+
+    const calibrationInput = JSON.parse(await readFile(path.join(result.runDirectory, 'calibration-input.json'), 'utf8')) as unknown;
+    const invocation = JSON.parse(await readFile(invocationLog, 'utf8')) as {
+      calibration: { payload: unknown; environment: string[] };
+    };
+    expect(invocation.calibration.payload).toEqual(calibrationInput);
+    expect(JSON.stringify(calibrationInput)).not.toMatch(/known-valid|known-invalid|alternative-valid|unsupported-fluency|expectedStatus/u);
+    expect(invocation.calibration.environment).not.toContain('SKILL_EVIDENCE_CALIBRATION_PROBES');
+  });
+
+  test('records the locally derived and observed verdict for every qualification behavior', async () => {
+    const { result } = await successfulFakeRun();
+
+    expect(result.evidence.calibration.inputDigest).toMatch(/^[0-9a-f]{64}$/u);
+    expect(result.evidence.calibration.resultDigest).toMatch(/^[0-9a-f]{64}$/u);
+    expect(result.evidence.calibration.probes).toHaveLength(16);
+    expect(result.evidence.calibration.probes.map(probe => probe.expectedStatus)).toEqual([
+      'PASS',
+      'FAIL',
+      'PASS',
+      'INCONCLUSIVE',
+      'PASS',
+      'FAIL',
+      'PASS',
+      'INCONCLUSIVE',
+      'PASS',
+      'FAIL',
+      'PASS',
+      'INCONCLUSIVE',
+      'PASS',
+      'FAIL',
+      'PASS',
+      'INCONCLUSIVE',
+    ]);
+    expect(result.evidence.calibration.probes.every(probe => probe.observedStatus === probe.expectedStatus && probe.passed)).toBe(true);
+  });
+
+  test('returns an auditable failed calibration from the public CLI without starting an executor', async () => {
+    const directory = await tempDirectory();
+    const planFile = path.join(directory, 'plan.json');
+    const preflightFile = path.join(directory, 'preflight.json');
+    const sessionLog = path.join(directory, 'sessions.log');
+    const cli = path.join(root, 'dist', 'cli.js');
+    const build = await runProcess([path.join(root, 'node_modules', '.bin', 'tsc'), '-p', 'tsconfig.build.json'], {
+      cwd: root,
+      timeoutMs: 30_000,
+      env: process.env,
+    });
+    expect(build.exitCode, build.stderr).toBe(0);
+    const plan = await runProcess(
+      [
+        process.execPath,
+        cli,
+        'plan',
+        evaluationDirectory,
+        '--model',
+        'gpt-5.6-luna',
+        '--reasoning-effort',
+        'max',
+        '--judge-model',
+        'gpt-5.6-terra',
+        '--judge-reasoning-effort',
+        'xhigh',
+        '--out',
+        planFile,
+      ],
+      { cwd: root, timeoutMs: 30_000, env: process.env },
+    );
+    expect(plan.exitCode, plan.stderr).toBe(0);
+    const preflight = await runProcess([process.execPath, cli, 'preflight', '--plan', planFile, '--out', preflightFile], {
+      cwd: root,
+      timeoutMs: 30_000,
+      env: process.env,
+    });
+    expect(preflight.exitCode, preflight.stderr).toBe(0);
+
+    const run = await runProcess(
+      [process.execPath, cli, 'run', '--plan', planFile, '--preflight', preflightFile, '--approve-sessions', '9', '--max-credits', '3.33'],
+      {
+        cwd: root,
+        timeoutMs: 30_000,
+        env: {
+          ...process.env,
+          SKILL_EVIDENCE_CODEX_BIN: path.join(root, 'test', 'fixtures', 'fake-codex.mjs'),
+          SKILL_EVIDENCE_FAKE_CALIBRATION_RESULTS: JSON.stringify({
+            status: 'INCONCLUSIVE',
+            rationale: 'Scripted fake calibration failure.',
+          }),
+          SKILL_EVIDENCE_FAKE_SESSION_LOG: sessionLog,
+        },
+      },
+    );
+
+    expect(run.exitCode).not.toBe(0);
+    const runDirectory = run.stdout.trim();
+    const evidence = JSON.parse(await readFile(path.join(runDirectory, 'evidence.json'), 'utf8')) as Evidence;
+    expect(evidence.schemaVersion).toBe(2);
+    expect(evidence.cases).toEqual([]);
+    expect(evidence.claims.every(claim => claim.status === 'NOT_EVALUATED')).toBe(true);
+    expect(evidence.eligibility.reasons).toContain('Judge calibration failed');
+    expect(evidence.usage).toMatchObject({ sessions: 1, credits: 0.37 });
+    expect((await readFile(sessionLog, 'utf8')).trim().split('\n')).toEqual(['calibration']);
+    await expect(access(path.join(runDirectory, 'calibration-input.json'))).resolves.toBeUndefined();
+    await expect(access(path.join(runDirectory, 'calibration-result.json'))).resolves.toBeUndefined();
+    await expect(access(path.join(runDirectory, 'calibration.raw.jsonl'))).resolves.toBeUndefined();
+    await expect(access(path.join(runDirectory, 'calibration.stderr.log'))).resolves.toBeUndefined();
+    await expect(access(path.join(runDirectory, 'report.md'))).resolves.toBeUndefined();
+    await expect(access(path.join(runDirectory, 'snapshot'))).rejects.toThrow();
+    temporary.push(runDirectory);
+  });
+
+  test('records every malformed, missing, duplicate, unknown, or incomplete calibration response as an audit failure', async () => {
+    const directory = await tempDirectory();
+    const planFile = path.join(directory, 'plan.json');
+    const preflightFile = path.join(directory, 'preflight.json');
+    const sessionLog = path.join(directory, 'sessions.log');
+    await createPlan(evaluationDirectory, {
+      model: 'gpt-5.6-luna',
+      reasoningEffort: 'max',
+      judgeModel: 'gpt-5.6-terra',
+      judgeReasoningEffort: 'xhigh',
+      out: planFile,
+    });
+    await createPreflight(planFile, preflightFile);
+    process.env.SKILL_EVIDENCE_CODEX_BIN = path.join(root, 'test', 'fixtures', 'fake-codex.mjs');
+    process.env.SKILL_EVIDENCE_FAKE_SESSION_LOG = sessionLog;
+
+    for (const mode of ['missing', 'duplicate', 'unknown', 'malformed', 'incomplete']) {
+      process.env.SKILL_EVIDENCE_FAKE_CALIBRATION_RESULTS = JSON.stringify({ mode });
+      const result = await executePlan(planFile, preflightFile, 9, 3.33);
+      temporary.push(result.runDirectory);
+
+      expect(result.outcome, mode).toBe('calibration-failed');
+      expect(result.evidence.cases, mode).toEqual([]);
+      expect(
+        result.evidence.calibration.probes.every(probe => probe.observedStatus === 'ERROR' && !probe.passed),
+        mode,
+      ).toBe(true);
+      expect(result.evidence.usage.ledger, mode).toHaveLength(1);
+    }
+
+    expect((await readFile(sessionLog, 'utf8')).trim().split('\n')).toEqual([
+      'calibration',
+      'calibration',
+      'calibration',
+      'calibration',
+      'calibration',
+    ]);
+  });
+
   test('records input, cache, output, role, and credits separately for every session', async () => {
     const { result } = await successfulFakeRun();
 
@@ -445,7 +650,7 @@ describe.sequential('planning and lifecycle', () => {
     await expect(reviewRun(directory, 'confirm', rationale)).rejects.toThrow(/ineligible/u);
   });
 
-  test('continues rendering Evidence v1 but requires Evidence v2 for confirmation', async () => {
+  test('continues rendering historical Evidence v1 and v2 while requiring Evidence v2 for confirmation', async () => {
     const directory = await tempDirectory();
     const evidence: Evidence = {
       schemaVersion: 1,
@@ -465,6 +670,21 @@ describe.sequential('planning and lifecycle', () => {
 
     await expect(writeReport(path.join(directory, 'evidence.json'))).resolves.toContain('legacy-eligible-run');
     await expect(reviewRun(directory, 'confirm', rationale)).rejects.toThrow(/Evidence v2/u);
+
+    const legacyV2: Evidence = {
+      schemaVersion: 2,
+      runId: 'legacy-v2-run',
+      createdAt: '2026-08-06T12:00:00.000Z',
+      provenance: {},
+      fingerprints: {},
+      calibration: { passed: true, probes: [] },
+      cases: [],
+      claims: [],
+      eligibility: { confirm: false, reasons: ['historical'] },
+      usage: { sessions: 1, inputTokens: 10, cachedInputTokens: 2, outputTokens: 5, credits: 0.37, ledger: [] },
+    };
+    await writeCanonicalJson(path.join(directory, 'legacy-v2.json'), legacyV2);
+    await expect(writeReport(path.join(directory, 'legacy-v2.json'))).resolves.toContain('legacy-v2-run');
   });
 
   test('completes the fake nine-session flow with canonical judge packets and review readiness', async () => {
@@ -488,6 +708,7 @@ describe.sequential('planning and lifecycle', () => {
 
   test('completes a nine-session flow with a fake Codex executor', async () => {
     const { result } = await successfulFakeRun();
+    expect(result.outcome).toBe('completed');
     expect(result.evidence.usage.sessions).toBe(9);
     expect(result.evidence.cases.map(item => item.status)).toEqual(['PASS', 'PASS', 'PASS', 'PASS']);
     expect(result.evidence.eligibility.confirm).toBe(true);

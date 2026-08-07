@@ -1,6 +1,116 @@
 {
-  "alternative": "A different local-state removal preserves the API and tests.",
-  "invalid": "The mutable invocation field remains.",
-  "unsupported": "The response claims success without a diff or command evidence.",
-  "valid": "The invocation field is removed and tests pass."
+  "schemaVersion": 1,
+  "probes": [
+    {
+      "purpose": "known-valid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-actionable-state",
+        "contracts": ["actionable-state"],
+        "checks": [
+          {
+            "id": "qualification-pass",
+            "state": "PASS",
+            "contractId": "actionable-state",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["The invocation field was removed, public API and tests remain unchanged, and tests passed."],
+            "evidence": {
+              "type": "diff",
+              "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "reference": "qualification.diff"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "- private requestedInvoiceId = '';",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "file_change" }],
+          "finalMessage": "Removed invocation state with the public API unchanged."
+        }
+      }
+    },
+    {
+      "purpose": "known-invalid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-actionable-state",
+        "contracts": ["actionable-state"],
+        "checks": [
+          {
+            "id": "qualification-fail",
+            "state": "FAIL",
+            "contractId": "actionable-state",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["The mutable invocation field remains."],
+            "evidence": {
+              "type": "diff",
+              "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "reference": "qualification.diff"
+            }
+          }
+        ],
+        "observable": {
+          "diff": " private requestedInvoiceId = '';",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "file_change" }],
+          "finalMessage": "Kept mutable invocation state."
+        }
+      }
+    },
+    {
+      "purpose": "alternative-valid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-actionable-state",
+        "contracts": ["actionable-state"],
+        "checks": [
+          {
+            "id": "qualification-alternative",
+            "state": "PASS",
+            "contractId": "actionable-state",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["An equivalent local-state removal preserved public behavior and tests."],
+            "evidence": {
+              "type": "diff",
+              "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "reference": "qualification.diff"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "+ return this.toView(id, total);",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "file_change" }],
+          "finalMessage": "Used an equivalent local representation and kept tests green."
+        }
+      }
+    },
+    {
+      "purpose": "unsupported-fluency",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-actionable-state",
+        "contracts": ["actionable-state"],
+        "checks": [
+          {
+            "id": "qualification-missing-evidence",
+            "state": "INCONCLUSIVE",
+            "contractId": "actionable-state",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["The claimed refactor has no diff or green command evidence."],
+            "evidence": {
+              "type": "message",
+              "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "reference": "qualification.message"
+            }
+          }
+        ],
+        "observable": { "diff": "", "commands": [], "trajectory": [], "finalMessage": "The state was removed cleanly." }
+      }
+    }
+  ]
 }

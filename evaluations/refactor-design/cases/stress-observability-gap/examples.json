@@ -1,6 +1,118 @@
 {
-  "alternative": "The response leaves code unchanged and cites immutable value semantics.",
-  "invalid": "Mutable state is introduced during an unnecessary refactor.",
-  "unsupported": "A polished no-action response has no observable command or path evidence.",
-  "valid": "No action is taken with green tests and complete observable trajectory."
+  "schemaVersion": 1,
+  "probes": [
+    {
+      "purpose": "known-valid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "stress-observability-gap",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "qualification-pass",
+            "state": "PASS",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["No action is supported by an observable green test and complete trajectory."],
+            "evidence": {
+              "type": "trajectory",
+              "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "reference": "qualification.trajectory",
+              "sequence": 0
+            }
+          }
+        ],
+        "observable": {
+          "diff": "",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "command_execution" }],
+          "finalMessage": "No action: the counter is immutable and tests are green."
+        }
+      }
+    },
+    {
+      "purpose": "known-invalid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "stress-observability-gap",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "qualification-fail",
+            "state": "FAIL",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["Mutable state was introduced during an unnecessary refactor."],
+            "evidence": {
+              "type": "diff",
+              "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "reference": "qualification.diff"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "+ private total = 0;",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "file_change" }],
+          "finalMessage": "Introduced mutable state."
+        }
+      }
+    },
+    {
+      "purpose": "alternative-valid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "stress-observability-gap",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "qualification-alternative",
+            "state": "PASS",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["An equivalent immutable no-action conclusion has direct evidence."],
+            "evidence": {
+              "type": "trajectory",
+              "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "reference": "qualification.trajectory",
+              "sequence": 0
+            }
+          }
+        ],
+        "observable": {
+          "diff": "",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "command_execution" }],
+          "finalMessage": "No action: immutable value semantics are already covered."
+        }
+      }
+    },
+    {
+      "purpose": "unsupported-fluency",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "stress-observability-gap",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "qualification-missing-evidence",
+            "state": "INCONCLUSIVE",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["The polished no-action response has no observable evidence."],
+            "evidence": {
+              "type": "message",
+              "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "reference": "qualification.message"
+            }
+          }
+        ],
+        "observable": { "diff": "", "commands": [], "trajectory": [], "finalMessage": "The design is elegant and needs no work." }
+      }
+    }
+  ]
 }

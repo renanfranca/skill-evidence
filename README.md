@@ -50,6 +50,13 @@ skill-evidence run \
 
 The prepared condition uses `gpt-5.6-luna/max` for four executors and `gpt-5.6-terra/xhigh` for one calibration and up to four judges. The projected maximum is nine sessions and 3.33 credits, approximately 61% below the previous Terra/Terra pilot. The credit limit is checked immediately before each next session; it cannot retroactively interrupt a session that already started.
 
+Calibration is a terminal gate. If it fails, `run` writes a local Evidence v2
+record, `report.md`, and the calibration artifacts, prints the run directory,
+then exits nonzero. That run contains one 0.37-credit calibration session,
+empty cases, `NOT_EVALUATED` claims, and `Judge calibration failed` as the
+ineligibility reason; it starts no executor, case judge, review, archive, or
+skill snapshot.
+
 No real run is part of repository validation. Human review and archive creation remain separate, explicit operator actions:
 
 ```bash
@@ -63,22 +70,50 @@ Confirmation requires eligible Evidence v2. Evidence v1 remains renderable for h
 
 ## Evidence and judge boundary
 
-Strict schemas under `schemas/` define evaluation inputs, `preflight.json`, `judge-input.json`, Evidence v1/v2, and review. Every contractual check materializes positive or negative facts with a stable ID and evidence digest. Fingerprints, path audits, commands, diffs, trajectories, and final messages are explicit evidence rather than inferred from prose.
+Strict schemas under `schemas/` define evaluation inputs, qualification
+packages, `preflight.json`, `judge-input.json`, Evidence v1/v2, and review.
+Every contractual check materializes positive or negative facts with a stable
+ID and evidence digest. Fingerprints, path audits, commands, diffs,
+trajectories, and final messages are explicit evidence rather than inferred
+from prose.
 
-The judge receives only a sanitized canonical `judge-input/<case-id>.json` plus the private oracle. If required evidence is missing or a relevant executor event is unknown, the case is `INCONCLUSIVE`, no judge packet is created, and no judge session starts. Raw reasoning is discarded. A complete Evidence v2 ledger records each session separately with role, case, input tokens, cached input tokens, output tokens, and credits.
+Case judges receive only a sanitized canonical `judge-input/<case-id>.json`
+plus the private oracle. Calibration receives a canonical
+`calibration-input.json` array of blind `{ id, judgeInput, oracle }` packets,
+where `id` is a deterministic `probe-<digest>` and neither purpose nor expected
+status appears in the prompt or subprocess environment. Its strict output is
+`{ probes: [{ id, status, rationale }] }`; expected status is derived locally.
+`calibration-result.json`, sanitized calibration JSONL/stderr, and Evidence v2
+record input/result digests plus expected and observed probe status. If required
+case evidence is missing or a relevant executor event is unknown, the case is
+`INCONCLUSIVE`, no judge packet is created, and no judge session starts. Raw
+reasoning is discarded. A complete Evidence v2 ledger records each session
+separately with role, case, input tokens, cached input tokens, output tokens,
+and credits. Historical Evidence v1 and v2 remain renderable.
 
 Case states are `PASS`, `FAIL`, `INCONCLUSIVE`, and `ERROR`. Claim states are `SUPPORTED`, `NOT_SUPPORTED`, `INCONCLUSIVE`, and `NOT_EVALUATED`. Causal contribution, version comparison, stability, robustness, generalization, implicit activation, and other languages remain `NOT_EVALUATED`.
 
 ## Evaluation isolation
 
-The four cases from the first pilot are now development/regression material and cannot influence eligibility. Four new decision cases—two usage and two stress—alone feed the decision. Each decision case supplies valid, invalid, alternative-valid, and fluent-without-evidence examples; all sixteen examples are qualified in the single future calibration session. These new decision cases have only been exercised with the local fake executable during implementation, not sent to a model.
+The four cases from the first pilot are now development/regression material and
+cannot influence eligibility. Four new decision cases—two usage and two
+stress—alone feed the decision. Every referenced `examples.json` is a strict
+version-1 package with exactly `known-valid`, `known-invalid`,
+`alternative-valid`, and `unsupported-fluency` judge-input probes. Only the
+sixteen probes from decision cases enter the single future calibration session.
+Their locally derived results are respectively `PASS`, `FAIL`, `PASS`, and
+`INCONCLUSIVE`. These cases have only been exercised with the local fake
+executable during implementation, not sent to a model.
 
 Executors receive only the public prompt, disposable fixture, and repository-scoped filtered `$refactor-design` snapshot. Contracts, oracles, qualification examples, expected behavior, and judge packets remain outside their workspace. The executor condition uses `workspace-write`, disabled network access, no additional writable roots, and no `/tmp` or `$TMPDIR` exception. The original skill and filtered snapshot are fingerprinted; relevant unknown events make observability incomplete.
 
-Raw JSONL and failed workspaces remain local under ignored `.skill-evidence/` for diagnosis. Canonical evidence excludes private reasoning and sanitizes credential-like values. No command automatically reviews, archives, stages, commits, pushes, or publishes files.
+Raw JSONL and failed workspaces remain local under ignored `.skill-evidence/`
+for diagnosis. Canonical evidence excludes private reasoning and sanitizes
+credential-like values. No command automatically reviews, archives, stages,
+commits, pushes, or publishes files.
 
 ## Limits
 
 Executor and judge behavior remains probabilistic and correlated. One future execution per decision case cannot establish repeatability, stability, broad robustness, causal contribution, or population-level generalization. The calibration checks rubric discrimination, not judge independence. A human confirmation accepts only the bounded Evidence v2 record; it does not turn `NOT_EVALUATED` claims into supported claims.
 
-The living implementation record is [the Evidence preflight ExecPlan](docs/execplans/2026-08-06_FEATURE_evidence-preflight-exec-plan.md).
+The living implementation record is [the judge-calibration ExecPlan](docs/execplans/2026-08-06_FIX_judge-calibration-evidence-exec-plan.md).

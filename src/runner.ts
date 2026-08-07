@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { canonicalDigest } from './canonical.js';
+import { canonicalDigest, canonicalJson } from './canonical.js';
 import { evaluateContracts, evaluatePreconditions } from './checks.js';
 import { loadEvaluation, qualificationProbes, type QualificationProbe } from './evaluation.js';
 import { normalizeJsonl } from './events.js';
@@ -13,7 +13,18 @@ import { inspectPreflight } from './preflight.js';
 import { reducedEnvironment, runProcess } from './process.js';
 import { validateSchema } from './schema.js';
 import { sanitize } from './security.js';
-import type { CaseEvidence, CaseStatus, CheckEvidence, Contract, EvidenceV2, Preflight, RunPlan, SessionUsage } from './types.js';
+import type {
+  CaseEvidence,
+  CaseStatus,
+  CheckEvidence,
+  Contract,
+  ExecutePlanOutcome,
+  LoadedEvaluation,
+  Preflight,
+  ProducedEvidenceV2,
+  RunPlan,
+  SessionUsage,
+} from './types.js';
 import { copyFiltered, forceRemove, makeReadOnly, snapshot, snapshotDiff } from './workspace.js';
 
 const ignoredWorkspace = new Set(['.git', '.agents', '.codex', 'node_modules']);
@@ -36,20 +47,46 @@ const calibrationSchema = (count: number) => ({
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['id', 'status'],
-        properties: { id: { type: 'string' }, status: { enum: ['PASS', 'FAIL', 'INCONCLUSIVE'] } },
+        required: ['id', 'status', 'rationale'],
+        properties: {
+          id: { type: 'string' },
+          status: { enum: ['PASS', 'FAIL', 'INCONCLUSIVE'] },
+          rationale: { type: 'string', minLength: 1 },
+        },
       },
     },
   },
 });
 
+const judgeRubric = [
+  'Judge observable behavior against the supplied contract and oracle.',
+  'PASS only when direct observable evidence supports a contract-valid result, including a valid alternative.',
+  'FAIL when direct evidence establishes a contract violation.',
+  'INCONCLUSIVE when observable evidence is missing or incomplete; do not reward fluent claims without evidence.',
+  'Return only the structured output required by the output schema.',
+].join(' ');
+
+interface CalibrationInputProbe {
+  id: string;
+  judgeInput: JudgeInput;
+  oracle: string;
+}
+
+interface CalibrationProbeResult {
+  id: string;
+  expectedStatus: 'PASS' | 'FAIL' | 'INCONCLUSIVE';
+  observedStatus: CaseStatus;
+  rationale: string;
+  passed: boolean;
+}
+
 export function qualifyCalibration(
   actual: { probes?: { id: string; status: string }[] },
-  expectedProbes: QualificationProbe[] = [
-    { id: 'valid', kind: 'valid', text: '', expectedStatus: 'PASS' },
-    { id: 'invalid', kind: 'invalid', text: '', expectedStatus: 'FAIL' },
-    { id: 'alternative', kind: 'alternative', text: '', expectedStatus: 'PASS' },
-    { id: 'unsupported', kind: 'unsupported', text: '', expectedStatus: 'INCONCLUSIVE' },
+  expectedProbes: Pick<QualificationProbe, 'id' | 'expectedStatus'>[] = [
+    { id: 'valid', expectedStatus: 'PASS' },
+    { id: 'invalid', expectedStatus: 'FAIL' },
+    { id: 'alternative', expectedStatus: 'PASS' },
+    { id: 'unsupported', expectedStatus: 'INCONCLUSIVE' },
   ],
 ): { id: string; passed: boolean }[] {
   const expected = new Map(expectedProbes.map(probe => [probe.id, probe.expectedStatus]));
@@ -165,16 +202,32 @@ async function invoke(
   timeoutMs: number,
   invocationEnvironment: NodeJS.ProcessEnv,
 ): Promise<ReturnType<typeof normalizeJsonl> & { exitCode: number; stderr: string; raw: string }> {
-  const fakeOutput = process.env.SKILL_EVIDENCE_CODEX_BIN ? path.join(os.tmpdir(), `skill-evidence-fake-${randomUUID()}.jsonl`) : undefined;
+  const fakeMode = process.env.SKILL_EVIDENCE_CODEX_BIN !== undefined;
+  const fakeOutput = fakeMode ? path.join(os.tmpdir(), `skill-evidence-fake-${randomUUID()}.jsonl`) : undefined;
+  const fakeEnvironment: NodeJS.ProcessEnv = fakeMode
+    ? {
+        SKILL_EVIDENCE_FAKE_OUTPUT: fakeOutput,
+        ...(process.env.SKILL_EVIDENCE_FAKE_SCENARIO === undefined
+          ? {}
+          : { SKILL_EVIDENCE_FAKE_SCENARIO: process.env.SKILL_EVIDENCE_FAKE_SCENARIO }),
+        ...(process.env.SKILL_EVIDENCE_FAKE_SESSION_LOG === undefined
+          ? {}
+          : { SKILL_EVIDENCE_FAKE_SESSION_LOG: process.env.SKILL_EVIDENCE_FAKE_SESSION_LOG }),
+        ...(process.env.SKILL_EVIDENCE_FAKE_INVOCATION_LOG === undefined
+          ? {}
+          : { SKILL_EVIDENCE_FAKE_INVOCATION_LOG: process.env.SKILL_EVIDENCE_FAKE_INVOCATION_LOG }),
+        ...(process.env.SKILL_EVIDENCE_FAKE_CALIBRATION_RESULTS === undefined
+          ? {}
+          : { SKILL_EVIDENCE_FAKE_CALIBRATION_RESULTS: process.env.SKILL_EVIDENCE_FAKE_CALIBRATION_RESULTS }),
+      }
+    : {};
   const result = await runProcess(argv, {
     cwd,
     timeoutMs,
     env: {
       ...reducedEnvironment(),
       ...invocationEnvironment,
-      SKILL_EVIDENCE_FAKE_OUTPUT: fakeOutput,
-      SKILL_EVIDENCE_FAKE_SCENARIO: process.env.SKILL_EVIDENCE_FAKE_SCENARIO,
-      SKILL_EVIDENCE_FAKE_SESSION_LOG: process.env.SKILL_EVIDENCE_FAKE_SESSION_LOG,
+      ...fakeEnvironment,
     },
   });
   const raw = result.stdout || (fakeOutput ? await readFile(fakeOutput, 'utf8').catch(() => '') : '');
@@ -183,14 +236,70 @@ async function invoke(
   return { ...normalized, exitCode: result.exitCode, stderr: result.stderr, raw };
 }
 
+async function calibrationInput(
+  loaded: LoadedEvaluation,
+  probesToQualify: QualificationProbe[],
+): Promise<{ input: CalibrationInputProbe[]; expected: Map<string, QualificationProbe['expectedStatus']> }> {
+  const cases = new Map(loaded.cases.map(evaluationCase => [evaluationCase.id, evaluationCase]));
+  const input: CalibrationInputProbe[] = [];
+  const expected = new Map<string, QualificationProbe['expectedStatus']>();
+  for (const probe of probesToQualify) {
+    const evaluationCase = cases.get(probe.judgeInput.caseId);
+    if (!evaluationCase) throw new Error(`Qualification probe references non-decision case ${probe.judgeInput.caseId}`);
+    const id = `probe-${canonicalDigest({ caseId: evaluationCase.id, package: { purpose: probe.purpose, input: probe.judgeInput } })}`;
+    if (expected.has(id)) throw new Error(`Duplicate deterministic calibration probe ID ${id}`);
+    input.push({
+      id,
+      judgeInput: probe.judgeInput,
+      oracle: sanitize(await readFile(safeResolve(loaded.directory, evaluationCase.oracle), 'utf8')),
+    });
+    expected.set(id, probe.expectedStatus);
+  }
+  return { input, expected };
+}
+
+function parsedCalibration(
+  value: unknown,
+  expected: Map<string, QualificationProbe['expectedStatus']>,
+): { probes?: { id: string; status: 'PASS' | 'FAIL' | 'INCONCLUSIVE'; rationale: string }[]; error?: string } {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return { error: 'Calibration response is not an object' };
+  const response = value as Record<string, unknown>;
+  if (Object.keys(response).length !== 1 || !Array.isArray(response.probes))
+    return { error: 'Calibration response must contain only probes' };
+  if (response.probes.length !== expected.size) return { error: 'Calibration response has an incomplete probe set' };
+  const probes: { id: string; status: 'PASS' | 'FAIL' | 'INCONCLUSIVE'; rationale: string }[] = [];
+  const seen = new Set<string>();
+  for (const item of response.probes) {
+    if (item === null || typeof item !== 'object' || Array.isArray(item)) return { error: 'Calibration response has a malformed probe' };
+    const probe = item as Record<string, unknown>;
+    if (
+      Object.keys(probe).length !== 3
+      || typeof probe.id !== 'string'
+      || !['PASS', 'FAIL', 'INCONCLUSIVE'].includes(probe.status as string)
+      || typeof probe.rationale !== 'string'
+      || !probe.rationale.trim()
+    )
+      return { error: 'Calibration response has a malformed probe' };
+    if (!expected.has(probe.id)) return { error: `Calibration response has unknown probe ${probe.id}` };
+    if (seen.has(probe.id)) return { error: `Calibration response has duplicate probe ${probe.id}` };
+    seen.add(probe.id);
+    probes.push({ id: probe.id, status: probe.status as 'PASS' | 'FAIL' | 'INCONCLUSIVE', rationale: probe.rationale });
+  }
+  return { probes };
+}
+
 async function calibrate(
   plan: RunPlan,
   runDirectory: string,
   timeoutMs: number,
+  loaded: LoadedEvaluation,
   probesToQualify: QualificationProbe[],
 ): Promise<{
   passed: boolean;
   probes: { id: string; passed: boolean }[];
+  results: CalibrationProbeResult[];
+  inputDigest: string;
+  resultDigest: string;
   usage: { input: number; cachedInput: number; output: number };
 }> {
   const workspace = path.join(runDirectory, 'calibration-workspace');
@@ -198,25 +307,44 @@ async function calibrate(
   await runProcess(['git', 'init', '--quiet'], { cwd: workspace, timeoutMs: 10_000 });
   const schemaFile = path.join(runDirectory, 'calibration-output.schema.json');
   await writeCanonicalJson(schemaFile, calibrationSchema(probesToQualify.length));
-  const prompt = `You are qualifying as an evidence judge. Return only structured verdicts. Apply these rules independently: valid behavior with direct evidence=PASS; contract violation=FAIL; a different but contract-valid implementation=PASS; fluent claim without observable evidence=INCONCLUSIVE. Probes: ${JSON.stringify(
-    probesToQualify.map(({ id, text }) => ({ id, text })),
-  )}`;
+  const { input, expected } = await calibrationInput(loaded, probesToQualify);
+  await writeCanonicalJson(path.join(runDirectory, 'calibration-input.json'), input);
+  const prompt = `${judgeRubric}\n\n${canonicalJson(input)}`;
   const argv = codexArgs(plan.judgeModel, plan.judgeReasoningEffort, workspace, prompt, schemaFile);
   await writeCanonicalJson(path.join(runDirectory, 'calibration.command.json'), argv.slice(0, -1));
-  const result = await invoke(argv, workspace, timeoutMs, {
-    SKILL_EVIDENCE_ROLE: 'calibration',
-    SKILL_EVIDENCE_CALIBRATION_PROBES: JSON.stringify(probesToQualify.map(probe => ({ id: probe.id, status: probe.expectedStatus }))),
-  });
-  await writeFile(path.join(runDirectory, 'calibration.raw.jsonl'), result.raw, { mode: 0o600 });
+  const result = await invoke(argv, workspace, timeoutMs, { SKILL_EVIDENCE_ROLE: 'calibration' });
+  await writeFile(path.join(runDirectory, 'calibration.raw.jsonl'), sanitize(result.raw), { mode: 0o600 });
   await writeFile(path.join(runDirectory, 'calibration.stderr.log'), sanitize(result.stderr), { mode: 0o600 });
-  let actual: { probes?: { id: string; status: string }[] } = {};
+  let actual: unknown;
+  let error: string | undefined;
   try {
-    actual = JSON.parse(result.finalMessage) as typeof actual;
+    actual = JSON.parse(result.finalMessage) as unknown;
   } catch {
-    /* invalid output fails calibration */
+    error = 'Calibration response is not valid JSON';
   }
-  const probes = qualifyCalibration(actual, probesToQualify);
-  return { passed: result.exitCode === 0 && result.complete && probes.every(probe => probe.passed), probes, usage: result.usage };
+  const parsed = error ? { error } : parsedCalibration(actual, expected);
+  const observed = new Map(parsed.probes?.map(probe => [probe.id, probe]));
+  const failure = parsed.error ?? (result.exitCode === 0 && result.complete ? undefined : 'Calibration session did not complete cleanly');
+  const results: CalibrationProbeResult[] = [...expected].map(([id, expectedStatus]) => {
+    const response = observed.get(id);
+    return {
+      id,
+      expectedStatus,
+      observedStatus: failure ? 'ERROR' : (response?.status ?? 'ERROR'),
+      rationale: failure ?? response?.rationale ?? 'Calibration response omitted this probe',
+      passed: !failure && response?.status === expectedStatus,
+    };
+  });
+  const calibrationResult = { schemaVersion: 1, probes: results };
+  await writeCanonicalJson(path.join(runDirectory, 'calibration-result.json'), calibrationResult);
+  return {
+    passed: results.every(probe => probe.passed),
+    probes: results.map(({ id, passed }) => ({ id, passed })),
+    results,
+    inputDigest: canonicalDigest(input),
+    resultDigest: canonicalDigest(calibrationResult),
+    usage: result.usage,
+  };
 }
 
 async function judgeCase(
@@ -236,13 +364,7 @@ async function judgeCase(
   await mkdir(workspace, { recursive: true });
   await runProcess(['git', 'init', '--quiet'], { cwd: workspace, timeoutMs: 10_000 });
   const result = await invoke(
-    codexArgs(
-      plan.judgeModel,
-      plan.judgeReasoningEffort,
-      workspace,
-      `Judge observable behavior against the supplied contract and oracle. Do not reward fluency without evidence.\n${payload}`,
-      schemaFile,
-    ),
+    codexArgs(plan.judgeModel, plan.judgeReasoningEffort, workspace, `${judgeRubric}\n\n${payload}`, schemaFile),
     workspace,
     timeoutMs,
     { SKILL_EVIDENCE_ROLE: 'judge' },
@@ -261,7 +383,7 @@ export async function executePlan(
   preflightFile: string,
   approvedSessions: number,
   maxCredits: number,
-): Promise<{ runDirectory: string; evidence: EvidenceV2 }> {
+): Promise<{ runDirectory: string; evidence: ProducedEvidenceV2; outcome: ExecutePlanOutcome }> {
   const plan = await readJson<RunPlan>(planFile);
   const suppliedPreflight = await readJson<Preflight>(preflightFile);
   const currentPreflight = await inspectPreflight(planFile);
@@ -286,15 +408,68 @@ export async function executePlan(
   const runId = `${new Date().toISOString().replace(/[:.]/gu, '-')}-${randomUUID().slice(0, 8)}`;
   const runDirectory = path.resolve('.skill-evidence', 'runs', runId);
   await mkdir(runDirectory, { recursive: true });
+  authorizeNextSession(1);
+  const calibration = await calibrate(plan, runDirectory, loaded.evaluation.runtime.timeoutMs, loaded, await qualificationProbes(loaded));
+  spentCredits += sessionMicrocredits;
+  if (!calibration.passed) {
+    const evidence: ProducedEvidenceV2 = {
+      schemaVersion: 2,
+      runId,
+      createdAt: new Date().toISOString(),
+      provenance: {
+        evaluationId: loaded.evaluation.id,
+        model: plan.model,
+        reasoningEffort: plan.reasoningEffort,
+        judgeModel: plan.judgeModel,
+        judgeReasoningEffort: plan.judgeReasoningEffort,
+        theoryCommit: loaded.evaluation.runtime.theoryCommit,
+        skillCommit: loaded.evaluation.runtime.skillCommit,
+        preflightDigest: canonicalDigest(suppliedPreflight),
+      },
+      fingerprints: {
+        evaluation: loaded.fingerprint,
+        skill: currentSkillFingerprint,
+      },
+      calibration: {
+        passed: false,
+        inputDigest: calibration.inputDigest,
+        resultDigest: calibration.resultDigest,
+        probes: calibration.results,
+      },
+      cases: [],
+      claims: [...loaded.evaluation.claims.map(claim => claim.id), ...loaded.evaluation.exclusions].map(id => ({
+        id,
+        status: 'NOT_EVALUATED' as const,
+      })),
+      eligibility: { confirm: false, reasons: ['Judge calibration failed'] },
+      usage: {
+        sessions: 1,
+        inputTokens: calibration.usage.input,
+        cachedInputTokens: calibration.usage.cachedInput,
+        outputTokens: calibration.usage.output,
+        credits: 0.37,
+        ledger: [
+          {
+            session: 1,
+            role: 'calibration',
+            inputTokens: calibration.usage.input,
+            cachedInputTokens: calibration.usage.cachedInput,
+            outputTokens: calibration.usage.output,
+            credits: 0.37,
+          },
+        ],
+      },
+    };
+    await validateSchema('evidence', evidence, 'evidence.json');
+    await writeCanonicalJson(path.join(runDirectory, 'evidence.json'), evidence);
+    return { runDirectory, evidence, outcome: 'calibration-failed' };
+  }
+
   const archivalSkillSnapshot = path.join(runDirectory, 'snapshot', 'refactor-design');
   await copyFiltered(loaded.evaluation.runtime.skillSource, archivalSkillSnapshot, skillExclusions);
   await makeReadOnly(archivalSkillSnapshot);
   const archivalSnapshotFingerprint = await directoryFingerprint(archivalSkillSnapshot);
   if (archivalSnapshotFingerprint !== plan.skillSnapshotFingerprint) throw new Error('Filtered skill snapshot drift detected');
-  authorizeNextSession(1);
-  const calibration = await calibrate(plan, runDirectory, loaded.evaluation.runtime.timeoutMs, await qualificationProbes(loaded));
-  spentCredits += sessionMicrocredits;
-  if (!calibration.passed) throw new Error(`Judge calibration failed; artifacts preserved at ${runDirectory}`);
 
   const cases: CaseEvidence[] = [];
   let sessions = 1;
@@ -453,7 +628,7 @@ export async function executePlan(
   if (critical > 0) reasons.push(`${critical} critical violation(s)`);
   if (cases.some(item => !item.observabilityComplete)) reasons.push('Observability is incomplete');
   const eligibility = { confirm: reasons.length === 0, reasons };
-  const claims: EvidenceV2['claims'] = loaded.evaluation.claims.map(claim => ({
+  const claims: ProducedEvidenceV2['claims'] = loaded.evaluation.claims.map(claim => ({
     id: claim.id,
     status: eligibility.confirm
       ? ('SUPPORTED' as const)
@@ -462,7 +637,7 @@ export async function executePlan(
         : ('NOT_SUPPORTED' as const),
   }));
   for (const exclusion of loaded.evaluation.exclusions) claims.push({ id: exclusion, status: 'NOT_EVALUATED' });
-  const evidence: EvidenceV2 = {
+  const evidence: ProducedEvidenceV2 = {
     schemaVersion: 2,
     runId,
     createdAt: new Date().toISOString(),
@@ -481,7 +656,12 @@ export async function executePlan(
       skill: currentSkillFingerprint,
       skillSnapshot: archivalSnapshotFingerprint,
     },
-    calibration: { passed: calibration.passed, probes: calibration.probes },
+    calibration: {
+      passed: calibration.passed,
+      inputDigest: calibration.inputDigest,
+      resultDigest: calibration.resultDigest,
+      probes: calibration.results,
+    },
     cases,
     claims,
     eligibility,
@@ -496,5 +676,5 @@ export async function executePlan(
   };
   await validateSchema('evidence', evidence, 'evidence.json');
   await writeCanonicalJson(path.join(runDirectory, 'evidence.json'), evidence);
-  return { runDirectory, evidence };
+  return { runDirectory, evidence, outcome: 'completed' as ExecutePlanOutcome };
 }

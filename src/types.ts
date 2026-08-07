@@ -160,7 +160,18 @@ export interface EvidenceV2 {
   createdAt: string;
   provenance: Record<string, unknown>;
   fingerprints: Record<string, string>;
-  calibration: { passed: boolean; probes: { id: string; passed: boolean }[] };
+  calibration: {
+    passed: boolean;
+    inputDigest?: string;
+    resultDigest?: string;
+    probes: {
+      id: string;
+      expectedStatus?: 'PASS' | 'FAIL' | 'INCONCLUSIVE';
+      observedStatus?: CaseStatus;
+      rationale?: string;
+      passed: boolean;
+    }[];
+  };
   cases: CaseEvidence[];
   claims: { id: string; status: ClaimStatus }[];
   eligibility: { confirm: boolean; reasons: string[] };
@@ -173,5 +184,22 @@ export interface EvidenceV2 {
     ledger: SessionUsage[];
   };
 }
+
+export interface ProducedEvidenceV2 extends Omit<EvidenceV2, 'calibration'> {
+  calibration: {
+    passed: boolean;
+    inputDigest: string;
+    resultDigest: string;
+    probes: {
+      id: string;
+      expectedStatus: 'PASS' | 'FAIL' | 'INCONCLUSIVE';
+      observedStatus: CaseStatus;
+      rationale: string;
+      passed: boolean;
+    }[];
+  };
+}
+
+export type ExecutePlanOutcome = 'completed' | 'calibration-failed';
 
 export type Evidence = EvidenceV1 | EvidenceV2;

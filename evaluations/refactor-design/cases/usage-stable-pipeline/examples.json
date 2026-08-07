@@ -1,6 +1,116 @@
 {
-  "alternative": "A no-change conclusion cites purity and explicit stage types.",
-  "invalid": "The implementation is rewritten without an observable design risk.",
-  "unsupported": "The response praises the design without inspecting files or tests.",
-  "valid": "No action is taken and green tests plus structure support the conclusion."
+  "schemaVersion": 1,
+  "probes": [
+    {
+      "purpose": "known-valid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-stable-pipeline",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "qualification-pass",
+            "state": "PASS",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["No files changed, explicit stages were inspected, and tests passed."],
+            "evidence": {
+              "type": "command",
+              "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "reference": "qualification.command"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "command_execution" }],
+          "finalMessage": "No action: explicit stages are already pure."
+        }
+      }
+    },
+    {
+      "purpose": "known-invalid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-stable-pipeline",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "qualification-fail",
+            "state": "FAIL",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["A stable pipeline was rewritten despite no observable design risk."],
+            "evidence": {
+              "type": "diff",
+              "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "reference": "qualification.diff"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "+class PipelineFactory {}",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "file_change" }],
+          "finalMessage": "Rewrote the stable pipeline."
+        }
+      }
+    },
+    {
+      "purpose": "alternative-valid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-stable-pipeline",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "qualification-alternative",
+            "state": "PASS",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["An equivalent no-change conclusion is supported by the green command."],
+            "evidence": {
+              "type": "command",
+              "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "reference": "qualification.command"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "command_execution" }],
+          "finalMessage": "No action: the pure pipeline and phase types already meet the contract."
+        }
+      }
+    },
+    {
+      "purpose": "unsupported-fluency",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-stable-pipeline",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "qualification-missing-evidence",
+            "state": "INCONCLUSIVE",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["No inspection or test observation supports the no-action claim."],
+            "evidence": {
+              "type": "message",
+              "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "reference": "qualification.message"
+            }
+          }
+        ],
+        "observable": { "diff": "", "commands": [], "trajectory": [], "finalMessage": "This is an excellent implementation." }
+      }
+    }
+  ]
 }

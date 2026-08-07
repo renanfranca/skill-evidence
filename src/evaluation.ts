@@ -2,14 +2,22 @@ import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { canonicalDigest, sha256 } from './canonical.js';
 import { assertNoSymlinks, directoryFingerprint, readJson, safeResolve } from './files.js';
+import type { JudgeInput } from './judge-input.js';
 import { validateSchema } from './schema.js';
 import type { Contract, Evaluation, EvaluationCase, LoadedEvaluation } from './types.js';
 
+export type QualificationPurpose = 'known-valid' | 'known-invalid' | 'alternative-valid' | 'unsupported-fluency';
+
 export interface QualificationProbe {
   id: string;
-  kind: 'valid' | 'invalid' | 'alternative' | 'unsupported';
-  text: string;
+  purpose: QualificationPurpose;
+  judgeInput: JudgeInput;
   expectedStatus: 'PASS' | 'FAIL' | 'INCONCLUSIVE';
+}
+
+interface QualificationExamples {
+  schemaVersion: 1;
+  probes: { purpose: QualificationPurpose; input: JudgeInput }[];
 }
 
 async function requiredFile(root: string, relative: string): Promise<string> {
@@ -53,6 +61,13 @@ export async function loadEvaluation(directory: string): Promise<LoadedEvaluatio
     await requiredFile(root, evaluationCase.prompt);
     await requiredFile(root, evaluationCase.oracle);
     const qualificationExamples = await requiredFile(root, evaluationCase.qualificationExamples);
+    const qualification = await readJson<QualificationExamples>(qualificationExamples);
+    await validateSchema('qualification', qualification, evaluationCase.qualificationExamples);
+    for (const probe of qualification.probes) {
+      await validateSchema('judge-input', probe.input, `${evaluationCase.qualificationExamples}:${probe.purpose}`);
+      if (probe.input.caseId !== evaluationCase.id)
+        throw new Error(`${evaluationCase.qualificationExamples}:${probe.purpose} caseId must be ${evaluationCase.id}`);
+    }
     const fixture = await requiredFile(root, evaluationCase.fixture);
     await assertNoSymlinks(fixture);
     inputDigests[evaluationCase.prompt] = sha256(await readFile(safeResolve(root, evaluationCase.prompt)));
@@ -102,16 +117,23 @@ export async function loadEvaluation(directory: string): Promise<LoadedEvaluatio
 }
 
 export async function qualificationProbes(loaded: LoadedEvaluation): Promise<QualificationProbe[]> {
-  const expected = { valid: 'PASS', invalid: 'FAIL', alternative: 'PASS', unsupported: 'INCONCLUSIVE' } as const;
+  const expected = {
+    'known-valid': 'PASS',
+    'known-invalid': 'FAIL',
+    'alternative-valid': 'PASS',
+    'unsupported-fluency': 'INCONCLUSIVE',
+  } as const;
   const probes: QualificationProbe[] = [];
   for (const evaluationCase of loaded.cases) {
-    const examples = await readJson<Record<string, unknown>>(safeResolve(loaded.directory, evaluationCase.qualificationExamples));
-    if (Object.keys(examples).sort().join(',') !== 'alternative,invalid,unsupported,valid')
-      throw new Error(`${evaluationCase.qualificationExamples} must contain exactly valid, invalid, alternative, and unsupported`);
-    for (const kind of ['valid', 'invalid', 'alternative', 'unsupported'] as const) {
-      const text = examples[kind];
-      if (typeof text !== 'string' || !text.trim()) throw new Error(`${evaluationCase.qualificationExamples} has invalid ${kind}`);
-      probes.push({ id: `${evaluationCase.id}:${kind}`, kind, text, expectedStatus: expected[kind] });
+    const examplesFile = safeResolve(loaded.directory, evaluationCase.qualificationExamples);
+    const examples = await readJson<QualificationExamples>(examplesFile);
+    for (const probe of examples.probes) {
+      probes.push({
+        id: `${evaluationCase.id}:${probe.purpose}`,
+        purpose: probe.purpose,
+        judgeInput: probe.input,
+        expectedStatus: expected[probe.purpose],
+      });
     }
   }
   return probes;
