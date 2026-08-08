@@ -1,55 +1,39 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
 
+import { campaignArtifactPath, campaignDirectory, codexHomeDirectoryIdentity } from './campaign.js';
+import type { CodexHomeDirectoryIdentity } from './campaign.js';
 import { canonicalJson, sha256 } from './canonical.js';
-import { sanitizeForPersistence } from './redaction.js';
+import type { ScientificConfiguration } from './configuration.js';
 
 export interface InstrumentFreeze {
   campaignId: string;
-  conditions: unknown;
-  conditionsDigest: string;
+  codexHomeDirectoryIdentity: CodexHomeDirectoryIdentity;
+  instrument: { codexCli: string | null; codexSdk: string | null; promptfoo: string | null };
   lockfileDigest: string;
   manifestDigest: string;
-  instrument: {
-    codexCli: string | null;
-    codexSdk: string | null;
-    promptfoo: string | null;
-  };
   repositoryCommit: string;
-  schemaVersion: 1;
+  scientificConfiguration: ScientificConfiguration;
+  scientificConfigurationDigest: string;
+  schemaVersion: 2;
 }
 
 export interface CreateInstrumentFreezeInput {
   artifactRoot: string;
   campaignId: string;
-  conditions: unknown;
+  externalCodexHome: string;
   lockfilePath: string;
   manifestPath: string;
   repositoryCommit: string;
+  scientificConfiguration: ScientificConfiguration;
 }
 
 export interface AssertFreezeCurrentInput {
-  conditions?: unknown;
+  externalCodexHome: string;
   freeze: InstrumentFreeze;
   lockfilePath: string;
   manifestPath: string;
   repositoryCommit: string;
-}
-
-async function fingerprintInput(input: Omit<CreateInstrumentFreezeInput, 'artifactRoot'>): Promise<InstrumentFreeze> {
-  const [lockfile, manifest] = await Promise.all([readFile(input.lockfilePath, 'utf8'), readFile(input.manifestPath, 'utf8')]);
-  const externalCodexHome = findExternalCodexHome(input.conditions);
-  const conditions = sanitizeForPersistence(input.conditions, externalCodexHome);
-  return {
-    campaignId: input.campaignId,
-    conditions,
-    conditionsDigest: sha256(conditions),
-    instrument: extractInstrumentVersions(lockfile),
-    lockfileDigest: sha256(lockfile),
-    manifestDigest: sha256(manifest),
-    repositoryCommit: input.repositoryCommit,
-    schemaVersion: 1,
-  };
+  scientificConfiguration: ScientificConfiguration;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -71,12 +55,23 @@ function extractInstrumentVersions(lockfile: string): InstrumentFreeze['instrume
   };
 }
 
-function findExternalCodexHome(conditions: unknown): string | undefined {
-  if (conditions === null || typeof conditions !== 'object') {
-    return undefined;
-  }
-  const candidate = (conditions as Record<string, unknown>).externalCodexHome;
-  return typeof candidate === 'string' ? candidate : undefined;
+async function fingerprintInput(input: Omit<CreateInstrumentFreezeInput, 'artifactRoot'>): Promise<InstrumentFreeze> {
+  const [lockfile, manifest, home] = await Promise.all([
+    readFile(input.lockfilePath, 'utf8'),
+    readFile(input.manifestPath, 'utf8'),
+    codexHomeDirectoryIdentity(input.externalCodexHome),
+  ]);
+  return {
+    campaignId: input.campaignId,
+    codexHomeDirectoryIdentity: home.identity,
+    instrument: extractInstrumentVersions(lockfile),
+    lockfileDigest: sha256(lockfile),
+    manifestDigest: sha256(manifest),
+    repositoryCommit: input.repositoryCommit,
+    scientificConfiguration: input.scientificConfiguration,
+    scientificConfigurationDigest: sha256(input.scientificConfiguration),
+    schemaVersion: 2,
+  };
 }
 
 export async function createInstrumentFreeze(input: CreateInstrumentFreezeInput): Promise<InstrumentFreeze> {
@@ -84,19 +79,29 @@ export async function createInstrumentFreeze(input: CreateInstrumentFreezeInput)
   if (freeze.instrument.promptfoo !== '0.122.0' || freeze.instrument.codexSdk !== '0.147.0' || freeze.instrument.codexCli !== '0.147.0') {
     throw new Error('instrument versions do not match the explicitly resolved Promptfoo/Codex candidates');
   }
-  const directory = join(input.artifactRoot, 'campaigns', input.campaignId);
-  await mkdir(directory, { recursive: true });
-  await writeFile(join(directory, 'freeze.json'), `${canonicalJson(freeze)}\n`);
+  await mkdir(campaignDirectory(input.artifactRoot, input.campaignId), { mode: 0o700, recursive: true });
+  try {
+    await writeFile(campaignArtifactPath(input.artifactRoot, input.campaignId, 'freeze.json'), canonicalJson(freeze) + '\n', {
+      flag: 'wx',
+      mode: 0o600,
+    });
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && (error as NodeJS.ErrnoException).code === 'EEXIST') {
+      throw new Error('instrument freeze already exists; start a new campaign');
+    }
+    throw error;
+  }
   return freeze;
 }
 
 export async function assertFreezeCurrent(input: AssertFreezeCurrentInput): Promise<void> {
   const current = await fingerprintInput({
     campaignId: input.freeze.campaignId,
-    conditions: input.conditions ?? input.freeze.conditions,
+    externalCodexHome: input.externalCodexHome,
     lockfilePath: input.lockfilePath,
     manifestPath: input.manifestPath,
     repositoryCommit: input.repositoryCommit,
+    scientificConfiguration: input.scientificConfiguration,
   });
   if (canonicalJson(current) !== canonicalJson(input.freeze)) {
     throw new Error('instrument drift detected; start a new campaign and rerun E1/G1');

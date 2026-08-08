@@ -1,6 +1,7 @@
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname } from 'node:path';
 
+import { assertCleanWorktree, campaignArtifactPath, codexHomeDirectoryIdentity } from './campaign.js';
 import { reserveProviderInvocation } from './budget.js';
 import { canonicalJson } from './canonical.js';
 import { foundationConditions } from './conditions.js';
@@ -10,11 +11,12 @@ import { assertFreezeCurrent } from './freeze.js';
 import type { InstrumentFreeze } from './freeze.js';
 import { assertCredentialPolicy, runProviderInvocation } from './invocation.js';
 import { withPromptfooIsolation } from './isolation.js';
-import { assessE1, assessE2 } from './report.js';
+import { assessE1, assessProviderOutcome } from './report.js';
 import { sanitizeForPersistence } from './redaction.js';
-import { createSyntheticWorkspace, snapshotWorkspace } from './workspace.js';
+import { assessCanary, createSyntheticWorkspace, snapshotWorkspace } from './workspace.js';
 
-interface SummaryCapable {
+interface EvaluationResult {
+  getTraces?: () => Promise<unknown>;
   toEvaluateSummary?: () => Promise<unknown>;
 }
 
@@ -28,91 +30,88 @@ export interface RunLiveExperimentInput {
   lockfilePath: string;
   manifestPath: string;
   repositoryCommit: string;
+  repositoryRoot?: string;
 }
 
 export interface LiveExperimentResult {
   kind: ExperimentKind;
   report: unknown;
-  status: 'PASS' | 'ERROR';
+  status: 'ERROR' | 'INVALID_CANARY' | 'PASS';
 }
 
-function isSummaryCapable(value: unknown): value is SummaryCapable {
+function isEvaluationResult(value: unknown): value is EvaluationResult {
   return value !== null && typeof value === 'object';
 }
 
-async function getSummary(value: unknown): Promise<unknown> {
-  if (isSummaryCapable(value) && typeof value.toEvaluateSummary === 'function') {
-    return value.toEvaluateSummary();
-  }
-  return value;
-}
-
-function isMissingFile(error: unknown): error is NodeJS.ErrnoException {
-  return typeof error === 'object' && error !== null && (error as NodeJS.ErrnoException).code === 'ENOENT';
+async function evaluateArtifacts(value: unknown, externalCodexHome: string): Promise<{ summary: unknown; traces: unknown }> {
+  const summary = isEvaluationResult(value) && typeof value.toEvaluateSummary === 'function' ? await value.toEvaluateSummary() : value;
+  const traces = isEvaluationResult(value) && typeof value.getTraces === 'function' ? await value.getTraces() : [];
+  return {
+    summary: sanitizeForPersistence(summary, externalCodexHome),
+    traces: sanitizeForPersistence(traces, externalCodexHome),
+  };
 }
 
 async function loadFreeze(artifactRoot: string, campaignId: string): Promise<InstrumentFreeze> {
-  try {
-    return JSON.parse(await readFile(join(artifactRoot, 'campaigns', campaignId, 'freeze.json'), 'utf8')) as InstrumentFreeze;
-  } catch (error) {
-    if (isMissingFile(error)) {
-      throw new Error(`no instrument freeze exists for campaign ${campaignId}`);
-    }
-    throw error;
-  }
+  return JSON.parse(await readFile(campaignArtifactPath(artifactRoot, campaignId, 'freeze.json'), 'utf8')) as InstrumentFreeze;
 }
 
-async function persistJson(path: string, value: unknown, externalCodexHome: string): Promise<void> {
-  await mkdir(join(path, '..'), { recursive: true });
-  await writeFile(path, `${JSON.stringify(sanitizeForPersistence(value, externalCodexHome), null, 2)}\n`);
+async function persistArtifact(path: string, value: unknown): Promise<void> {
+  await mkdir(dirname(path), { mode: 0o700, recursive: true });
+  await writeFile(path, canonicalJson(value) + '\n', { mode: 0o600 });
 }
 
-async function assertExternalCodexHome(path: string): Promise<void> {
+async function assertExternalCodexHome(path: string): Promise<string> {
   if (path.trim().length === 0) {
     throw new Error('SKILL_EVIDENCE_EXPERIMENT_CODEX_HOME must name a dedicated logged-in CODEX_HOME');
   }
   await access(path);
+  return (await codexHomeDirectoryIdentity(path)).canonicalPath;
 }
 
-function e2Report(kind: ExperimentKind, summary: unknown, before: unknown, after: unknown): Record<string, unknown> {
-  const e2 = assessE2(summary);
-  return {
-    condition: kind,
-    limitations: [
-      'Filesystem snapshots are experimental ground truth, not evidence of a causal skill contribution.',
-      'Effective model and reasoning are null unless the provider exposes them independently.',
-    ],
-    providerError: e2.providerError,
-    rawSummaryObserved: summary !== null,
-    response: e2.response,
-    status: e2.status,
-    workspaceAfter: after,
-    workspaceBefore: before,
-  };
+async function assertBaselineCanaryPassed(artifactRoot: string, campaignId: string, kind: ExperimentKind): Promise<void> {
+  if (kind !== 'e2-deep') {
+    return;
+  }
+  try {
+    const report = JSON.parse(await readFile(campaignArtifactPath(artifactRoot, campaignId, 'e2-baseline-curated.json'), 'utf8')) as {
+      canary?: { status?: unknown };
+    };
+    if (report.canary?.status !== 'PASS') {
+      throw new Error('baseline E2 did not produce a valid canary');
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message === 'baseline E2 did not produce a valid canary') {
+      throw error;
+    }
+    throw new Error('a valid baseline E2 canary is required before E2 deep');
+  }
 }
 
 export async function runLiveExperiment(input: RunLiveExperimentInput): Promise<LiveExperimentResult> {
-  await assertExternalCodexHome(input.externalCodexHome);
+  if (input.repositoryRoot !== undefined) {
+    await assertCleanWorktree(input.repositoryRoot);
+  }
+  const externalCodexHome = await assertExternalCodexHome(input.externalCodexHome);
   assertCredentialPolicy({ options: {}, provider: 'openai:codex-sdk', suite: {} }, input.environment);
   const freeze = await loadFreeze(input.artifactRoot, input.campaignId);
   await assertFreezeCurrent({
-    conditions: foundationConditions(input.externalCodexHome),
+    externalCodexHome,
     freeze,
     lockfilePath: input.lockfilePath,
     manifestPath: input.manifestPath,
     repositoryCommit: input.repositoryCommit,
+    scientificConfiguration: foundationConditions(),
   });
-
+  await assertBaselineCanaryPassed(input.artifactRoot, input.campaignId, input.kind);
   const workspace = await createSyntheticWorkspace();
   try {
     const invocation = createExperimentInvocation({
-      externalCodexHome: input.externalCodexHome,
+      externalCodexHome,
       kind: input.kind,
+      ...(input.kind === 'e1' ? {} : { prompt: workspace.instructions }),
       workingDirectory: workspace.path,
     });
-    if (input.kind !== 'e1') {
-      invocation.suite.prompts = [workspace.instructions];
-    }
     assertCredentialPolicy(
       {
         cliEnv: invocation.providerConfig.cli_env,
@@ -124,11 +123,13 @@ export async function runLiveExperiment(input: RunLiveExperimentInput): Promise<
       input.environment,
     );
     await reserveProviderInvocation({ artifactRoot: input.artifactRoot, campaignId: input.campaignId, kind: input.kind });
-    let summary: unknown;
-    let providerError: string | null = null;
+    const summaryPath = campaignArtifactPath(input.artifactRoot, input.campaignId, 'raw', input.kind + '-summary.json');
+    const tracePath = campaignArtifactPath(input.artifactRoot, input.campaignId, 'raw', input.kind + '-traces.json');
+    await mkdir(campaignArtifactPath(input.artifactRoot, input.campaignId, 'raw'), { mode: 0o700, recursive: true });
+    let artifacts: { summary: unknown; traces: unknown };
     try {
-      const raw = await withPromptfooIsolation(async () =>
-        runProviderInvocation({
+      artifacts = await withPromptfooIsolation(async () => {
+        const raw = await runProviderInvocation({
           environment: input.environment,
           loadPromptfoo: input.loadPromptfoo,
           request: {
@@ -138,22 +139,38 @@ export async function runLiveExperiment(input: RunLiveExperimentInput): Promise<
             providerConfig: invocation.providerConfig,
             suite: invocation.suite,
           },
-        }),
-      );
-      summary = await getSummary(raw);
+        });
+        const collected = await evaluateArtifacts(raw, externalCodexHome);
+        await Promise.all([persistArtifact(summaryPath, collected.summary), persistArtifact(tracePath, collected.traces)]);
+        return collected;
+      });
     } catch (error) {
-      providerError = error instanceof Error ? error.message : String(error);
-      summary = { results: [{ response: { error: providerError } }] };
+      artifacts = {
+        summary: sanitizeForPersistence(
+          { results: [{ response: { error: error instanceof Error ? error.message : String(error) } }] },
+          externalCodexHome,
+        ),
+        traces: [],
+      };
+      await Promise.all([persistArtifact(summaryPath, artifacts.summary), persistArtifact(tracePath, artifacts.traces)]);
     }
-    const workspaceAfter = await snapshotWorkspace(workspace.path);
-    const directory = join(input.artifactRoot, 'campaigns', input.campaignId);
-    await persistJson(join(directory, 'raw', `${input.kind}-summary.json`), summary, input.externalCodexHome);
-    const report = input.kind === 'e1' ? assessE1(summary) : e2Report(input.kind, summary, workspace.before, workspaceAfter);
-    await writeFile(
-      join(directory, `${input.kind}-curated.json`),
-      `${canonicalJson(sanitizeForPersistence(report, input.externalCodexHome))}\n`,
-    );
-    const status = input.kind === 'e1' ? (assessE1(summary).g1 === 'PASS' ? 'PASS' : 'ERROR') : assessE2(summary).status;
+    await Promise.all([readFile(summaryPath, 'utf8'), readFile(tracePath, 'utf8')]);
+    const after = await snapshotWorkspace(workspace.path);
+    const provider = assessProviderOutcome(artifacts.summary);
+    const canary = input.kind === 'e1' ? undefined : assessCanary(artifacts.summary, after);
+    const report =
+      input.kind === 'e1'
+        ? assessE1(artifacts.summary)
+        : {
+            canary,
+            condition: input.kind,
+            provider,
+            tracesObserved: Array.isArray(artifacts.traces) && artifacts.traces.length > 0,
+            workspaceAfter: after,
+            workspaceBefore: workspace.before,
+          };
+    await persistArtifact(campaignArtifactPath(input.artifactRoot, input.campaignId, input.kind + '-curated.json'), report);
+    const status = input.kind === 'e1' ? (assessE1(artifacts.summary).g1 === 'PASS' ? 'PASS' : 'ERROR') : (canary?.status ?? 'ERROR');
     return { kind: input.kind, report, status };
   } finally {
     await workspace.dispose();

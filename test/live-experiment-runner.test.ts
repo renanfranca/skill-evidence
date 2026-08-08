@@ -31,10 +31,11 @@ describe('live E1 orchestration', () => {
     await createInstrumentFreeze({
       artifactRoot: root,
       campaignId: 'c1',
-      conditions: foundationConditions(externalCodexHome),
+      externalCodexHome,
       lockfilePath,
       manifestPath,
       repositoryCommit: 'abc123',
+      scientificConfiguration: foundationConditions(),
     });
     let loads = 0;
 
@@ -61,7 +62,7 @@ describe('live E1 orchestration', () => {
     expect(loads).toBe(1);
     expect(result.status).toBe('PASS');
     expect(JSON.parse(await readFile(join(root, 'campaigns', 'c1', 'budget-ledger.json'), 'utf8'))).toMatchObject({
-      started: [{ kind: 'e1' }],
+      reservations: ['e1'],
     });
     expect(await readFile(join(root, 'campaigns', 'c1', 'e1-curated.json'), 'utf8')).not.toContain(externalCodexHome);
   });
@@ -77,10 +78,11 @@ describe('live E1 orchestration', () => {
     await createInstrumentFreeze({
       artifactRoot: root,
       campaignId: 'c2',
-      conditions: foundationConditions(externalCodexHome),
+      externalCodexHome,
       lockfilePath,
       manifestPath,
       repositoryCommit: 'abc123',
+      scientificConfiguration: foundationConditions(),
     });
     let loads = 0;
 
@@ -103,5 +105,44 @@ describe('live E1 orchestration', () => {
 
     expect(loads).toBe(0);
     await expect(readFile(join(root, 'campaigns', 'c2', 'budget-ledger.json'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('refuses the deep invocation before loading a provider when the baseline canary is absent', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-runner-deep-'));
+    const externalCodexHome = join(root, 'dedicated-login');
+    const manifestPath = join(root, 'package.json');
+    const lockfilePath = join(root, 'package-lock.json');
+    await mkdir(externalCodexHome);
+    await writeFile(manifestPath, JSON.stringify({ dependencies: { '@openai/codex-sdk': '0.147.0', promptfoo: '0.122.0' } }));
+    await writeFile(lockfilePath, resolvedLockfile());
+    await createInstrumentFreeze({
+      artifactRoot: root,
+      campaignId: 'c3',
+      externalCodexHome,
+      lockfilePath,
+      manifestPath,
+      repositoryCommit: 'abc123',
+      scientificConfiguration: foundationConditions(),
+    });
+    let loads = 0;
+
+    await expect(
+      runLiveExperiment({
+        artifactRoot: root,
+        campaignId: 'c3',
+        environment: {},
+        externalCodexHome,
+        kind: 'e2-deep',
+        loadPromptfoo: () => {
+          loads += 1;
+          return Promise.reject(new Error('must not load'));
+        },
+        lockfilePath,
+        manifestPath,
+        repositoryCommit: 'abc123',
+      }),
+    ).rejects.toThrow('valid baseline E2 canary');
+
+    expect(loads).toBe(0);
   });
 });

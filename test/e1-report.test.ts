@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { assessE1, assessE2 } from '../experiments/report.js';
+import { assessE1, assessProviderOutcome } from '../experiments/report.js';
 
 describe('G1 reporting', () => {
   it('passes only the literal authentication canary and keeps unobserved effective settings null', () => {
@@ -16,8 +16,8 @@ describe('G1 reporting', () => {
     expect(report.observedEffectiveReasoningReason).toContain('not exposed');
   });
 
-  it('does not treat an E2 provider completion as a canary success without its literal marker', () => {
-    expect(assessE2({ results: [{ response: { output: 'almost' } }] }).status).toBe('ERROR');
-    expect(assessE2({ results: [{ response: { output: 'E2_CANARY_OK' } }] }).status).toBe('PASS');
+  it('reports provider completion separately from an E2 canary assessment', () => {
+    expect(assessProviderOutcome({ results: [{ response: { output: 'almost' } }] }).status).toBe('SUCCESS');
+    expect(assessProviderOutcome({ results: [{ response: { error: 'failed' } }] }).status).toBe('ERROR');
   });
 });

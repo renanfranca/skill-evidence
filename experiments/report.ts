@@ -18,10 +18,10 @@ export interface CuratedE1Result {
   tokenUsage: unknown;
 }
 
-export interface CuratedE2Status {
+export interface ProviderOutcome {
   providerError: string | null;
   response: string | null;
-  status: GateStatus;
+  status: 'ERROR' | 'SUCCESS';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -66,9 +66,9 @@ export function assessE1(summary: unknown, freezeEligible = true): CuratedE1Resu
   };
 }
 
-export function assessE2(summary: unknown): CuratedE2Status {
+export function assessProviderOutcome(summary: unknown): ProviderOutcome {
   const providerResponse = firstResponse(summary);
   const response = stringOrNull(providerResponse?.output);
   const providerError = stringOrNull(providerResponse?.error);
-  return { providerError, response, status: response === 'E2_CANARY_OK' && providerError === null ? 'PASS' : 'ERROR' };
+  return { providerError, response, status: providerError === null ? 'SUCCESS' : 'ERROR' };
 }

@@ -1,4 +1,4 @@
-import { canonicalJson } from './canonical.js';
+import type { CanaryAssessment, WorkspaceSnapshot } from './workspace.js';
 
 export type CapabilityClassification = 'NATIVE_STABLE' | 'NATIVE_EXPERIMENTAL' | 'ADAPTER' | 'INSUFFICIENT';
 export type CapabilityCondition = 'baseline' | 'deep';
@@ -18,9 +18,10 @@ export interface CapabilityRow {
 }
 
 interface ConditionEvidence {
-  after: unknown;
-  before: unknown;
+  after: WorkspaceSnapshot;
+  canary: CanaryAssessment;
   summary: unknown;
+  traces: unknown;
 }
 
 export interface BuildCapabilityMatrixInput {
@@ -33,19 +34,65 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object';
 }
 
-function response(summary: unknown): Record<string, unknown> | undefined {
-  if (!isRecord(summary) || !Array.isArray(summary.results)) {
-    return undefined;
-  }
-  const result = (summary.results as unknown[])[0];
-  return isRecord(result) && isRecord(result.response) ? result.response : undefined;
+function firstResponse(summary: unknown): Record<string, unknown> | undefined {
+  const results = isRecord(summary) ? summary.results : undefined;
+  const first: unknown = Array.isArray(results) ? (results as unknown[])[0] : undefined;
+  return isRecord(first) && isRecord(first.response) ? first.response : undefined;
 }
 
-function hasTrace(summary: unknown): boolean {
-  if (!isRecord(summary)) {
-    return false;
+function traceSpans(traces: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(traces)) {
+    return [];
   }
-  return summary.trace !== undefined || summary.traces !== undefined || summary.traceData !== undefined;
+  return traces.flatMap((trace) => (isRecord(trace) && Array.isArray(trace.spans) ? trace.spans.filter(isRecord) : []));
+}
+
+function traceRecords(traces: unknown): Array<Record<string, unknown>> {
+  return Array.isArray(traces) ? traces.filter(isRecord) : [];
+}
+
+function hasTransport(traces: unknown): boolean {
+  return traceRecords(traces).some((trace) => typeof trace.traceId === 'string');
+}
+
+function hasLinkage(traces: unknown): boolean {
+  return traceRecords(traces).some((trace) => typeof trace.traceId === 'string' && typeof trace.evaluationId === 'string');
+}
+
+function attributesContain(span: Record<string, unknown>, fragment: string): boolean {
+  const attributes = isRecord(span.attributes) ? span.attributes : {};
+  return Object.entries(attributes).some(([key, value]) => (key + ':' + String(value)).toLowerCase().includes(fragment));
+}
+
+function hasCommandTrajectory(traces: unknown): boolean {
+  return traceSpans(traces).some(
+    (span) => (typeof span.name === 'string' && /command|exec|shell/i.test(span.name)) || attributesContain(span, 'command'),
+  );
+}
+
+function hasFileOperations(traces: unknown): boolean {
+  return traceSpans(traces).some(
+    (span) => (typeof span.name === 'string' && /file|filesystem|write|read/i.test(span.name)) || attributesContain(span, 'file.'),
+  );
+}
+
+function hasOrdering(traces: unknown): boolean {
+  const times = traceSpans(traces)
+    .map((span) => span.startTime)
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+  return times.length >= 2;
+}
+
+function hasRecovery(traces: unknown): boolean {
+  const spans = traceSpans(traces);
+  const failedAt = spans
+    .filter((span) => isRecord(span.status) && span.status.code === 'error' && typeof span.startTime === 'number')
+    .map((span) => span.startTime as number);
+  return failedAt.some((failure) => spans.some((span) => typeof span.startTime === 'number' && span.startTime > failure));
+}
+
+function hasSkillMetadata(traces: unknown): boolean {
+  return traceSpans(traces).some((span) => attributesContain(span, 'skill'));
 }
 
 function row(
@@ -59,11 +106,11 @@ function row(
   limitations: string[],
 ): CapabilityRow {
   return {
-    capabilityId: `${condition}-${suffix}`,
+    capabilityId: condition + '-' + suffix,
     classification,
     condition,
     decisionEligibility: 'UNASSESSED',
-    evidenceReference: `${condition}-curated.json`,
+    evidenceReference: condition + '-curated.json',
     limitations,
     observed,
     purpose: 'DEVELOPMENT',
@@ -73,80 +120,95 @@ function row(
   };
 }
 
+function traceClassification(observed: boolean): CapabilityClassification {
+  return observed ? 'NATIVE_EXPERIMENTAL' : 'INSUFFICIENT';
+}
+
+function directClassification(observed: boolean): CapabilityClassification {
+  return observed ? 'NATIVE_STABLE' : 'INSUFFICIENT';
+}
+
+function traceLimitations(evidence: ConditionEvidence, signal: string): string[] {
+  if (evidence.canary.status === 'INVALID_CANARY') {
+    return ['The canary is invalid; absent ' + signal + ' cannot support a negative observability conclusion.'];
+  }
+  return ['Trace evidence is experimental and no stable public API claim is established.'];
+}
+
 function rowsForCondition(condition: CapabilityCondition, evidence: ConditionEvidence, versionFingerprint: string): CapabilityRow[] {
-  const providerResponse = response(evidence.summary);
-  const output = typeof providerResponse?.output === 'string';
-  const session = typeof providerResponse?.sessionId === 'string';
-  const tokens = providerResponse?.tokenUsage !== undefined;
-  const providerError = typeof providerResponse?.error === 'string';
-  const workspaceChanged = canonicalJson(evidence.before) !== canonicalJson(evidence.after);
-  const traceObserved = condition === 'deep' && hasTrace(evidence.summary);
-  const traceClassification: CapabilityClassification = traceObserved ? 'NATIVE_EXPERIMENTAL' : 'INSUFFICIENT';
-  const traceSurface = condition === 'deep' ? 'experimental-otlp-trace' : 'not-exposed-by-baseline';
-  const noTraceLimit =
-    condition === 'deep'
-      ? 'No trace event was surfaced by the current experimental summary.'
-      : 'The baseline condition does not request deep tracing.';
+  const response = firstResponse(evidence.summary);
+  const output = typeof response?.output === 'string';
+  const session = typeof response?.sessionId === 'string';
+  const tokens = response?.tokenUsage !== undefined;
+  const providerError = typeof response?.error === 'string';
+  const canaryValid = evidence.canary.status === 'PASS';
+  const workspaceMutation = canaryValid;
+  const traces = condition === 'deep' ? evidence.traces : [];
+  const traceSurface = condition === 'deep' ? 'promptfoo-getTraces-experimental' : 'not-requested-by-baseline';
+  const traceRow = (suffix: string, signal: string, observed: boolean) =>
+    row(
+      condition,
+      versionFingerprint,
+      suffix,
+      signal,
+      traceSurface,
+      observed,
+      traceClassification(observed),
+      traceLimitations(evidence, signal),
+    );
   return [
-    row(condition, versionFingerprint, 'final-response', 'final response', 'promptfoo-evaluate-summary', output, 'NATIVE_STABLE', [
-      'Only the configured canary response is observed.',
+    row(
+      condition,
+      versionFingerprint,
+      'final-response',
+      'final response',
+      'promptfoo-evaluate-summary',
+      output,
+      directClassification(output),
+      ['Only the configured canary response is observed.'],
+    ),
+    row(condition, versionFingerprint, 'session-id', 'session ID', 'promptfoo-provider-response', session, directClassification(session), [
+      'A session ID does not prove thread persistence or effective settings.',
     ]),
-    row(condition, versionFingerprint, 'session-id', 'session ID', 'promptfoo-provider-response', session, 'NATIVE_STABLE', [
-      'A session ID does not prove thread persistence or effective model settings.',
-    ]),
-    row(condition, versionFingerprint, 'token-usage', 'token usage', 'promptfoo-provider-response', tokens, 'NATIVE_STABLE', [
+    row(condition, versionFingerprint, 'token-usage', 'token usage', 'promptfoo-provider-response', tokens, directClassification(tokens), [
       'Usage is provider-reported and does not expose hidden reasoning.',
     ]),
     row(
       condition,
       versionFingerprint,
       'workspace-mutation',
-      'workspace mutation',
+      'validated workspace mutation',
       'synthetic-workspace-snapshot',
-      workspaceChanged,
-      'NATIVE_STABLE',
-      ['The snapshot establishes only synthetic workspace consequences.'],
+      workspaceMutation,
+      directClassification(workspaceMutation),
+      evidence.canary.limitations,
     ),
     row(
       condition,
       versionFingerprint,
-      'filesystem-consequences',
-      'filesystem consequences',
-      'synthetic-workspace-snapshot',
-      workspaceChanged,
-      'NATIVE_STABLE',
-      ['The snapshot establishes only known synthetic workspace consequences.'],
-    ),
-    row(
-      condition,
-      versionFingerprint,
-      'provider-errors',
-      'provider errors',
-      'promptfoo-provider-response',
+      'provider-error',
+      'provider error',
+      'promptfoo-evaluate-summary',
       providerError,
-      'NATIVE_STABLE',
-      ['An absent error is not proof that every internal operation succeeded.'],
+      directClassification(providerError),
+      ['Absence of an error field does not prove the absence of all provider-side faults.'],
     ),
-    row(condition, versionFingerprint, 'effective-model', 'effective model', 'promptfoo-provider-response', false, 'INSUFFICIENT', [
-      'Requested model is not evidence of the effective model.',
-    ]),
-    row(condition, versionFingerprint, 'effective-reasoning', 'effective reasoning', 'promptfoo-provider-response', false, 'INSUFFICIENT', [
-      'Requested reasoning is not evidence of the effective reasoning level.',
-    ]),
-    row(condition, versionFingerprint, 'command-trajectory', 'command trajectory', traceSurface, traceObserved, traceClassification, [
-      noTraceLimit,
-    ]),
-    row(condition, versionFingerprint, 'file-operations', 'file operations', traceSurface, traceObserved, traceClassification, [
-      noTraceLimit,
-    ]),
-    row(condition, versionFingerprint, 'ordering', 'event ordering', traceSurface, traceObserved, traceClassification, [noTraceLimit]),
-    row(condition, versionFingerprint, 'runtime-errors', 'runtime errors', traceSurface, traceObserved, traceClassification, [
-      noTraceLimit,
-    ]),
-    row(condition, versionFingerprint, 'skill-usage-metadata', 'skill usage metadata', traceSurface, traceObserved, traceClassification, [
-      'Skill metadata cannot establish causal contribution.',
-      noTraceLimit,
-    ]),
+    traceRow('receiver-transport', 'receiver transport', hasTransport(traces)),
+    traceRow('evaluation-linkage', 'evaluation linkage', hasLinkage(traces)),
+    traceRow('command-trajectory', 'command trajectory', hasCommandTrajectory(traces)),
+    traceRow('file-operations', 'file operations', hasFileOperations(traces)),
+    traceRow('event-ordering', 'event ordering', hasOrdering(traces)),
+    traceRow('runtime-failure-recovery', 'controlled runtime failure and recovery', hasRecovery(traces)),
+    row(
+      condition,
+      versionFingerprint,
+      'skill-usage-metadata',
+      'skill usage metadata',
+      traceSurface,
+      hasSkillMetadata(traces),
+      traceClassification(hasSkillMetadata(traces)),
+      ['Skill metadata or an observed SKILL.md read cannot establish causal skill contribution.'],
+    ),
   ];
 }
 
@@ -160,35 +222,14 @@ export function buildCapabilityMatrix(input: BuildCapabilityMatrixInput): Capabi
 export interface G2Recommendation {
   limitations: string[];
   options: Array<
-    'CONTINUE_WITH_CODEX_SDK' | 'CONTINUE_WITH_SMALL_ADAPTER' | 'SPIKE_APP_SERVER' | 'WEAKEN_SUPPORTED_CLAIMS' | 'STOP_AND_REASSESS'
+    'CONTINUE_WITH_CODEX_SDK' | 'CONTINUE_WITH_SMALL_ADAPTER' | 'SPIKE_APP_SERVER' | 'STOP_AND_REASSESS' | 'WEAKEN_SUPPORTED_CLAIMS'
   >;
 }
 
-export interface OwnershipRow {
-  limitations: string[];
-  owner: 'Promptfoo' | 'Codex SDK and dedicated login' | 'experimental harness' | 'human operator';
-  responsibility: string;
-}
-
-export function experimentalOwnershipMatrix(): OwnershipRow[] {
+export function experimentalOwnershipMatrix(): Array<{ limitations: string[]; owner: string; responsibility: string }> {
   return [
     {
-      limitations: ['Promptfoo completion does not establish effective model settings or causal contribution.'],
-      owner: 'Promptfoo',
-      responsibility: 'provider invocation and normal evaluation summary',
-    },
-    {
-      limitations: ['Authentication is configuration inference unless independently reported.'],
-      owner: 'Codex SDK and dedicated login',
-      responsibility: 'existing ChatGPT/Codex authentication resolution',
-    },
-    {
-      limitations: ['Snapshots observe only the synthetic workspace and do not observe hidden trajectory.'],
-      owner: 'experimental harness',
-      responsibility: 'freeze, budget, isolation, synthetic workspace, and curation',
-    },
-    {
-      limitations: ['Deep OTLP evidence is experimental and cannot be classified NATIVE_STABLE.'],
+      limitations: ['Deep trace evidence is experimental and cannot become NATIVE_STABLE in this Foundation.'],
       owner: 'experimental harness',
       responsibility: 'capability matrix and bounded G2 recommendation',
     },
@@ -200,25 +241,29 @@ export function experimentalOwnershipMatrix(): OwnershipRow[] {
   ];
 }
 
-export function recommendG2(matrix: CapabilityRow[]): G2Recommendation {
-  const finalResponse = matrix.some(
-    (entry) => entry.signal === 'final response' && entry.observed && entry.classification === 'NATIVE_STABLE',
-  );
-  const deepTrajectory = matrix.find((entry) => entry.capabilityId === 'deep-command-trajectory');
+export function recommendG2(matrix: CapabilityRow[], deepCanary?: CanaryAssessment): G2Recommendation {
+  if (deepCanary?.status === 'INVALID_CANARY') {
+    return {
+      limitations: ['The deep canary is invalid, so negative event-observability claims are prohibited.'],
+      options: ['STOP_AND_REASSESS'],
+    };
+  }
+  const finalResponse = matrix.some((entry) => entry.signal === 'final response' && entry.observed);
+  const trajectory = matrix.find((entry) => entry.capabilityId === 'deep-command-trajectory');
   if (!finalResponse) {
     return {
       limitations: ['The canary final response was not observed through the configured public surface.'],
       options: ['STOP_AND_REASSESS'],
     };
   }
-  if (deepTrajectory?.classification === 'NATIVE_EXPERIMENTAL' && deepTrajectory.observed) {
+  if (trajectory?.observed) {
     return {
       limitations: ['Deep trace evidence remains experimental and is not decision-eligible by this Foundation.'],
       options: ['CONTINUE_WITH_CODEX_SDK', 'WEAKEN_SUPPORTED_CLAIMS'],
     };
   }
   return {
-    limitations: ['Command trajectory, file-operation, and ordering evidence were not observed from the deep surface.'],
+    limitations: ['Command trajectory is not independently exposed by the evaluated deep surface.'],
     options: ['SPIKE_APP_SERVER', 'WEAKEN_SUPPORTED_CLAIMS'],
   };
 }

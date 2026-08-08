@@ -5,12 +5,14 @@ import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 
 import { buildCapabilityMatrix, experimentalOwnershipMatrix, recommendG2 } from './capabilities.js';
+import { assertCleanWorktree, campaignArtifactPath } from './campaign.js';
 import { canonicalJson } from './canonical.js';
 import { foundationConditions } from './conditions.js';
 import { createInstrumentFreeze } from './freeze.js';
 import { runLiveExperiment } from './run.js';
 import { verifyOffline } from './verify.js';
 import type { ExperimentKind } from './configuration.js';
+import type { CanaryAssessment, WorkspaceSnapshot } from './workspace.js';
 
 const execFile = promisify(execFileCallback);
 
@@ -53,7 +55,7 @@ function artifactRoot(root: string): string {
 }
 
 function artifactPath(root: string, campaign: string, name: string): string {
-  return `${artifactRoot(root)}/campaigns/${campaign}/${name}`;
+  return campaignArtifactPath(artifactRoot(root), campaign, name);
 }
 
 async function readJson(path: string): Promise<unknown> {
@@ -90,11 +92,21 @@ async function createCuratedReports(root: string, campaign: string): Promise<voi
   const baseline = snapshots(baselineReport);
   const deep = snapshots(deepReport);
   const matrix = buildCapabilityMatrix({
-    baseline: { after: baseline.after, before: baseline.before, summary: baselineSummary },
-    deep: { after: deep.after, before: deep.before, summary: deepSummary },
+    baseline: {
+      after: baseline.after as WorkspaceSnapshot,
+      canary: (baselineReport as { canary: CanaryAssessment }).canary,
+      summary: baselineSummary,
+      traces: [],
+    },
+    deep: {
+      after: deep.after as WorkspaceSnapshot,
+      canary: (deepReport as { canary: CanaryAssessment }).canary,
+      summary: deepSummary,
+      traces: await readJson(artifactPath(root, campaign, 'raw/e2-deep-traces.json')),
+    },
     versionFingerprint: fingerprint,
   });
-  const recommendation = recommendG2(matrix);
+  const recommendation = recommendG2(matrix, (deepReport as { canary: CanaryAssessment }).canary);
   const outputDirectory = `${root}/docs/experiments`;
   await mkdir(outputDirectory, { recursive: true });
   await Promise.all([
@@ -114,13 +126,15 @@ export async function runCli(args: string[], dependencies: CliDependencies): Pro
   if (command === 'freeze') {
     const campaign = campaignId(rest);
     const codexHome = externalCodexHome(dependencies.environment);
+    await assertCleanWorktree(dependencies.root);
     await createInstrumentFreeze({
       artifactRoot: artifactRoot(dependencies.root),
       campaignId: campaign,
-      conditions: foundationConditions(codexHome),
+      externalCodexHome: codexHome,
       lockfilePath: `${dependencies.root}/package-lock.json`,
       manifestPath: `${dependencies.root}/package.json`,
       repositoryCommit: await repositoryCommit(dependencies.root),
+      scientificConfiguration: foundationConditions(),
     });
     return { output: `instrument freeze created for ${campaign}`, status: 0 };
   }
@@ -142,6 +156,7 @@ export async function runCli(args: string[], dependencies: CliDependencies): Pro
       lockfilePath: `${dependencies.root}/package-lock.json`,
       manifestPath: `${dependencies.root}/package.json`,
       repositoryCommit: await repositoryCommit(dependencies.root),
+      repositoryRoot: dependencies.root,
     });
     return { output: `${kind} completed: ${result.status}`, status: result.status === 'PASS' ? 0 : 1 };
   }

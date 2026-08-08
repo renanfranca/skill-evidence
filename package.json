@@ -15,6 +15,7 @@
     "experiment:freeze": "npm run build --silent && node dist/experiments/cli.js freeze",
     "experiment:report": "npm run build --silent && node dist/experiments/cli.js report",
     "experiment:verify": "npm run build --silent && node dist/experiments/cli.js verify",
+    "experiment:verify:tracing": "npm run build --silent && node dist/experiments/verify-tracing.js",
     "lint": "eslint .",
     "prettier:check": "prettier --check AGENTS.md docs/execplans experiments test .prettierrc.json eslint.config.mjs package.json package-lock.json tsconfig.json tsconfig.build.json vitest.config.ts",
     "prettier:format": "prettier --write AGENTS.md docs/execplans experiments test .prettierrc.json eslint.config.mjs package.json package-lock.json tsconfig.json tsconfig.build.json vitest.config.ts",

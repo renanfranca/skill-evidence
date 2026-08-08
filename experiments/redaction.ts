@@ -2,6 +2,9 @@ const secretKeyPattern = /(?:api[_-]?key|authorization|secret|password|credentia
 
 function mustRedact(key: string, value: unknown): boolean {
   const normalized = key.toLowerCase();
+  if (normalized === 'requestedreasoning' || normalized === 'observedeffectivereasoning' || normalized.endsWith('reasoningreason')) {
+    return false;
+  }
   if (secretKeyPattern.test(key) || normalized === 'raw' || normalized === 'rawcontent') {
     return true;
   }

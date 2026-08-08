@@ -35,7 +35,23 @@ export interface ExperimentInvocation {
 export interface CreateExperimentInvocationInput {
   externalCodexHome: string;
   kind: ExperimentKind;
+  prompt?: string;
   workingDirectory: string;
+}
+
+export const temporaryWorkspacePlaceholder = '<TEMP_WORKSPACE>';
+export const externalCodexHomePlaceholder = '<EXTERNAL_CODEX_HOME>';
+
+export interface ScientificInvocation {
+  options: ExperimentInvocation['options'];
+  providerConfig: ProviderConfig;
+  suite: ExperimentSuite;
+}
+
+export interface ScientificConfiguration {
+  dependencyVersions: { codexCli: '0.147.0'; codexSdk: '0.147.0'; promptfoo: '0.122.0' };
+  invocations: Record<ExperimentKind, ScientificInvocation>;
+  schemaVersion: 2;
 }
 
 function createProviderConfig(input: CreateExperimentInvocationInput): ProviderConfig {
@@ -75,7 +91,7 @@ export function createExperimentInvocation(input: CreateExperimentInvocationInpu
   const e1 = input.kind === 'e1';
   const expected = e1 ? 'E1_AUTH_OK' : 'E2_CANARY_OK';
   const suite: ExperimentSuite = {
-    prompts: [e1 ? 'Respond with exactly E1_AUTH_OK.' : 'Complete the workspace canary and respond with exactly E2_CANARY_OK.'],
+    prompts: [input.prompt ?? (e1 ? 'Respond with exactly E1_AUTH_OK.' : canaryInstructions)],
     providers: [{ config: providerConfig, id: 'openai:codex-sdk' }],
     sharing: false,
     tests: [{ assert: [{ type: 'equals', value: expected }] }],
@@ -95,3 +111,18 @@ export function createExperimentInvocation(input: CreateExperimentInvocationInpu
     suite,
   };
 }
+
+export function createScientificConfiguration(): ScientificConfiguration {
+  const build = (kind: ExperimentKind): ScientificInvocation =>
+    createExperimentInvocation({
+      externalCodexHome: externalCodexHomePlaceholder,
+      kind,
+      workingDirectory: temporaryWorkspacePlaceholder,
+    });
+  return {
+    dependencyVersions: { codexCli: '0.147.0', codexSdk: '0.147.0', promptfoo: '0.122.0' },
+    invocations: { e1: build('e1'), 'e2-baseline': build('e2-baseline'), 'e2-deep': build('e2-deep') },
+    schemaVersion: 2,
+  };
+}
+import { canaryInstructions } from './workspace.js';

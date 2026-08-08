@@ -15,7 +15,8 @@ describe('campaign invocation budget', () => {
       totalStarted: 1,
     });
     expect(JSON.parse(await readFile(join(artifactRoot, 'campaigns', 'c1', 'budget-ledger.json'), 'utf8'))).toMatchObject({
-      started: [{ attempt: 1, kind: 'e1' }],
+      reservations: ['e1'],
+      version: 2,
     });
     await expect(reserveProviderInvocation({ artifactRoot, campaignId: 'c1', kind: 'e1' })).rejects.toThrow('already started');
   });

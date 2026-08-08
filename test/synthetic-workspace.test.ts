@@ -12,12 +12,12 @@ describe('E2 synthetic workspace', () => {
       await expect(access(join(workspace.path, '.git'))).resolves.toBeUndefined();
       expect(workspace.instructions).toContain('SKILL.md');
       expect(workspace.instructions).toContain('E2_CANARY_OK');
-      expect(workspace.before.entries['created-by-canary.txt']).toEqual({ exists: false });
+      expect(workspace.before.entries['created-by-canary.txt']).toBeUndefined();
 
       await writeFile(join(workspace.path, 'created-by-canary.txt'), 'CANARY_CREATED\n');
       const after = await snapshotWorkspace(workspace.path);
 
-      expect(after.entries['created-by-canary.txt']?.exists).toBe(true);
+      expect(after.entries['created-by-canary.txt']).toMatchObject({ size: 'CANARY_CREATED\n'.length });
       expect(await readFile(join(workspace.path, 'marker.txt'), 'utf8')).toContain('E2_CANARY_MARKER');
     } finally {
       await workspace.dispose();
