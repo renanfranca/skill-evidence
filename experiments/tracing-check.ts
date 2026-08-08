@@ -32,6 +32,8 @@ export interface TraceLifecycleQualification {
   runtimeMethodPresent: boolean;
 }
 
+export const tracingGateWriteLatestResults = false;
+
 function tracePayload(context: TraceContext): Record<string, unknown> {
   if (context.traceparent === undefined || context.evaluationId === undefined || context.testCaseId === undefined) {
     throw new Error('Promptfoo did not provide a correlated trace context to the local provider');
@@ -107,7 +109,7 @@ export async function verifyTracingLifecycle(root: string): Promise<TraceLifecyc
           failOnReceiverStartFailure: true,
           otlp: { http: { acceptFormats: ['json'], enabled: true, host: '127.0.0.1', port: 4318 } },
         },
-        writeLatestResults: true,
+        writeLatestResults: tracingGateWriteLatestResults,
       },
       { cache: false, maxConcurrency: 1 },
     )) as TraceResult;

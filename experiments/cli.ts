@@ -88,7 +88,10 @@ async function createCuratedReports(root: string, campaign: string): Promise<voi
     readJson(artifactPath(root, campaign, 'raw/e2-baseline-summary.json')),
     readJson(artifactPath(root, campaign, 'raw/e2-deep-summary.json')),
   ]);
-  const fingerprint = isRecord(freeze) && typeof freeze.conditionsDigest === 'string' ? freeze.conditionsDigest : 'UNKNOWN_FREEZE';
+  if (!isRecord(freeze) || typeof freeze.scientificConfigurationDigest !== 'string') {
+    throw new Error('freeze is missing its scientific configuration digest');
+  }
+  const fingerprint = freeze.scientificConfigurationDigest;
   const baseline = snapshots(baselineReport);
   const deep = snapshots(deepReport);
   const matrix = buildCapabilityMatrix({

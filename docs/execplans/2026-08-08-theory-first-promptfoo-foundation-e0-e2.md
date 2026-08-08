@@ -4,7 +4,8 @@
 - Executor: `gpt-5.6-terra`, reasoning `xhigh`
 - THEORY consulted: [`572e963ea6f1207ab53c533592cb70a8239e221c`](https://github.com/renanfranca/skill-evaluation-theory/blob/572e963ea6f1207ab53c533592cb70a8239e221c/THEORY.md)
 - Published foundation: `b1d087898e18c3929d024e47bd52ef2331781cae`
-- Status: offline hardening complete; no live invocation is authorized.
+- Consistency-patch base: `08b26f85ec2c2da048924e4a1ee8493b2ae1999e`
+- Status: blocked before E1: Promptfoo 0.122.0 cannot retrieve the deterministic trace under the exact frozen persistence condition.
 
 This ExecPlan is a living document. It is the authorized defensive increment to the E0–E2 foundation published in `b1d0878`. Keep its progress, decisions, risks, validation evidence, and lessons current. It never authorizes E3, product architecture, credentials, live model calls, commit, push, or publication.
 
@@ -68,6 +69,10 @@ Validation: `npm test`, both public checkpoints.
 
 After all behavior is green, run `$refactor-design` under its entry gate, then reconcile this plan, the ExecPlan index, `AGENTS.md`, `package.json`, and affected operational documentation. `docs/experiments/` remains absent. Run, in order: `npm ci`, typecheck, lint, tests, Prettier, build, both checkpoints, `git diff --check`, and `git status --short`. Record exact results. The resulting uncommitted successor is prepared for separate human review and authorization only.
 
+### Milestone 7 — Final pre-live consistency patch
+
+Correct four residual instrument inconsistencies without changing the frozen live condition: curated reports must use `freeze.scientificConfigurationDigest`; the real tracing gate must run with `writeLatestResults=false`; structured `model_reasoning_effort` metadata must survive opaque-evidence redaction while raw reasoning remains redacted; and the Experimental Ownership Matrix must again name Promptfoo, Codex SDK/dedicated login, harness, and human-operator responsibilities. Add behavior tests through the report CLI, redaction contract, and ownership output. If the real public Promptfoo lifecycle cannot retrieve the deterministic correlated span under the exact `writeLatestResults=false` condition, mark this ExecPlan blocked and do not execute E1/E2. Re-run all offline gates and the post-GREEN design review; commit and push remain outside this authorization.
+
 ## Progress
 
 - [x] THEORY, RFC 0001, and ADR 0002 consulted for the original foundation.
@@ -81,6 +86,8 @@ After all behavior is green, run `$refactor-design` under its entry gate, then r
 - [x] Milestone 4 completed: full byte-exact workspace assessment distinguishes provider error, invalid canary, and pass; deep is gated on baseline validity.
 - [x] Milestone 5 completed: each reported capability uses a signal-specific extractor and unavailable normal signals are `INSUFFICIENT`.
 - [x] Milestone 6 completed: post-GREEN design review and documentation reconciliation complete; no generated experiment report was created.
+- [x] Milestone 7 started.
+- [ ] Milestone 7 blocked: the exact-condition tracing gate failed with `writeLatestResults=false`; E1/E2 remain prohibited.
 - [ ] Live authorization received and live gates executed.
 
 ## Decisions
@@ -101,13 +108,17 @@ After all behavior is green, run `$refactor-design` under its entry gate, then r
   Rationale: types and runtime methods do not establish public API stability.
   Date/Author: 2026-08-08 / reviewers.
 
-- Decision: require `writeLatestResults=true` only in the temporary local tracing checkpoint.
-  Rationale: Promptfoo's public trace store must initialize its isolated SQLite state before `getTraces()` can retrieve the correlated span; live conditions remain frozen with `writeLatestResults=false`.
-  Date/Author: 2026-08-08 / implementation evidence.
+- Decision: qualify tracing with the exact live `writeLatestResults=false` setting.
+  Rationale: a separate persistence setting cannot qualify the frozen live condition.
+  Date/Author: 2026-08-08 / final pre-live consistency patch.
 
 - Decision: classify unavailable normal-surface signals as `INSUFFICIENT`.
   Rationale: a stable surface designation describes the API, not evidence that a specific signal was observed.
   Date/Author: 2026-08-08 / post-GREEN design review.
+
+- Decision: preserve the exact-condition tracing failure rather than restore `writeLatestResults=true`.
+  Rationale: a gate that differs from the frozen live condition cannot support live readiness.
+  Date/Author: 2026-08-08 / exact-condition tracing evidence.
 
 ## Risks and Mitigations
 
@@ -116,12 +127,15 @@ After all behavior is green, run `$refactor-design` under its entry gate, then r
 - Risk: invalid canaries manufacture negative trace claims. Mitigation: retain positive independent facts but suppress event absence conclusions.
 - Risk: an external directory switches without path change. Mitigation: fail on absent or unstable identity, while documenting its account limitation.
 - Risk: hardening turns into a framework. Mitigation: confine changes to existing E0–E2 contracts and remove unused abstractions in design review.
+- Risk: Promptfoo trace retrieval fails under the exact live setting. Mitigation: block E1/E2 rather than enable temporary persistence or use private APIs.
 
 ## Validation Strategy
 
 Each behavior starts as a focused observable RED test, runs the full Vitest suite, receives the minimal GREEN change, and reaches `experiment:verify` at least every two cycles. Trace-related changes also run `experiment:verify:tracing`. The final ordered command sequence is recorded in this document only after it passes. No live command is part of normal validation.
 
 Final validation evidence on 2026-08-08: `npm ci` restored the exact lockfile pins; typecheck, ESLint, Prettier, build, `git diff --check`, and the public offline checkpoint passed. Vitest passed 13 files and 27 tests. `experiment:verify` reported zero provider imports. The tracing checkpoint passed outside the sandbox because the sandbox denies loopback bind: Promptfoo 0.122.0 started its receiver at `127.0.0.1:4318`, the deterministic local provider posted a correlated OTLP span, and `getTraces()` returned it. No OpenAI/Codex provider or external endpoint was configured.
+
+Consistency-patch validation: typecheck, ESLint, Prettier, build, `git diff --check`, `experiment:verify`, and 31 Vitest cases in 14 files passed. The real `experiment:verify:tracing` gate intentionally ran outside the sandbox and failed under the exact `writeLatestResults=false` setting: Promptfoo started the loopback receiver, but TraceStore inserts and reads failed, the receiver returned HTTP 500 to the deterministic local provider, and `getTraces()` returned no span. The post-GREEN design review cannot run because this required public checkpoint is not green.
 
 ## Documentation Impact
 
@@ -138,5 +152,6 @@ All work is offline. A failed TDD cycle returns to the last green behavior; a fa
 - Scientific configuration must not be filtered as opaque provider output.
 - Summary and traces have to be collected before isolation cleanup.
 - Invalid canaries suppress negative event claims but do not erase independent positive trace facts.
-- Promptfoo trace persistence needs the isolated temporary evaluation record in the local tracing checkpoint; this does not relax live storage settings.
+- Trace qualification must match the frozen live persistence setting; a positive result under another configuration is insufficient.
+- The pinned Promptfoo tracing lifecycle is operational with temporary persistence but fails under the exact live persistence setting; this is a measurement blocker, not evidence about Codex or an authorization to change the live condition.
 - Post-GREEN review found and fixed one defect: unobserved normal-surface data was classified as stable instead of insufficient. No further refactor was justified; the remaining orchestration phases are explicit protocol boundaries.

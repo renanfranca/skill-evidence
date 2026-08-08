@@ -41,6 +41,14 @@ describe('G2 capability reporting', () => {
     );
   });
 
+  it('attributes the experimental boundaries to Promptfoo, Codex SDK/login, the harness, and the operator', () => {
+    const owners = experimentalOwnershipMatrix().map((entry) => entry.owner);
+
+    expect(owners).toEqual(
+      expect.arrayContaining(['Promptfoo', 'Codex SDK and dedicated login', 'experimental harness', 'human operator']),
+    );
+  });
+
   it('does not let a generic trace manufacture specialized capabilities', () => {
     const evidence = {
       after: { entries: {} },

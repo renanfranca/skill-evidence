@@ -226,12 +226,28 @@ export interface G2Recommendation {
   >;
 }
 
-export function experimentalOwnershipMatrix(): Array<{ limitations: string[]; owner: string; responsibility: string }> {
+export interface OwnershipRow {
+  limitations: string[];
+  owner: 'Promptfoo' | 'Codex SDK and dedicated login' | 'experimental harness' | 'human operator';
+  responsibility: string;
+}
+
+export function experimentalOwnershipMatrix(): OwnershipRow[] {
   return [
+    {
+      limitations: ['Promptfoo completion and traces do not establish effective model settings or causal skill contribution.'],
+      owner: 'Promptfoo',
+      responsibility: 'provider invocation, summary surface, and experimental trace lifecycle',
+    },
+    {
+      limitations: ['Directory identity detects replacement but not credential contents or authenticated-principal continuity.'],
+      owner: 'Codex SDK and dedicated login',
+      responsibility: 'existing ChatGPT/Codex authentication resolution and requested execution condition',
+    },
     {
       limitations: ['Deep trace evidence is experimental and cannot become NATIVE_STABLE in this Foundation.'],
       owner: 'experimental harness',
-      responsibility: 'capability matrix and bounded G2 recommendation',
+      responsibility: 'freeze, budget, isolation, canary ground truth, capability matrix, and bounded G2 recommendation',
     },
     {
       limitations: ['No G2 option authorizes automatic architecture work in this campaign.'],

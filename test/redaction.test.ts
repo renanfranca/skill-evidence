@@ -23,4 +23,11 @@ describe('persistence redaction', () => {
       tokenUsage: { completionDetails: { reasoning: 3 } },
     });
   });
+
+  it('preserves structured provider-reported reasoning metadata while redacting raw reasoning text', () => {
+    expect(sanitizeForPersistence({ model_reasoning_effort: 'max', reasoning: 'private chain' })).toEqual({
+      model_reasoning_effort: 'max',
+      reasoning: '<REDACTED>',
+    });
+  });
 });
