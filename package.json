@@ -1,0 +1,38 @@
+{
+  "name": "skill-evidence",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x",
+    "npm": "11.x"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "experiment:e1": "npm run build --silent && node dist/experiments/cli.js e1",
+    "experiment:e2:baseline": "npm run build --silent && node dist/experiments/cli.js e2-baseline",
+    "experiment:e2:deep": "npm run build --silent && node dist/experiments/cli.js e2-deep",
+    "experiment:freeze": "npm run build --silent && node dist/experiments/cli.js freeze",
+    "experiment:report": "npm run build --silent && node dist/experiments/cli.js report",
+    "experiment:verify": "npm run build --silent && node dist/experiments/cli.js verify",
+    "lint": "eslint .",
+    "prettier:check": "prettier --check AGENTS.md docs/execplans experiments test .prettierrc.json eslint.config.mjs package.json package-lock.json tsconfig.json tsconfig.build.json vitest.config.ts",
+    "prettier:format": "prettier --write AGENTS.md docs/execplans experiments test .prettierrc.json eslint.config.mjs package.json package-lock.json tsconfig.json tsconfig.build.json vitest.config.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@openai/codex-sdk": "0.147.0",
+    "promptfoo": "0.122.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.3.0",
+    "@typescript-eslint/eslint-plugin": "8.41.0",
+    "@typescript-eslint/parser": "8.41.0",
+    "eslint": "9.34.0",
+    "prettier": "3.9.5",
+    "typescript": "5.9.2",
+    "typescript-eslint": "8.41.0",
+    "vitest": "3.2.7"
+  }
+}

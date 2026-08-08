@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-`src/` contains TypeScript CLI modules. JSON contracts live in `schemas/`; repository tests and executables in `test/`. Evaluation cases, oracles, and fixtures are under `evaluations/refactor-design/`; ExecPlans belong in `docs/execplans/`. Never commit `dist/`, `.skill-evidence/`, or `coverage/`.
+During the Theory First Promptfoo Foundation, TypeScript lives in `experiments/` and tests in `test/`; do not create `src/`, product schemas, or a product CLI. Future product modules may use `src/` only after a subsequent authorized ExecPlan. Evaluation cases, oracles, and fixtures are under `evaluations/refactor-design/`; ExecPlans belong in `docs/execplans/` and use `YYYY-MM-DD-<kebab-case-title>.md`. Never commit `dist/`, `.skill-evidence/`, or `coverage/`.
 
 ## Build, Test, and Development Commands
 
@@ -11,7 +11,8 @@
 - `npm run lint` runs ESLint with type-aware rules.
 - `npm test` runs the Vitest suite.
 - `npm run prettier:check` verifies formatting; use `npm run prettier:format` to fix it.
-- `npm run build` compiles `src/` to the ESM CLI in `dist/`.
+- `npm run build` compiles the experimental harness to ESM in `dist/`; it does not build a product CLI during the Foundation.
+- `npm run experiment:verify` is the public offline checkpoint and must not import Promptfoo or initiate a provider invocation.
 
 Run these validations before a pull request. Model-backed runs are separate.
 
