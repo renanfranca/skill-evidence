@@ -23,6 +23,7 @@ Impact, Rollout and Recovery, and Lessons Learned.
 | completed | [Pilot measurement validity](2026-08-07_FIX_pilot-measurement-validity-exec-plan.md)        |
 | completed | [Real refactor-design v2 pilot](2026-08-07_TEST_real-refactor-design-v2-pilot-exec-plan.md) |
 | completed | [Disposable sink path-audit fix](2026-08-07_FIX_disposable-sink-path-audit-exec-plan.md)    |
+| completed | [Real refactor-design v3 pilot](2026-08-08_TEST_real-refactor-design-v3-pilot-exec-plan.md) |
 
 Completed or blocked plans remain in place. Update their status in this index;
 do not delete their decisions, risks, progress, or lessons.
