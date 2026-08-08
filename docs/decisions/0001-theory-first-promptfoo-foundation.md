@@ -3,7 +3,7 @@
 ## Especificação arquitetural e roadmap experimental
 
 - Data: 2026-08-08
-- Status: aprovado como RFC arquitetural; roadmap experimental condicionado
+- Status: aprovado e congelado como RFC arquitetural; roadmap experimental condicionado
 - Branch de trabalho: feat/theory-first-promptfoo-foundation
 - Base: main
 - THEORY consultada: commit [572e963ea6f1207ab53c533592cb70a8239e221c](https://github.com/renanfranca/skill-evaluation-theory/blob/572e963ea6f1207ab53c533592cb70a8239e221c/THEORY.md)
@@ -815,7 +815,8 @@ Exemplo possível:
   "authentication": {
     "mode": "chatgpt",
     "evidenceKind": "configuration-inference",
-    "apiKeyPresent": false,
+    "providerApiKeyPresent": false,
+    "openAiApiKeyPresent": false,
     "codexApiKeyPresent": false
   }
 }
@@ -1533,7 +1534,7 @@ Para trials que pretendam ser independentes, configurar explicitamente:
 
 ~~~
 persist_threads = false
-thread_id = absent
+thread_id omitted from provider configuration
 ~~~
 
 Não depender apenas do default ou de efeitos colaterais de tracing para garantir independência.
@@ -1581,7 +1582,7 @@ Qualquer trial destinado a representar uma nova amostra estocástica deve execut
 ~~~
 cache = false
 persist_threads = false
-thread_id = absent
+thread_id omitted from provider configuration
 ~~~
 
 Em particular:
@@ -2325,8 +2326,25 @@ Promptfoo
 Sem:
 
 ~~~
+provider config apiKey
 OPENAI_API_KEY
 CODEX_API_KEY
+~~~
+
+A condição deve fixar também:
+
+~~~
+network_access_enabled = false
+web_search_mode = disabled
+collaboration_mode omitted from provider configuration
+~~~
+
+Não registrar nem persistir o conteúdo de qualquer credencial. O relatório deve registrar somente:
+
+~~~
+providerApiKeyPresent = false
+openAiApiKeyPresent = false
+codexApiKeyPresent = false
 ~~~
 
 Output deve ser simples.
@@ -2398,16 +2416,32 @@ INSUFFICIENT
 O canary deve fixar explicitamente:
 
 ~~~
-cache
-persist_threads
-thread_id
-maxConcurrency
-workspace policy
-sandbox mode
-approval policy
-agent network policy
-web search policy
+cache = false
+persist_threads = false
+thread_id omitted from provider configuration
+maxConcurrency = 1
+workspace policy = fresh disposable workspace
+sandbox_mode = workspace-write
+approval_policy = never
+network_access_enabled = false
+web_search_mode = disabled
 ~~~
+
+E2 deve executar e comparar duas condições de observability, sem tratá-las como arquiteturas distintas:
+
+~~~
+baseline provider observability
+  enable_streaming = true
+  deep_tracing = false
+
+deep tracing observability
+  enable_streaming = true
+  deep_tracing = true
+~~~
+
+Na condição de deep tracing, registrar explicitamente que Promptfoo ignora "persist_threads", "thread_id" e "thread_pool_size" e cria uma nova instância Codex por chamada. Nenhum resultado dessa condição pode ser interpretado como evidência de thread persistence.
+
+Cada sinal deve ser classificado separadamente por condição. Dados disponíveis somente por deep tracing ou por estruturas de trace experimentais da Node API não podem ser promovidos silenciosamente a "NATIVE_STABLE".
 
 ### Gate G2
 
@@ -2454,7 +2488,7 @@ DoD:
 11. disposable workspace usado;
 12. observability surface caracterizada;
 13. cada required signal classificado;
-14. limitações de tracing registradas;
+14. provider observability e deep tracing caracterizados separadamente, com suas limitações registradas;
 15. ownership matrix experimental produzida;
 16. decisão explícita sobre a viabilidade de continuar Promptfoo SDK first.
 
