@@ -1,17 +1,26 @@
 # RFC 0001: Theory First Promptfoo Foundation
 
+## Especificação arquitetural e roadmap experimental
+
 - Data: 2026-08-08
-- Status: direção arquitetural aprovada com ressalvas; não aprovada como ExecPlan único
+- Status: aprovado como RFC arquitetural; roadmap experimental condicionado
 - Branch de trabalho: feat/theory-first-promptfoo-foundation
 - Base: main
 - THEORY consultada: commit [572e963ea6f1207ab53c533592cb70a8239e221c](https://github.com/renanfranca/skill-evaluation-theory/blob/572e963ea6f1207ab53c533592cb70a8239e221c/THEORY.md)
 - Revisão técnica: 2026-08-08
 
-## Status e regra de interpretação
+Este documento possui dois papéis distintos:
 
-Este documento preserva integralmente a especificação apresentada pelo analista, com formatação Markdown e sem o artefato de interface “Pensou por 41s”. A direção foi aprovada como RFC arquitetural e roadmap experimental.
+1. RFC arquitetural permanente, que define princípios, fronteiras de responsabilidade, contratos normativos e arquitetura alvo.
+2. Roadmap experimental condicionado, que descreve hipóteses e experimentos futuros sem presumir antecipadamente que todos serão executados.
 
-Este RFC não aprova E0–E11 como um único ExecPlan. Antes da implementação de cada etapa, os bloqueadores da revisão técnica precisam ser resolvidos no ExecPlan correspondente. Em caso de conflito, a THEORY prevalece; em seguida, as ressalvas da revisão técnica limitam a execução da especificação preservada.
+Este documento não é um ExecPlan único de E0 a E11.
+
+A primeira implementação autorizável a partir deste RFC deve ser limitada a:
+
+> ExecPlan 1: E0–E2 — Clean Foundation, Authentication e Observability
+
+Os ExecPlans posteriores somente podem ser escritos após os gates dos experimentos anteriores.
 
 ## Fontes verificadas
 
@@ -22,163 +31,111 @@ Este RFC não aprova E0–E11 como um único ExecPlan. Antes da implementação 
 - [Promptfoo Agent Rubric](https://www.promptfoo.dev/docs/configuration/expected-outputs/model-graded/agent-rubric/)
 - [OpenAI GPT-5.6 model guidance](https://developers.openai.com/api/docs/guides/latest-model)
 
-## Evidência de viabilidade em 2026-08-08
-
-No momento da revisão:
-
-- a branch estava baseada diretamente em main e continha apenas LICENSE, .gitignore e AGENTS.md;
-- nenhum código da V1 havia sido copiado;
-- Node 24.16.0 e npm 11.13.0 estavam ativos;
-- Codex CLI 0.147.0 estava instalado;
-- Codex estava autenticado por ChatGPT;
-- OPENAI_API_KEY e CODEX_API_KEY estavam ausentes;
-- Promptfoo e @openai/codex-sdk ainda não estavam instalados na nova branch.
-
-Essas observações tornam E1 plausível, mas não substituem o smoke test nem autorizam registrar provenance que o provider não exponha diretamente.
-
-## Revisão técnica normativa
-
-### Decisões aprovadas
-
-- THEORY é a autoridade normativa; a V1 é corpus histórico e não arquitetura de referência.
-- Promptfoo deve possuir infraestrutura genérica enquanto preservar as propriedades semânticas exigidas.
-- Claims, behavioral contracts, qualification, eligibility e evidence policy pertencem ao Skill Evidence.
-- Evidência direta prevalece sobre inferência semântica e judges.
-- Ausência de evidência obrigatória produz INCONCLUSIVE; falha de infraestrutura produz ERROR.
-- Development material e decision material permanecem separados.
-- Eval Author, Executor e Judge possuem configuração e provenance independentes.
-- Codex SDK é o baseline; App Server exige evidência experimental e ExecPlan separado.
-
-### Bloqueadores antes de um ExecPlan end-to-end
-
-1. A interface pode começar somente com a skill, mas a skill não fornece necessariamente decisão, população, thresholds, tolerância a dano ou precisão exigida. O Author deve poder produzir Blueprint DRAFT ou BLOCKED e questões obrigatórias, sem inventar contexto decisório.
-2. EvaluationBlueprint 0.1 precisa definir condições e contrastes, medidas primárias e secundárias, thresholds, limites de dano, incerteza, randomização, blocking, repetições, inclusão, exclusão, missing trials, multiplicidade e aggregation.
-3. Os estados de Blueprint, Oracle e Run precisam ser formalizados. O mínimo recomendado é:
-   - Blueprint: DRAFT, READY, BLOCKED, FROZEN, SUPERSEDED;
-   - Oracle: ELIGIBLE, NOT_ELIGIBLE;
-   - Run purpose: DEVELOPMENT, DECISION;
-   - Run status: COMPLETED, ABORTED, INVALIDATED, ERROR.
-4. Intake precisa definir symlinks, traversal, arquivos ignorados, binários, limites, credenciais, canonicalização, ordenação, permissões e mutação concorrente.
-5. Qualification precisa definir repetições, regra de aprovação, respostas inválidas, divergência, múltiplos avaliadores, adjudicação, escopo e invalidação.
-6. E2 precisa provar se eventos desconhecidos e lacunas de observabilidade chegam ao Skill Evidence. Se Promptfoo ocultar a lacuna, R2 não pode ser garantido apenas pelo agregador.
-
-### Limites técnicos
-
-- Preferir a API Node pública evaluate() do Promptfoo e evitar process orchestration própria. O compiler deve produzir uma representação serializável e determinística consumida pelo runner.
-- Tracing é uma superfície experimental. Qualquer evidência decisória dependente dela exige versão fixada, characterization test e invalidação após mudança.
-- CODEX_HOME deve apontar para um home externo já autenticado. Credenciais nunca entram no repositório ou nos artefatos.
-- authMode = chatgpt só pode ser registrado como fato se E1 demonstrar uma observação confiável; ausência de API keys, isoladamente, não deve ser apresentada como metadado emitido pelo provider.
-- Sandbox, approvals e rede precisam ser definidos separadamente para Author, Executor, Judge e cada experimento.
-
-### Decomposição obrigatória
-
-- RFC: este documento.
-- ExecPlan 1: E0–E2, terminando na caracterização de observabilidade e ownership matrix provisória.
-- ExecPlan 2: E3, corpus arqueológico offline.
-- ExecPlan 3: E4–E5, Eval Author e benchmark cego.
-- E6–E9: somente após aprovação dos gates anteriores.
-- E10 e E11: fora da feature foundation e em ExecPlans próprios.
-
-### Critérios para promoção
-
-Uma etapa deste RFC pode virar ExecPlan quando:
-
-- suas decisões públicas e estados estiverem completos;
-- entradas, outputs e failure semantics estiverem definidos;
-- dependências de experimentos anteriores tiverem resultado registrado;
-- critérios RED/GREEN e validações forem reproduzíveis;
-- custos, chamadas reais e autorizações estiverem limitados;
-- o ExecPlan registrar o commit vigente da THEORY.
-
 ---
 
-## Especificação original preservada
+## 1. Branch proposto
 
-A especificação abaixo já está orientada para uma nova implementação, e não para migração incremental da V1. O branch antigo entra apenas como corpus de aprendizagem e regressão.
+~~~
+feat/theory-first-promptfoo-foundation
+~~~
 
-# FEATURE: Theory First Promptfoo Foundation
+Base obrigatória:
 
-## Especificação de implementação
+~~~
+main
+~~~
 
-### Status
+Não criar a partir de:
 
-Proposta para implementação em branch novo.
+~~~
+feat/skill-evidence-v1
+~~~
 
-### Branch proposto
+Não iniciar por:
 
-"feat/theory-first-promptfoo-foundation"
+~~~
+merge
+rebase
+cherry-pick
+copy de implementation files
+~~~
 
-### Base obrigatória
+da V1.
 
-Criar o branch a partir de "main".
+No início do ExecPlan 1, registrar a ancestry da branch, o commit-base de "main" e confirmar que nenhum implementation file da V1 foi copiado.
 
-Não criar a partir de "feat/skill-evidence-v1".
+A decisão arquitetural é:
 
-Não fazer merge, rebase ou cherry pick do branch antigo para iniciar esta implementação.
+> A nova fundação deve começar do menor estado possível e não carregar arquitetura histórica por inércia.
 
-O estado atual de "main" contém somente a licença, permitindo uma fundação efetivamente limpa. A implementação existente permanece isolada em "feat/skill-evidence-v1".
+A implementação existente permanece isolada em:
 
----
+~~~
+feat/skill-evidence-v1
+~~~
 
-## 1. Decisão arquitetural
+## 2. Decisão arquitetural
 
 Esta implementação não é uma V2 incremental do runner atual.
 
 Ela parte de uma nova premissa:
 
-> O Skill Evidence não deve implementar infraestrutura genérica de avaliação quando uma infraestrutura madura, como Promptfoo, puder assumir essa responsabilidade sem enfraquecer as conclusões autorizadas pela THEORY.
+> Skill Evidence não deve implementar infraestrutura genérica de avaliação quando uma infraestrutura madura, como Promptfoo, puder assumir essa responsabilidade sem enfraquecer as conclusões autorizadas pela THEORY.
 
 A referência normativa não é a implementação existente.
 
 A referência normativa é:
 
-A Theory of Evaluating Probabilistic Skills.
+> A Theory of Evaluating Probabilistic Skills
 
-A implementação antiga passa a possuir três papéis apenas:
+A THEORY define o objeto de avaliação como uma distribuição condicionada pelo modelo, skill, contexto, ambiente, população, procedimento de avaliação e variação estocástica. Ela também exige que claims sejam definidos antes da evidência, que contratos sejam semânticos, que evidência direta seja preferida e que evaluators sejam tratados como instrumentos sujeitos a falha.
+
+A implementação histórica passa a possuir apenas estes papéis:
 
 1. fonte histórica de problemas reais;
 2. corpus de regressões;
 3. referência comparativa para comportamentos que precisem ser novamente justificados.
 
-Ela não é gold standard.
+Ela:
 
-Ela não define automaticamente a arquitetura futura.
+- não é gold standard;
+- não define automaticamente a arquitetura futura;
+- não deve ser copiada por compatibilidade;
+- não prevalece sobre a THEORY.
 
-Ela não deve ser copiada por compatibilidade.
+## 3. Hierarquia de autoridade
 
-## 2. Hierarquia de autoridade
-
-Quando houver conflito entre fontes, usar a seguinte precedência:
+Quando houver conflito entre fontes:
 
 ~~~
 THEORY
   ↓
-esta especificação
+este RFC
   ↓
 contratos e schemas da nova implementação
   ↓
-comportamento documentado do Promptfoo
+comportamento público documentado do Promptfoo
   ↓
-experimentos executados na nova implementação
+experimentos executados nesta implementação
   ↓
 implementação histórica
 ~~~
 
-A implementação histórica nunca deve prevalecer sobre a THEORY apenas porque determinado comportamento já existe.
+Quando documentação e comportamento observado divergirem:
 
-A THEORY estabelece, entre outras propriedades, que:
+~~~
+observação experimental
+  +
+versão concreta do software
+  +
+registro de provenance
+~~~
 
-- a avaliação mede uma distribuição de comportamento condicionada ao sistema e ambiente avaliados;
-- claims diferentes exigem desenhos diferentes;
-- behavioral contracts são a unidade semântica da avaliação;
-- evidência diretamente verificável deve ser preferida quando disponível;
-- judges não podem fabricar evidência ausente;
-- development cases devem permanecer separados de decision cases;
-- oracles precisam ser qualificados antes de sustentar decisões;
-- evidência de um claim não autoriza automaticamente outro claim;
-- um critical direct failure não pode ser neutralizado por um judge favorável.
+devem governar a decisão prática.
 
-## 3. Objetivo do produto
+Não presumir comportamento não observado apenas porque a documentação o sugere.
+
+## 4. Tese de produto
 
 A experiência alvo continua sendo:
 
@@ -186,18 +143,108 @@ A experiência alvo continua sendo:
 skill-evidence evaluate <skill-directory>
 ~~~
 
-O operador fornece somente a skill.
+O operador pode iniciar o processo fornecendo somente a skill.
 
-O sistema deverá progressivamente ser capaz de:
+Isso deve ser interpretado corretamente:
+
+> “Somente a skill” é o contrato de entrada inicial da interface.
+
+Não significa:
+
+> “A skill contém necessariamente informação suficiente para uma decisão confirmatória.”
+
+A skill normalmente pode não especificar:
+
+- população operacional;
+- frequência real dos task families;
+- activation base rate;
+- decisão de produto;
+- minimum worthwhile improvement;
+- maximum acceptable regression;
+- severe harm limits;
+- efficiency budgets;
+- precision necessária;
+- política de risco;
+- custo aceitável;
+- requisitos estatísticos;
+- condições externas de deployment.
+
+A THEORY exige que elementos dessa natureza estejam prespecificados antes de uma avaliação confirmatória quando forem necessários ao claim ou à decisão.
+
+Portanto:
 
 ~~~
 skill directory
       ↓
 understanding
       ↓
+Evaluation Author
+      ↓
 Evaluation Blueprint
       ↓
-qualified evaluation
+DRAFT | BLOCKED | READY
+~~~
+
+O Author deve inferir apenas o que estiver sustentado.
+
+Quando uma informação necessária não puder ser inferida defensavelmente:
+
+~~~
+UNKNOWN
+UNSUPPORTED
+INSUFFICIENT_INFORMATION
+UNTESTABLE_FROM_AVAILABLE_ENVIRONMENT
+~~~
+
+devem ser resultados válidos.
+
+Inventar contexto decisório para fazer o pipeline continuar é defeito de instrumento.
+
+## 5. Princípio fundamental de blocking
+
+A interface deve conseguir chegar a:
+
+~~~
+skill-evidence evaluate ./skill
+~~~
+
+e responder conceitualmente:
+
+~~~
+Evaluation Blueprint produced.
+
+State: BLOCKED
+
+Decision evaluation cannot start.
+
+Blocking requirements:
+- target population not established
+- acceptable severe harm limit unknown
+- required uncertainty not specified
+~~~
+
+Isso é comportamento correto.
+
+"BLOCKED" não representa fracasso do Author.
+
+Pode representar que o Author identificou corretamente o limite da evidência disponível.
+
+## 6. Experiência progressiva do produto
+
+O objetivo continua sendo:
+
+~~~
+skill directory
+      ↓
+intake
+      ↓
+authoring
+      ↓
+Evaluation Blueprint
+      ↓
+qualification
+      ↓
+compiler
       ↓
 Promptfoo execution
       ↓
@@ -206,25 +253,25 @@ evidence
 bounded conclusions
 ~~~
 
-O usuário não deve precisar fornecer manualmente:
+O usuário não deve precisar escrever manualmente, quando o sistema puder derivá-los defensavelmente:
 
 - cases;
-- contracts;
+- behavioral contracts;
 - fixtures;
 - assertions;
 - rubrics;
-- oracles;
-- qualification examples.
+- oracle probes;
+- stress families;
+- qualification packages;
+- direct evidence checks.
 
-Isso não significa que o sistema esteja autorizado a inventá los livremente.
+Mas o sistema não está autorizado a preencher silenciosamente informações decisórias que a skill não contém.
 
-O sistema deve derivá los de forma auditável e declarar explicitamente quando informação suficiente não puder ser inferida.
+## 7. Definição de skill
 
-## 4. Definição de skill
+"<skill-directory>" significa o diretório lógico completo da skill.
 
-"<skill-directory>" significa o diretório completo da skill.
-
-O intake deve considerar:
+O intake pode considerar:
 
 ~~~
 SKILL.md
@@ -233,12 +280,14 @@ scripts/
 templates/
 examples/
 schemas/
-outros artefatos locais pertencentes à skill
+outros artefatos pertencentes à skill
 ~~~
 
-"SKILL.md" é a entrada principal, mas não deve ser assumido como representação completa da skill.
+"SKILL.md" é a entrada principal.
 
-Uma futura modalidade estrita:
+Não assumir que seja uma representação completa da intervenção.
+
+A modalidade:
 
 ~~~
 skill-evidence evaluate ./SKILL.md
@@ -246,31 +295,236 @@ skill-evidence evaluate ./SKILL.md
 
 fica fora do escopo inicial.
 
-## 5. Princípio de implementação mínima
+## 8. Fronteira de segurança do intake
 
-A nova arquitetura deve seguir:
+“Diretório completo” não significa leitura irrestrita.
+
+O intake deve possuir política explícita antes de ser considerado reproduzível ou seguro.
+
+No mínimo, definir:
+
+~~~
+root canonicalization
+symlink policy
+path traversal policy
+ignored directories
+binary policy
+large file policy
+file count limit
+total byte limit
+per-file limit
+credential detection policy
+credential redaction policy
+permission error policy
+ordering policy
+fingerprint policy
+mutation policy
+~~~
+
+### 8.1 Canonicalização
+
+O root da skill deve ser convertido para caminho canônico antes da enumeração.
+
+Nenhum artefato pode escapar do root por:
+
+~~~
+..
+symlink
+junction
+mount inesperado
+~~~
+
+sem autorização explícita da política.
+
+### 8.2 Symlinks
+
+Default inicial:
+
+~~~
+symlink inside canonical skill root
+    → may be considered
+
+symlink outside canonical skill root
+    → reject or exclude with structured reason
+~~~
+
+Nunca seguir silenciosamente um symlink externo.
+
+### 8.3 Exclusões
+
+A política inicial deve tratar explicitamente, entre outros:
+
+~~~
+.git/
+node_modules/
+.skill-evidence/
+generated outputs
+temporary files
+cache directories
+~~~
+
+Não assumir que todo arquivo ignorado pelo Git deva ser ignorado pelo intake.
+
+Git ignore e Skill Evidence intake são políticas diferentes.
+
+### 8.4 Arquivos grandes e binários
+
+Definir limites explícitos.
+
+Quando um arquivo não puder ser ingerido:
+
+~~~
+artifact
+status = EXCLUDED
+reason = SIZE_LIMIT | BINARY_UNSUPPORTED | PERMISSION | POLICY
+~~~
+
+Se ele for necessário para um claim:
+
+~~~
+Blueprint
+    → BLOCKED
+~~~
+
+ou
+
+~~~
+claim
+    → NOT_EVALUATED
+~~~
+
+conforme o caso.
+
+### 8.5 Segredos
+
+O intake deve possuir tratamento explícito para potenciais credenciais.
+
+A presença de um segredo não autoriza:
+
+~~~
+serialize into prompt
+persist into blueprint
+copy into fixtures
+log into provenance
+commit into repository
+~~~
+
+### 8.6 Snapshot
+
+Author e execução devem operar contra identidade de skill claramente registrada.
+
+Não permitir que:
+
+~~~
+Author sees state A
+Executor sees mutated state B
+report claims state A
+~~~
+
+sem detectar a alteração.
+
+## 9. Fingerprint
+
+O fingerprint deve derivar de uma representação canônica.
+
+No mínimo:
+
+~~~
+canonical relative path
+artifact type
+content digest
+relevant metadata defined by policy
+~~~
+
+com ordenação determinística.
+
+O fingerprint deve descrever exatamente quais artefatos participaram do snapshot.
+
+Registrar também exclusões relevantes.
+
+Exemplo conceitual:
+
+~~~json
+{
+  "skillFingerprint": "...",
+  "includedArtifacts": [],
+  "excludedArtifacts": [],
+  "intakePolicyVersion": "..."
+}
+~~~
+
+Não implementar um algoritmo excessivamente sofisticado antes de E0/E2 demonstrarem necessidade.
+
+## 10. Princípio de implementação mínima
+
+A arquitetura segue:
 
 > Promptfoo owns generic eval infrastructure unless evidence demonstrates that it cannot preserve a required semantic property.
 
-Portanto, não criar inicialmente abstrações próprias para:
+Não criar inicialmente abstrações próprias para:
 
-- execução Codex;
+- execução genérica do Codex;
 - parsing genérico do protocolo Codex;
 - gerenciamento genérico de sessões;
 - framework genérico de assertions;
-- sistema genérico de model graders;
+- sistema genérico de LLM graders;
 - sistema genérico de datasets;
 - tracing genérico;
 - provider abstraction genérica;
-- orchestration genérica que Promptfoo já oferece.
+- subprocess orchestration genérica;
+- infraestrutura genérica de eval que Promptfoo já fornece.
 
-Promptfoo atualmente oferece provider "openai:codex-sdk" com working directory, sandbox, approval policy, network controls, modelo explícito, reasoning effort, token usage, session IDs e tracing de shell/MCP/search/file.
+O provider "openai:codex-sdk" atualmente expõe resposta final, token usage quando reportado pelo SDK, session/thread IDs, skill usage heurístico e tracing de operações como shell, MCP, search e file quando configurado. Promptfoo também permite modelo, reasoning effort, working directory, sandbox, approvals e rede de forma explícita.
 
-Código próprio nessas áreas exige justificativa experimental explícita.
+Código próprio nessas áreas exige justificativa experimental.
 
-## 6. Regra contra arqueologia arquitetural
+## 11. Integração programática com Promptfoo
 
-Nenhum arquivo de implementação de "feat/skill-evidence-v1" deve ser copiado para o novo branch apenas para acelerar desenvolvimento.
+Baseline recomendado:
+
+~~~
+Skill Evidence
+    ↓
+Promptfoo Node API
+    ↓
+evaluate(testSuite, options)
+~~~
+
+Não criar subprocess orchestration para chamar a CLI se a API pública atender à responsabilidade.
+
+A Node API de Promptfoo expõe "evaluate()" como entrada programática estável e também controles explícitos para cache e concorrência.
+
+Arquitetura:
+
+~~~
+Evaluation Blueprint
+        ↓
+deterministic compiler
+        ↓
+serializable Promptfoo configuration
+        ↓
+promptfoo.evaluate()
+        ↓
+raw Promptfoo result
+        ↓
+Skill Evidence normalization
+~~~
+
+O compiler e o runner devem compartilhar a mesma representação serializável.
+
+YAML pode existir como:
+
+~~~
+debug artifact
+inspection artifact
+reproduction artifact
+~~~
+
+mas não precisa ser a representação interna primária.
+
+## 12. Regra contra arqueologia arquitetural
+
+Nenhum arquivo de implementação da V1 deve ser copiado apenas para acelerar desenvolvimento.
 
 Em particular, não copiar inicialmente equivalentes de:
 
@@ -284,133 +538,174 @@ judge invocation layer
 workspace orchestration layer
 ~~~
 
-Uma ideia da implementação anterior pode ser reimplementada somente quando:
+Uma propriedade histórica pode ser reimplementada quando:
 
 1. a THEORY exigir aquela propriedade; ou
-2. um experimento demonstrar que Promptfoo não a fornece adequadamente.
+2. uma regressão histórica revelar uma requirement legítima; ou
+3. um experimento demonstrar insuficiência do Promptfoo.
 
-O código novo deve nascer da responsabilidade atual, e não da forma como a responsabilidade era implementada anteriormente.
+Mesmo nesses casos:
 
-## 7. Uso permitido do branch histórico
+> reimplementar a propriedade, não a arquitetura antiga.
 
-O branch histórico deve continuar disponível.
+## 13. Uso permitido da V1
 
-Ele poderá ser consultado para construir um:
+A V1 poderá ser consultada para construir um:
 
-"Archaeological Regression Corpus"
+Archaeological Regression Corpus
 
-Esse corpus deve capturar classes de falha descobertas anteriormente sem importar a arquitetura que as produziu.
+Esse corpus captura classes de falha e measurement defects sem importar a arquitetura que os produziu.
 
-No mínimo:
+Regressões iniciais:
 
 ### R1. Absolute executable path
 
 Um caminho absoluto correspondente ao executável observado não pode ser automaticamente interpretado como escrita fora do workspace.
 
-### R2. Unknown executor event
+### R2. Observability incompleteness
 
-Um novo tipo de evento relevante para observabilidade não pode ser silenciosamente ignorado.
+A regra histórica “unknown executor event” deve ser reformulada.
 
-Se comprometer evidência necessária:
+Nova regra:
+
+> Nenhum evento relevante exposto pela superfície adotada pode ser descartado silenciosamente pelo Skill Evidence.
+
+Separadamente:
+
+> Se uma required evidence depende de um fato que a superfície adotada não consegue observar, essa evidência não pode ser considerada satisfeita.
+
+Resultado possível:
 
 ~~~
 case → INCONCLUSIVE
+claim → INCONCLUSIVE
+observability requirement → INSUFFICIENT
 ~~~
 
-e não:
+Não é possível detectar eventos que a infraestrutura nunca expõe.
 
-~~~
-case → PASS
-~~~
+E2 deve caracterizar essa fronteira.
 
 ### R3. Semantic equivalence
 
-Uma resposta como:
+~~~
+No refactor was justified.
+~~~
 
-> No refactor was justified.
+não pode falhar apenas porque um checker procurava literalmente:
 
-não pode falhar simplesmente porque uma implementação procurava literalmente:
+~~~
+no action
+~~~
 
-> no action
-
-quando identidade lexical não faz parte do contrato.
+quando identidade textual não faz parte do contrato.
 
 ### R4. Judge blindness
 
-Calibration input não pode revelar direta ou indiretamente o expected status.
+Calibration ou qualification input não pode revelar direta ou indiretamente o expected status.
 
 ### R5. Missing evidence
 
-Judge não pode transformar ausência de observabilidade em PASS.
+Judge não pode converter ausência de observabilidade em "PASS".
 
 ### R6. Direct critical violation
 
-Uma violação crítica observada diretamente deve prevalecer sobre julgamento semântico favorável.
+Uma violação crítica observada diretamente prevalece sobre julgamento semântico favorável.
 
-Essas regressões devem ser implementadas novamente a partir de seus princípios, não copiando os antigos checkers.
+Essas regressões serão reimplementadas a partir dos princípios.
 
-## 8. Arquitetura alvo
+## 14. Arquitetura alvo
 
 ~~~
                      SKILL DIRECTORY
                            │
                            ▼
                         INTAKE
-                  fingerprint / snapshot
+                  canonical snapshot
+                       fingerprint
                            │
                            ▼
                     EVALUATION AUTHOR
-                       model A
                            │
                            ▼
                  EVALUATION BLUEPRINT
                            │
-                    schema validation
+                  schema validation
                            │
-                   author qualification
+                   lifecycle policy
                            │
-                           ▼
-                       COMPILER
-                           │
-                           ▼
-                       PROMPTFOO
-               ┌───────────┼───────────┐
-               │           │           │
-               ▼           ▼           ▼
-           EXECUTOR     DIRECT      SEMANTIC
-                       EVIDENCE       JUDGE
-            Luna          │        Terra initially
-             │            │           │
-             └────────────┼───────────┘
-                          ▼
-                     RAW RESULTS
-                          │
-                          ▼
-                   SKILL EVIDENCE
-                 qualification
-                   eligibility
-                     claims
-                   provenance
-                     review
+            ┌──────────────┴──────────────┐
+            │                             │
+         BLOCKED                       READY
+                                          │
+                                          ▼
+                                    qualification
+                                          │
+                                          ▼
+                                       FROZEN
+                                          │
+                                          ▼
+                                       COMPILER
+                                          │
+                                          ▼
+                                       PROMPTFOO
+                            ┌─────────────┼─────────────┐
+                            │             │             │
+                            ▼             ▼             ▼
+                        EXECUTOR        DIRECT        SEMANTIC
+                                       EVIDENCE        JUDGE
+                            │             │             │
+                            └─────────────┼─────────────┘
+                                          ▼
+                                     RAW RESULTS
+                                          │
+                                          ▼
+                                    SKILL EVIDENCE
+                                      eligibility
+                                        claims
+                                      provenance
+                                        review
 ~~~
 
-Promptfoo é infrastructure.
+Promptfoo é infraestrutura.
 
-Skill Evidence é semantics + qualification + evidence policy.
+Skill Evidence é:
 
-## 9. Três funções de modelo distintas
+~~~
+semantics
+qualification
+evidence policy
+eligibility
+lifecycle
+provenance
+bounded conclusions
+~~~
 
-Não tratar “usar IA” como uma única função.
+## 15. Papéis de modelo
+
+Não tratar “usar IA” como uma responsabilidade única.
 
 Existem três papéis:
 
 ~~~
-Eval Author
+Evaluation Author
 Executor
 Judge
 ~~~
 
-Eles devem possuir configuração e provenance independentes.
+Cada papel possui:
+
+~~~
+provider
+model
+reasoning effort
+prompt/instructions fingerprint
+qualification state
+version
+provenance
+~~~
+
+independentes.
 
 ### Baseline inicial
 
@@ -430,19 +725,33 @@ reasoning = xhigh
 
 #### Eval Author
 
+~~~
 TBD
+~~~
 
-Não escolher imediatamente o modelo mais caro para autoria.
+A documentação atual do provider Codex SDK reconhece Luna, Terra e Sol e permite configuração explícita de "model" e "model_reasoning_effort".
 
-Primeiro criar benchmark.
+Esses modelos são baseline experimental, não dogma arquitetural.
 
-Depois selecionar o menor compute que preserve a qualidade necessária.
+## 16. Política para escolha do Author
 
-Promptfoo atualmente suporta "model" e "model_reasoning_effort" no provider Codex SDK, incluindo Luna, Terra e Sol da família GPT 5.6.
+Não selecionar automaticamente o modelo mais caro.
 
-## 10. Authentication baseline
+Primeiro construir benchmark.
 
-Usar inicialmente:
+Depois comparar condições.
+
+Objetivo:
+
+> menor compute que preserve as propriedades decisórias exigidas do Author.
+
+O Author precisa ser tratado como instrumento de medição.
+
+A qualidade de sua escrita não é suficiente.
+
+## 17. Authentication baseline
+
+Baseline:
 
 ~~~
 Promptfoo
@@ -451,16 +760,31 @@ openai:codex-sdk
    ↓
 Codex SDK
    ↓
-ChatGPT authentication
+existing ChatGPT/Codex authentication
 ~~~
 
 Não depender de API key no baseline.
 
-A documentação atual informa que o provider consegue reutilizar um login Codex/ChatGPT existente quando "apiKey", "OPENAI_API_KEY" e "CODEX_API_KEY" não estão presentes.
+Quando "apiKey", "OPENAI_API_KEY" e "CODEX_API_KEY" estão ausentes, a documentação atual do provider afirma que o SDK pode reutilizar login Codex/ChatGPT existente.
 
-Usar "CODEX_HOME" explicitamente controlado.
+## 18. CODEX_HOME
 
-Não habilitar:
+"CODEX_HOME" controlado não significa:
+
+~~~
+copy credentials into repository
+copy auth into fixture
+commit auth state
+serialize auth state
+~~~
+
+Significa:
+
+> usar um caminho externo e explicitamente conhecido que contenha login válido quando E1 necessitar reutilizar autenticação ChatGPT.
+
+Nunca incluir credenciais no repositório.
+
+Não usar:
 
 ~~~
 inherit_process_env: true
@@ -468,44 +792,219 @@ inherit_process_env: true
 
 sem necessidade demonstrada.
 
-Promptfoo utiliza por padrão um ambiente reduzido para o subprocesso Codex, o que é preferível para isolamento.
+Manter ambiente mínimo.
 
-## 11. Evaluation Blueprint
+## 19. Authentication provenance
 
-O output principal do Eval Author não deve ser YAML Promptfoo.
-
-O output principal será um artefato próprio:
-
-"EvaluationBlueprint"
-
-Versão inicial:
+Não registrar automaticamente:
 
 ~~~json
 {
-  "schemaVersion": "0.1",
-  "skill": {},
-  "decision": {},
-  "population": {},
-  "claims": [],
-  "exclusions": [],
-  "contracts": [],
-  "activationRegions": {
-    "positive": [],
-    "negative": [],
-    "boundary": []
-  },
-  "usageFamilies": [],
-  "stressFamilies": [],
-  "requiredEvidence": [],
-  "oracleQualificationPlan": [],
-  "samplingPlan": {},
-  "stoppingConditions": [],
-  "untestedRisks": [],
-  "authorProvenance": {}
+  "authMode": "chatgpt"
 }
 ~~~
 
-## 12. Claims
+como fato diretamente observado se Promptfoo não o reportar.
+
+E1 deve caracterizar qual evidência existe.
+
+Exemplo possível:
+
+~~~json
+{
+  "authentication": {
+    "mode": "chatgpt",
+    "evidenceKind": "configuration-inference",
+    "apiKeyPresent": false,
+    "codexApiKeyPresent": false
+  }
+}
+~~~
+
+Somente usar:
+
+~~~
+evidenceKind = provider-reported
+~~~
+
+quando houver observação direta que sustente essa descrição.
+
+Provenance nunca deve aumentar a força da evidência.
+
+## 20. Evaluation Blueprint
+
+O output principal do Evaluation Author não é YAML Promptfoo.
+
+É:
+
+~~~
+EvaluationBlueprint
+~~~
+
+O Blueprint é a camada semântica e normativa do Skill Evidence.
+
+Promptfoo configuration é build artifact.
+
+## 21. Estrutura conceitual do Blueprint
+
+Versão inicial revisada:
+
+~~~
+EvaluationBlueprint
+│
+├── schemaVersion
+├── identity
+├── lifecycle
+├── skill
+├── decisionContext
+├── population
+├── claims
+├── exclusions
+├── contracts
+├── activationRegions
+├── usageFamilies
+├── stressFamilies
+├── contrasts
+├── evidencePlan
+├── oracleQualificationPlan
+├── samplingPlan
+├── analysisPlan
+├── developmentPolicy
+├── decisionPolicy
+├── stoppingConditions
+├── unresolvedRequirements
+├── untestedRisks
+└── authorProvenance
+~~~
+
+Objetos vazios não são contrato suficiente.
+
+Cada campo decisório obrigatório deve possuir semântica própria.
+
+## 22. Lifecycle do Blueprint
+
+~~~
+DRAFT
+BLOCKED
+READY
+FROZEN
+SUPERSEDED
+~~~
+
+### DRAFT
+
+Blueprint ainda em autoria ou validação.
+
+Não pode produzir decision run.
+
+### BLOCKED
+
+Há informação ausente que impede claims ou decisão pretendida.
+
+Cada blocker deve ser estruturado.
+
+### READY
+
+Schema válido e sem blocking requirements para o estágio permitido.
+
+"READY" não significa automaticamente pronto para decision run.
+
+Qualification ainda pode ser necessária.
+
+### FROZEN
+
+Configuração confirmatória congelada.
+
+A partir daqui, alterações materiais invalidam o freeze.
+
+### SUPERSEDED
+
+Blueprint substituído por outro.
+
+Nunca sobrescrever silenciosamente um Blueprint congelado.
+
+## 23. Unresolved requirements
+
+Formato mínimo:
+
+~~~
+id
+field
+reason
+status
+blocking
+evidenceNeeded
+source
+affectedClaimIds
+~~~
+
+Possíveis statuses:
+
+~~~
+UNKNOWN
+UNSUPPORTED
+INSUFFICIENT_INFORMATION
+UNTESTABLE_FROM_AVAILABLE_ENVIRONMENT
+~~~
+
+Exemplo:
+
+~~~json
+{
+  "id": "UR-001",
+  "field": "decisionContext.minimumWorthwhileImprovement",
+  "status": "INSUFFICIENT_INFORMATION",
+  "blocking": true,
+  "reason": "The skill does not define a decision threshold.",
+  "affectedClaimIds": ["C7"]
+}
+~~~
+
+## 24. Decision Context
+
+O Blueprint deve poder representar explicitamente:
+
+~~~
+decision
+decision owner or source when available
+target population
+excluded populations
+primary measures
+secondary measures
+minimum worthwhile improvement
+maximum acceptable regression
+severe harm limits
+efficiency budgets
+required uncertainty
+decision critical claims
+~~~
+
+Não exigir todos os campos para todos os tipos de avaliação.
+
+A obrigatoriedade depende dos claims.
+
+Exemplo:
+
+Um claim limitado a:
+
+~~~
+observed behavior in specified development scenarios
+~~~
+
+não exige necessariamente uma política populacional completa.
+
+Um claim de:
+
+~~~
+generalization
+stability
+skill contribution
+deployment decision
+~~~
+
+exige desenho mais forte.
+
+## 25. Claims
 
 Cada claim deve possuir pelo menos:
 
@@ -518,9 +1017,10 @@ conditions
 requiredEvidence
 decisionCritical
 limitations
+status
 ~~~
 
-Tipos iniciais deverão ser alinhados à THEORY, por exemplo:
+Tipos alinhados à THEORY:
 
 ~~~
 observed-behavior
@@ -539,17 +1039,43 @@ regression-protection
 generalization
 ~~~
 
-Não autorizar automaticamente todos esses claims.
+Não autorizar todos automaticamente.
 
-Se o desenho produzido não puder sustentar determinado claim:
+Quando o desenho não sustentar um claim:
 
 ~~~
 claim = NOT_EVALUATED
 ~~~
 
-## 13. Behavioral Contract
+Não reduzir o threshold para manter o claim.
 
-Cada contract deverá expressar semanticamente:
+## 26. Contrasts
+
+Claims causais ou comparativos precisam declarar contrastes.
+
+Exemplos:
+
+~~~
+skill contribution
+    → no-intervention or valid ablation
+
+change effect
+    → prior or alternative version
+
+robustness
+    → controlled variation
+
+regression protection
+    → previously qualified behavior
+~~~
+
+A THEORY explicita que sucesso na condição atual não estabelece causalidade e que controles distintos respondem perguntas distintas.
+
+Portanto, "contrasts[]" deve ser first class no Blueprint.
+
+## 27. Behavioral Contract
+
+Cada contract deve expressar semanticamente:
 
 ~~~
 id
@@ -569,17 +1095,52 @@ requiredEvidence
 severity
 ~~~
 
-Contracts não devem prescrever wording acidental.
+Contracts descrevem conjuntos de trajetórias comportamentalmente equivalentes.
 
-Exact strings só são permitidas quando identidade textual for realmente uma obrigação externa do comportamento.
+Não devem prescrever wording incidental.
 
-A THEORY explicitamente define contratos como conjuntos de trajetórias comportamentalmente equivalentes e recomenda especificar apenas a ordem necessária quando temporalidade importa.
+Exact string somente quando a identidade textual for obrigação externa real.
 
-## 14. Evidência
+## 28. Activation regions
 
-Cada requirement deve declarar de que evidência depende.
+Representar separadamente:
 
-Prioridade:
+~~~
+positive
+negative
+boundary
+~~~
+
+O Author deve procurar explicitamente:
+
+~~~
+quando ativar
+quando não ativar
+quando clarificar
+quando bloquear
+quando outra responsabilidade prevalece
+~~~
+
+Positive activation sem negative activation não é avaliação suficiente de activation quality.
+
+## 29. Evidence Plan
+
+Cada required evidence deve declarar:
+
+~~~
+id
+claimIds
+contractIds
+property
+evidenceKind
+source
+mandatory
+critical
+observabilityRequirement
+missingEvidenceSemantics
+~~~
+
+Hierarquia:
 
 ~~~
 direct evidence
@@ -588,12 +1149,14 @@ structured deterministic inference
       ↓
 semantic evidence
       ↓
-LLM judge
+LLM judgment
 ~~~
 
-Nunca inverter essa ordem por conveniência.
+Preferir evidência diretamente verificável quando disponível, em consonância com a THEORY.
 
-Exemplos de direct evidence:
+## 30. Direct evidence
+
+Exemplos:
 
 ~~~
 filesystem state
@@ -602,7 +1165,7 @@ file existence
 file absence
 JSON structure
 schema validation
-command effects
+command result
 exit status
 temporal relation
 observable tool use
@@ -610,26 +1173,70 @@ prohibited write
 preserved state
 ~~~
 
-Promptfoo deve executar essas verificações diretamente sempre que sua assertion surface for suficiente.
+Promptfoo deve executar diretamente o que sua assertion surface representar suficientemente.
 
-Small adapters podem existir quando necessário.
+Small adapters são permitidos quando houver necessity record.
 
-## 15. Regra para criação de adapters
+## 31. Regra para adapters
 
-Um adapter próprio somente pode ser criado quando houver um registro semelhante a:
+Nenhum adapter entra apenas porque código próprio parece mais simples.
+
+Registro obrigatório:
 
 ~~~
 Required property:
+Affected claims:
 Observable fact:
-Why Promptfoo native surface is insufficient:
+Promptfoo surface tested:
+Why native surface is insufficient:
 Proposed adapter:
 Failure semantics:
+Version conditions:
 Test proving necessity:
 ~~~
 
-Não criar adapter porque implementar localmente parece mais simples.
+Se:
 
-## 16. "skill-used"
+~~~
+Why native surface is insufficient
+~~~
+
+não puder ser demonstrado:
+
+~~~
+adapter rejected
+~~~
+
+## 32. Observability classification
+
+E2 deve classificar necessidades como:
+
+~~~
+NATIVE_STABLE
+NATIVE_EXPERIMENTAL
+ADAPTER
+INSUFFICIENT
+~~~
+
+### NATIVE_STABLE
+
+Superfície pública suficientemente estável para a propriedade requerida.
+
+### NATIVE_EXPERIMENTAL
+
+Informação disponível, mas através de superfície documentada como experimental ou cuja estabilidade ainda precisa ser caracterizada.
+
+### ADAPTER
+
+Fato observável, mas necessita pequena adaptação própria.
+
+### INSUFFICIENT
+
+A superfície atual não permite observar evidência suficiente.
+
+Não promover "NATIVE_EXPERIMENTAL" automaticamente a fundação decisória sem justificar o risco.
+
+## 33. Skill usage
 
 Não tratar:
 
@@ -637,14 +1244,14 @@ Não tratar:
 skill-used = true
 ~~~
 
-como prova de contribuição causal nem como prova de satisfação do contrato.
+como prova de contribuição causal.
 
-No provider Codex SDK, Promptfoo atualmente infere skill usage heuristicamente a partir de leituras observadas de "SKILL.md"; não existe um evento first class de skill invocation nessa superfície.
+A documentação atual informa que "skill-used" no Codex SDK é inferido heuristicamente a partir de leituras observadas de "SKILL.md", e não de um evento first class de invocation.
 
-Portanto:
+Assim:
 
 ~~~
-skill read
+observed skill read
 ~~~
 
 pode sustentar evidência limitada sobre activation/process.
@@ -652,14 +1259,12 @@ pode sustentar evidência limitada sobre activation/process.
 Não sustenta automaticamente:
 
 ~~~
-skill caused correct result
+skill caused success
 ~~~
 
-Skill contribution exige contraste adequado.
+Skill contribution exige contraste.
 
-## 17. App Server escalation rule
-
-Não iniciar com Codex App Server.
+## 34. App Server escalation
 
 Baseline:
 
@@ -667,31 +1272,67 @@ Baseline:
 openai:codex-sdk
 ~~~
 
-App Server somente deve entrar se um experimento provar que uma propriedade decisória precisa de eventos não expostos adequadamente pelo SDK.
+Não iniciar com App Server.
 
-Promptfoo recomenda SDK para automação comum e reserva App Server para superfícies mais ricas como streamed items, approvals, skills, plugins, connectors e lifecycle metadata.
+App Server entra somente quando um experimento provar que uma propriedade decisória requer superfície não adequadamente exposta pelo SDK.
 
-A adoção de App Server requer um ExecPlan separado.
+Promptfoo posiciona o SDK como adequado para automação comum e o App Server para superfícies mais ricas de protocolo, approvals, lifecycle e eventos específicos.
 
-## 18. Judge qualification
+A adoção de App Server exige ExecPlan separado.
 
-"llm-rubric" ou "agent-rubric" não são verdade por definição.
+## 35. Oracle lifecycle
 
-Antes de um semantic judge produzir evidência decisória:
+Qualification do oracle deve possuir estados:
 
 ~~~
-oracle
-  ↓
-qualification probes
-  ↓
-judge
-  ↓
-qualification result
-  ↓
-eligible / not eligible
+ELIGIBLE
+NOT_ELIGIBLE
+STALE
 ~~~
 
-Cada oracle deverá possuir no mínimo:
+### ELIGIBLE
+
+Qualification válida para a condição fingerprintada.
+
+### NOT_ELIGIBLE
+
+Falhou nos critérios definidos.
+
+Resultados desse oracle não podem sustentar decisão.
+
+### STALE
+
+Qualification existia, mas uma mudança material tornou sua validade incerta.
+
+## 36. Qualification scope
+
+Qualification não pertence apenas ao nome do judge.
+
+Ela deve estar vinculada a uma condição semelhante a:
+
+~~~
+oracle definition
+rubric fingerprint
+judge provider
+judge model
+reasoning effort
+judge prompt
+Promptfoo version
+provider version
+relevant environment
+qualification dataset
+qualification policy
+~~~
+
+Trocar qualquer elemento material pode tornar:
+
+~~~
+ELIGIBLE → STALE
+~~~
+
+## 37. Qualification probes
+
+Famílias mínimas:
 
 ~~~
 known-valid
@@ -700,34 +1341,78 @@ alternative-valid
 unsupported-fluency
 ~~~
 
-Expected status permanece fora do judge input.
-
-Baseline:
+Resultado semântico esperado:
 
 ~~~
 known-valid          → PASS
 known-invalid        → FAIL
 alternative-valid    → PASS
-unsupported-fluency  → INCONCLUSIVE
+unsupported-fluency  → not PASS
 ~~~
 
-Se o judge falhar na qualification:
+"unsupported-fluency" pode resultar em:
 
 ~~~
-oracle = NOT_ELIGIBLE
+FAIL
+INCONCLUSIVE
 ~~~
 
-e nenhum resultado produzido por ele poderá sustentar decisão.
+dependendo da rubric.
 
-## 19. "llm-rubric" versus "agent-rubric"
+O requisito crítico é:
 
-Não selecionar um único mecanismo antecipadamente.
+> fluência sem evidência não pode produzir falso PASS.
 
-### "llm-rubric"
+## 38. Qualification Plan
 
-Preferir quando todas as evidências necessárias puderem ser serializadas de forma segura e suficiente.
+Quatro exemplos não são qualification suficiente por definição.
 
-### "agent-rubric"
+O plano deve declarar:
+
+~~~
+probe families
+probe count
+repetitions
+acceptance rule
+invalid response handling
+disagreement handling
+minimum agreement when applicable
+adjudication policy
+evaluator count
+expiration conditions
+~~~
+
+Casos consequenciais ou ambíguos podem exigir múltiplos avaliadores.
+
+A THEORY recomenda múltiplos evaluators nesses contextos, medição de disagreement e adjudicação apoiada em evidência concreta.
+
+## 39. Expected status blindness
+
+O expected status não entra no judge packet.
+
+Nenhum campo pode vazar direta ou indiretamente:
+
+~~~
+expected = PASS
+known-valid
+gold answer status
+reference decision
+qualification target label
+~~~
+
+O harness conhece o expected status.
+
+O judge não.
+
+## 40. llm-rubric versus agent-rubric
+
+Não escolher um único mecanismo antecipadamente.
+
+### llm-rubric
+
+Preferir quando toda evidência necessária puder ser serializada de maneira segura e suficiente.
+
+### agent-rubric
 
 Investigar quando o grader precisar inspecionar:
 
@@ -739,23 +1424,29 @@ repository state
 file relationships
 ~~~
 
-Promptfoo disponibiliza "agent-rubric" especificamente para graders com acesso a workspace e recomenda sandbox read only para esse uso.
+Promptfoo define "agent-rubric" para graders capazes de reunir evidência usando workspace e ferramentas. Sua documentação recomenda postura read only quando possível e ressalta que output e workspace avaliados devem ser tratados como conteúdo não confiável.
 
-Todo agent grader deve usar inicialmente:
+Default Skill Evidence para agent judge:
 
 ~~~
 sandbox_mode: read-only
 approval_policy: never
-network_access_enabled: false
+network disabled unless explicitly required
 ~~~
 
-## 20. Prompt injection boundary
+## 41. Prompt injection boundary
 
-Todo conteúdo produzido pelo executor ou presente no workspace avaliado é dado não confiável para o judge.
+Tudo produzido pelo Executor ou contido no workspace avaliado é:
 
-O judge não deve obedecer instruções encontradas nesses artefatos.
+~~~
+UNTRUSTED DATA
+~~~
 
-Qualification deverá incluir probes adversariais contra:
+para o Judge.
+
+O Judge não deve obedecer instruções presentes nesses artefatos.
+
+Qualification deve incluir ataques contra:
 
 ~~~
 embedded instructions
@@ -763,55 +1454,336 @@ fabricated evidence
 confidence theater
 misleading fluency
 condition leakage
+verifier manipulation
 ~~~
 
-## 21. Development versus decision
+## 42. Executor sandbox policy
 
-A separação é obrigatória.
+A sandbox do Executor também deve ser explícita.
 
-Pipeline:
+Não existe um único default correto para toda skill.
+
+Cada case family deve declarar a capacidade necessária.
+
+Exemplos:
 
 ~~~
-development
-    ↓
+analysis only
+    → read-only
+
+artifact modification required
+    → workspace-write
+
+danger-full-access
+    → prohibited by default
+~~~
+
+Promptfoo documenta "read-only", "workspace-write" e "danger-full-access", e recomenda reduzir rede e permissões ao necessário.
+
+Default de approvals:
+
+~~~
+approval_policy: never
+~~~
+
+salvo quando approval behavior for explicitamente o objeto do experimento.
+
+Network:
+
+~~~
+disabled by default
+~~~
+
+e habilitada somente quando o contract realmente depende dela.
+
+Neste RFC, rede desabilitada significa desabilitar rede, live web search e outras capacidades de acesso externo disponíveis ao agente. Não significa bloquear o transporte necessário entre Promptfoo, Codex e OpenAI para autenticação e inferência.
+
+## 43. Workspace isolation
+
+Cada trial deve possuir política explícita:
+
+~~~
+workspacePolicy
+stateResetPolicy
+persistentStatePolicy
+executionOrderPolicy
+~~~
+
+Possíveis estratégias:
+
+~~~
+fresh
+reset
+intentionally-shared
+~~~
+
+Um case não pode contaminar outro por acidente.
+
+Promptfoo também recomenda workspaces descartáveis em avaliações de coding agents quando mutações de uma row poderiam interferir nas seguintes.
+
+Se persistent state for parte do comportamento avaliado:
+
+~~~
+intentionally-shared
+~~~
+
+deve ser declarado no Blueprint.
+
+Para trials que pretendam ser independentes, configurar explicitamente:
+
+~~~
+persist_threads = false
+thread_id = absent
+~~~
+
+Não depender apenas do default ou de efeitos colaterais de tracing para garantir independência.
+
+## 44. Concurrency policy
+
+Promptfoo permite configurar "maxConcurrency".
+
+Isso não significa que máxima concorrência seja semanticamente válida.
+
+O Blueprint ou compilation policy deve definir:
+
+~~~
+maxConcurrency
+~~~
+
+de acordo com:
+
+~~~
+workspace isolation
+shared external state
+ordering requirements
+rate limits
+causal independence
+~~~
+
+Quando independência não for demonstrada:
+
+~~~
+maxConcurrency = 1
+~~~
+
+é um baseline defensável para o experimento relevante.
+
+Não paralelizar apenas para acelerar.
+
+## 45. Cache policy
+
+Promptfoo possui cache habilitado por padrão para provider calls e permite desabilitá-lo programaticamente.
+
+Isso é measurement critical.
+
+Qualquer trial destinado a representar uma nova amostra estocástica deve executar com:
+
+~~~
+cache = false
+persist_threads = false
+thread_id = absent
+~~~
+
+Em particular:
+
+~~~
+decision trials
+stability repetitions
+stochastic repetitions
+qualification repetitions
+~~~
+
+quando a repetição pretende produzir observação independente.
+
+Nunca transformar:
+
+~~~
+one model observation
++
+four cache replays
+~~~
+
+em:
+
+~~~
+five stochastic trials
+~~~
+
+Cache pode ser usado em operações determinísticas ou desenvolvimento quando semanticamente apropriado, mas sua política deve ser explícita.
+
+Cache policy e thread persistence são mecanismos distintos; desabilitar apenas um deles não prova independência.
+
+## 46. Sampling Plan
+
+O Blueprint deve representar, quando exigido:
+
+~~~
+task counts
+repetition counts
+randomization
+blocking
+execution order
+persistent state
+workspace reset
+inclusion rules
+exclusion rules
+missing trial handling
+invalid trial handling
+subgroups
+sampling source
+usage/stress separation
+~~~
+
+A THEORY exige prespecificação desses elementos antes de observação confirmatória.
+
+## 47. Usage versus stress
+
+Manter resultados separados.
+
+### usage distribution
+
+estima comportamento sob uso pretendido.
+
+### stress distribution
+
+deliberadamente sobre representa mecanismos de risco.
+
+Nunca produzir uma média que destrua as duas interpretações.
+
+## 48. Analysis Plan
+
+Antes de decision material, declarar:
+
+~~~
+primary comparisons
+secondary comparisons
+claim aggregation
+subgroup analysis
+multiplicity treatment
+critical failure rules
+missing evidence semantics
+uncertainty calculation
+decision eligibility
+~~~
+
+Não escolher threshold depois de observar decision results.
+
+## 49. Development versus decision
+
+Separação obrigatória:
+
+~~~
+development material
+        ↓
 author development
-    ↓
+        ↓
 contract refinement
-    ↓
+        ↓
 oracle refinement
-    ↓
+        ↓
 evaluation strategy freeze
-    ↓
+        ↓
 fresh decision material
-    ↓
+        ↓
 decision execution
 ~~~
 
-Nunca selecionar retrospectivamente os melhores resultados de development como decision evidence.
+Decision material exposto durante debugging deixa de ser decision material.
 
-Decision cases expostos durante debugging deixam de ser decision cases.
-
-## 22. Evaluation Author
-
-O principal experimento desta implementação é:
+Não selecionar retrospectivamente:
 
 ~~~
-skill directory
+best runs
+best variants
+best judge
+best threshold
+~~~
+
+como evidence confirmatória.
+
+## 50. Run lifecycle
+
+Separar propósito de estado.
+
+### RunPurpose
+
+~~~
+DEVELOPMENT
+DECISION
+~~~
+
+### RunStatus
+
+~~~
+PLANNED
+RUNNING
+COMPLETED
+ABORTED
+INVALIDATED
+ERROR
+~~~
+
+Exemplo:
+
+~~~
+purpose = DECISION
+status = INVALIDATED
+~~~
+
+é semanticamente diferente de:
+
+~~~
+purpose = DEVELOPMENT
+status = COMPLETED
+~~~
+
+## 51. Run invalidation
+
+Motivos devem ser estruturados.
+
+Exemplos:
+
+~~~
+BLUEPRINT_CHANGED
+COMPILER_CHANGED
+SKILL_CHANGED
+MODEL_CONDITION_CHANGED
+JUDGE_CHANGED
+ORACLE_STALE
+PROMPTFOO_VERSION_CHANGED
+SDK_VERSION_CHANGED
+REQUIRED_EVIDENCE_MISSING
+WORKSPACE_CONTAMINATION
+DECISION_MATERIAL_EXPOSED
+INSTRUMENT_DEFECT
+SAMPLING_POLICY_VIOLATION
+~~~
+
+Não sobrescrever um run inválido.
+
+Preservá-lo como desenvolvimento ou historical evidence quando útil.
+
+## 52. Evaluation Author
+
+Experimento central de autoria:
+
+~~~
+skill snapshot
       ↓
-Eval Author
+Evaluation Author
       ↓
 Evaluation Blueprint
 ~~~
 
-O Eval Author receberá inicialmente somente:
+O Author recebe inicialmente:
 
 ~~~
 skill snapshot
 THEORY based authoring instructions
-Promptfoo Evals operational knowledge
+Promptfoo operational knowledge
 ~~~
 
-Não receberá:
+Não recebe:
 
 ~~~
 historic evaluation
@@ -823,40 +1795,68 @@ historic expected answers
 historic qualification packages
 ~~~
 
-O Promptfoo Evals skill pode servir como conhecimento operacional, mas não como teoria de avaliação.
+durante benchmark cego.
 
-A própria skill oficial do Promptfoo pressupõe conhecimento sobre o que está sendo avaliado e sobre acceptance criteria/failure modes; quando essas informações não existem, ela recomenda scaffolding em vez de inferir uma avaliação epistemologicamente completa.
+## 53. Author uncertainty
 
-Portanto, descobrir esses critérios é responsabilidade do Skill Evidence Author.
+O Author não deve ser recompensado por parecer completo.
 
-## 23. Author uncertainty
-
-O Eval Author não deve ser recompensado por parecer completo.
-
-Ele deve poder declarar:
+Permitir explicitamente:
 
 ~~~
 UNKNOWN
 UNSUPPORTED
 INSUFFICIENT_INFORMATION
-UNTETESTABLE_FROM_AVAILABLE_ENVIRONMENT
+UNTESTABLE_FROM_AVAILABLE_ENVIRONMENT
 ~~~
 
-Inventar um contrato plausível é pior do que declarar incerteza.
+Invented requirement rate é uma métrica negativa crítica.
 
-## 24. Benchmark do Eval Author
+## 54. Author qualification
 
-A avaliação histórica não deve ser chamada de gold.
+Adicionar explicitamente:
+
+> O Evaluation Author também é um instrumento de medição.
+
+Portanto, um Author condition deve ser qualificado antes de permitir promoção automática de seus Blueprints para estágios decisórios.
+
+Estado conceitual:
+
+~~~
+AuthorCondition
+QUALIFIED
+NOT_QUALIFIED
+STALE
+~~~
+
+Uma configuração inclui:
+
+~~~
+model
+reasoning
+author instructions
+THEORY version
+schema version
+authoring protocol
+~~~
+
+Mudança material pode tornar qualification anterior "STALE".
+
+## 55. Author benchmark
+
+A avaliação histórica não é gold.
 
 Ela será:
 
-"adjudicated reference evaluation"
+~~~
+adjudicated reference evaluation
+~~~
 
-O benchmark deve ser cego.
+Benchmark cego.
 
-O Author recebe apenas a skill e os inputs permitidos.
+Author recebe somente inputs autorizados.
 
-Depois comparar:
+Comparar:
 
 ~~~
 claim recall
@@ -867,53 +1867,23 @@ overly specific contract rate
 positive activation coverage
 negative activation coverage
 boundary coverage
-prohibited effects
 blocking decisions
 recovery paths
+prohibited effects
 temporal constraints
 valid alternatives
 required direct evidence
 oracle requirements
 unsupported claim exclusions
+unresolved requirement quality
+decision context fabrication rate
 ~~~
 
-Toda divergência importante entre Author e reference deve ser adjudicada com base na THEORY.
+Toda divergência importante deve ser adjudicada usando a THEORY.
 
-A referência humana também pode estar errada ou incompleta.
+A reference humana também pode estar errada.
 
-## 25. Promptfoo compiler
-
-Somente depois de existir um Blueprint validado:
-
-~~~
-Evaluation Blueprint
-        ↓
-compiler
-        ↓
-Promptfoo suite
-~~~
-
-O compiler deve ser essencialmente determinístico.
-
-Ele não deve reinterpretar semanticamente a skill.
-
-Suas responsabilidades incluem:
-
-~~~
-contracts → test families
-direct evidence → deterministic assertions
-semantic requirements → qualified rubrics
-fixtures → Promptfoo vars/workspaces
-models → explicit providers
-budgets → execution configuration
-provenance → metadata
-~~~
-
-Blueprint é source of truth.
-
-YAML Promptfoo é build artifact.
-
-## 26. Case expansion
+## 56. Structure discovery versus case expansion
 
 Separar:
 
@@ -927,38 +1897,195 @@ de:
 case expansion
 ~~~
 
-O Author descobre estrutura.
+O Author descobre estrutura e boundaries.
 
-Promptfoo ou um generator pode ampliar:
+Promptfoo ou generator pode expandir:
 
 ~~~
 semantic variants
 personas
 values
-locale variations
+locales
 edge cases
 stress variants
 ~~~
 
 Nenhum generator pode criar silenciosamente um novo contract decisório.
 
-Se uma expansão revelar um novo failure mechanism:
+Quando surgir um novo failure mechanism:
 
 ~~~
 candidate contract
       ↓
-author/adjudication
+development review
       ↓
 blueprint revision
 ~~~
 
-## 27. Cost policy
+## 57. Promptfoo compiler
+
+Somente Blueprint validado entra no compiler.
+
+~~~
+Evaluation Blueprint
+        ↓
+compiler
+        ↓
+Promptfoo TestSuiteConfiguration
+~~~
+
+O compiler deve ser essencialmente determinístico.
+
+Ele não reinterpreta semanticamente a skill.
+
+Responsabilidades:
+
+~~~
+contracts → case families
+direct evidence → deterministic assertions
+semantic requirements → qualified rubrics
+fixtures → vars/workspaces
+models → explicit providers
+budgets → execution options
+workspace policies → isolated execution
+sampling → repetition configuration
+cache policy → execution configuration
+provenance → metadata
+~~~
+
+Blueprint é source of truth.
+
+Promptfoo config é build artifact.
+
+## 58. Serializable compiler output
+
+Evitar depender de closures JavaScript geradas dinamicamente quando o objetivo for reprodução e fingerprint.
+
+Quando custom logic for necessária, preferir:
+
+~~~
+versioned file
+fingerprinted adapter
+explicit path reference
+~~~
+
+em vez de função anônima criada em runtime.
+
+## 59. Evidence precedence
+
+A política de agregação deve codificar:
+
+~~~
+critical direct violation
+        ↓
+cannot be overridden
+~~~
+
+Um judge favorável não pode neutralizar:
+
+~~~
+prohibited write observed
+required file absent
+unauthorized action observed
+critical command failed
+~~~
+
+quando esses fatos fazem parte do contract.
+
+A THEORY é explícita: evaluator score não deve superar evidência direta de violação crítica.
+
+## 60. Case status
+
+~~~
+PASS
+FAIL
+INCONCLUSIVE
+ERROR
+~~~
+
+Regras:
+
+~~~
+missing required evidence
+    → INCONCLUSIVE
+
+measurement surface insufficient
+    → INCONCLUSIVE
+
+runtime/infrastructure failure
+    → ERROR
+
+qualified evidence violates contract
+    → FAIL
+
+all mandatory qualified evidence satisfies contract
+    → PASS
+~~~
+
+Não transformar ausência de evidência em sucesso.
+
+## 61. Claim status
+
+~~~
+SUPPORTED
+NOT_SUPPORTED
+INCONCLUSIVE
+NOT_EVALUATED
+~~~
+
+### SUPPORTED
+
+Evidence requirements declarados foram satisfeitos sob o desenho requerido.
+
+### NOT_SUPPORTED
+
+Evidence válida contradiz o claim ou não atinge seus critérios prespecificados.
+
+### INCONCLUSIVE
+
+O claim estava sendo avaliado, mas evidence necessária ficou insuficiente ou ambígua.
+
+### NOT_EVALUATED
+
+O desenho não tentou sustentar aquele claim.
+
+## 62. Aggregation
+
+Claim aggregation deve respeitar o Blueprint.
+
+Não usar automaticamente:
+
+~~~
+mean score
+weighted average
+overall pass rate
+~~~
+
+como decisão.
+
+Exemplos:
+
+~~~
+critical direct failure
+    → claim cannot be SUPPORTED
+
+collapsed required subgroup
+    → aggregate favorable score insufficient
+
+unqualified judge
+    → judge evidence ineligible
+
+missing mandatory evidence
+    → claim INCONCLUSIVE
+~~~
+
+## 63. Cost policy
 
 Primeiro reduzir chamadas.
 
 Depois reduzir compute.
 
-Ordem obrigatória:
+Ordem:
 
 1. eliminate unnecessary LLM calls
 2. replace semantic checks with direct evidence
@@ -966,11 +2093,9 @@ Ordem obrigatória:
 4. reduce reasoning effort
 5. compare cheaper models
 
-Não otimizar começando pela troca de Terra por Luna.
+Não começar a otimização apenas trocando Terra por Luna.
 
-## 28. Budget gates
-
-Não usar uma estimativa monetária como único mecanismo de autorização.
+## 64. Budget gates
 
 Gates controláveis:
 
@@ -984,6 +2109,7 @@ maximum executor calls
 maximum judge calls
 per case timeout
 maximum total execution time
+maximum concurrency
 ~~~
 
 Registrar quando disponíveis:
@@ -996,13 +2122,13 @@ reasoning tokens
 estimated cost
 ~~~
 
-Não produzir falsa precisão quando Promptfoo não conseguir calcular custo completo.
+Não fabricar custo completo quando a infraestrutura não o conhece.
 
-A documentação atual informa que token usage é exposto pelo Codex SDK provider, enquanto certos custos podem permanecer indefinidos dependendo das informações de pricing disponíveis.
+A documentação do Codex SDK provider informa que token usage pode ser retornado quando o SDK o reporta e que estimativas de custo podem permanecer indefinidas em determinadas condições.
 
-## 29. Provenance
+## 65. Provenance
 
-Toda chamada de modelo relevante deve registrar:
+Toda model call relevante deve registrar, quando observável:
 
 ~~~json
 {
@@ -1010,18 +2136,35 @@ Toda chamada de modelo relevante deve registrar:
   "provider": "openai:codex-sdk",
   "model": "...",
   "reasoningEffort": "...",
+  "modelConditionEvidenceKind": "...",
   "providerConfigFingerprint": "...",
+  "promptFingerprint": "...",
   "promptfooVersion": "...",
   "codexSdkVersion": "...",
   "codexCliVersion": "...",
-  "authMode": "chatgpt",
+  "authentication": {},
   "sessionId": "...",
   "tokenUsage": {},
   "caseId": "...",
   "assertionId": "...",
-  "qualificationId": "..."
+  "qualificationId": "...",
+  "skillFingerprint": "...",
+  "blueprintFingerprint": "...",
+  "runId": "..."
 }
 ~~~
+
+Campos indisponíveis:
+
+~~~
+null + reason
+~~~
+
+quando relevantes.
+
+Nunca inventar.
+
+Distinguir configuração solicitada de modelo/reasoning da condição efetivamente observada. Não promover "requested" para "provider-reported" sem evidência correspondente.
 
 Nunca armazenar apenas:
 
@@ -1029,51 +2172,9 @@ Nunca armazenar apenas:
 judge = Codex
 ~~~
 
-## 30. Status semantics
+## 66. Suggested repository structure
 
-Preservar semanticamente, mas reimplementar do zero:
-
-### Case
-
-~~~
-PASS
-FAIL
-INCONCLUSIVE
-ERROR
-~~~
-
-### Claim
-
-~~~
-SUPPORTED
-NOT_SUPPORTED
-INCONCLUSIVE
-NOT_EVALUATED
-~~~
-
-Regras:
-
-~~~
-missing required evidence
-    → INCONCLUSIVE
-
-runtime/infrastructure failure
-    → ERROR
-
-qualified evidence violates contract
-    → FAIL
-
-all mandatory qualified evidence satisfies contract
-    → PASS
-~~~
-
-Claim aggregation deve respeitar os requisitos declarados no Blueprint.
-
-Uma média favorável não pode compensar uma violação crítica.
-
-## 31. Suggested repository structure
-
-Estrutura inicial mínima:
+Estrutura inicial potencial:
 
 ~~~
 src/
@@ -1119,17 +2220,19 @@ docs/
   decisions/
 ~~~
 
-Não criar pastas sem uso imediato.
+Não criar pastas antes de seu primeiro uso real.
 
-## 32. CLI durante desenvolvimento
+Esta árvore representa ownership esperado, não scaffold obrigatório de E0.
 
-A interface final continua:
+## 67. CLI durante desenvolvimento
+
+Interface final:
 
 ~~~
 skill-evidence evaluate <skill>
 ~~~
 
-Mas a exploração pode expor comandos internos menores:
+Comandos internos permitidos:
 
 ~~~
 skill-evidence inspect <skill>
@@ -1145,17 +2248,40 @@ skill-evidence compile blueprint.json
 skill-evidence run blueprint.json
 ~~~
 
-Esses comandos existem para tornar cada estágio observável e testável.
+Esses comandos existem para tornar cada estágio observável.
 
 "evaluate" posteriormente compõe o pipeline.
 
-## 33. Ordem dos experimentos
+Não é requisito da Foundation implementar todos.
 
-### E0 — Clean foundation
+## 68. Roadmap experimental
+
+E0–E11 continuam registrados neste RFC.
+
+Eles representam:
+
+~~~
+hypotheses
+possible next experiments
+conditional architecture
+~~~
+
+e não uma sequência pré autorizada de implementação.
+
+## 69. E0 — Clean Foundation
 
 Criar branch a partir de "main".
 
-Adicionar somente:
+No início do ExecPlan 1, verificar e registrar:
+
+~~~
+branch ancestry
+main base commit
+current branch commit
+absence of V1 implementation files
+~~~
+
+Adicionar somente o necessário ao primeiro experimento:
 
 ~~~
 package scaffold
@@ -1165,45 +2291,86 @@ format
 tests
 Promptfoo dependency
 Codex SDK dependency
-minimal CLI
+minimal CLI or experiment harness
 ~~~
 
 Critério:
 
 ~~~
-zero implementation code copied from v1
+zero V1 implementation code copied
 ~~~
 
-### E1 — Authentication smoke test
+Também definir os contratos mínimos necessários para E1/E2:
 
-Provar:
+~~~
+experiment result format
+version capture
+provenance skeleton
+safe CODEX_HOME handling
+~~~
+
+## 70. E1 — Authentication smoke test
+
+Objetivo:
+
+provar empiricamente:
 
 ~~~
 Promptfoo
 → openai:codex-sdk
-→ ChatGPT login
-→ Luna Max
+→ existing ChatGPT authentication
+→ explicitly requested Luna condition
 ~~~
 
-Sem "OPENAI_API_KEY".
+Sem:
 
-Sem "CODEX_API_KEY".
+~~~
+OPENAI_API_KEY
+CODEX_API_KEY
+~~~
 
-Output esperado simples e determinístico.
+Output deve ser simples.
 
-Registrar versões.
+Registrar:
 
-#### Gate G1
+~~~
+Node version
+npm version
+Promptfoo version
+Codex SDK version
+Codex CLI version
+requested model
+requested reasoning
+observed effective model evidence
+observed effective reasoning evidence
+relevant provider config
+authentication evidence
+~~~
 
-Não avançar se authentication mode não estiver inequivocamente provado.
+Requested model/reasoning e effective model/reasoning são fatos distintos. Quando a condição efetiva não puder ser observada diretamente, registrar a limitação e o evidence kind sem inventar confirmação.
 
-### E2 — Disposable observability canary
+### Gate G1
 
-Criar uma skill e workspace descartáveis exclusivamente para o experimento.
+Não avançar se authentication mode ou model condition não puderem ser caracterizados suficientemente para o objetivo do experimento.
 
-Não usar decision case histórico.
+Não chamar inference de observation.
 
-Verificar se Promptfoo entrega superfície suficiente para observar:
+## 71. E2 — Disposable Observability Canary
+
+Criar:
+
+~~~
+synthetic disposable skill
+synthetic disposable workspace
+~~~
+
+exclusivamente para o experimento.
+
+Não usar decision material histórico.
+
+Testar deliberadamente capacidades que produzam sinais observáveis.
+
+Caracterizar:
 
 ~~~
 final response
@@ -1214,134 +2381,222 @@ command trajectory
 file operations
 runtime errors
 skill usage metadata
+ordering information
+workspace mutation
+provider errors
 ~~~
 
-#### Gate G2
-
-Classificar cada necessidade:
+Cada necessidade recebe:
 
 ~~~
-NATIVE
+NATIVE_STABLE
+NATIVE_EXPERIMENTAL
 ADAPTER
 INSUFFICIENT
 ~~~
 
-Se uma evidência crítica for insuficiente, decidir entre adapter e spike App Server.
+O canary deve fixar explicitamente:
 
-### E3 — Archaeological regression corpus
+~~~
+cache
+persist_threads
+thread_id
+maxConcurrency
+workspace policy
+sandbox mode
+approval policy
+agent network policy
+web search policy
+~~~
 
-Reimplementar offline as classes de falha históricas.
+### Gate G2
 
-Nenhuma chamada real de modelo necessária.
+Produzir:
 
-O objetivo é provar que a nova evidence semantics não reproduz bugs já conhecidos.
+~~~
+Experimental Ownership Matrix
+~~~
 
-#### Gate G3
+com evidência para cada responsabilidade.
 
-Todos os regressions devem passar antes de qualquer decision material.
+Se required evidence crítica for "INSUFFICIENT":
 
-### E4 — Evaluation Author v0
+~~~
+adapter spike
+ou
+App Server spike
+ou
+claim weakening
+ou
+architecture stop
+~~~
+
+devem ser considerados explicitamente.
+
+Não continuar adicionando código até transformar artificialmente "INSUFFICIENT" em "PASS".
+
+## 72. Definition of Done do ExecPlan 1
+
+A primeira implementação termina em E2.
+
+DoD:
+
+1. branch criada efetivamente de "main", com ancestry e base registradas no início do ExecPlan;
+2. ausência de implementation code copiado da V1;
+3. Promptfoo integrado programaticamente pela Node API, salvo impedimento documentado;
+4. authentication smoke test executado;
+5. configuração solicitada de modelo e reasoning explícita e condição efetiva caracterizada até o limite observável;
+6. provenance factual e não inventada;
+7. "CODEX_HOME" tratado sem versionar credenciais;
+8. sandbox, approvals e agent network explicitamente configurados no canary;
+9. cache policy e thread persistence explicitamente controladas;
+10. concurrency policy explicitamente controlada;
+11. disposable workspace usado;
+12. observability surface caracterizada;
+13. cada required signal classificado;
+14. limitações de tracing registradas;
+15. ownership matrix experimental produzida;
+16. decisão explícita sobre a viabilidade de continuar Promptfoo SDK first.
+
+Nada de Author production, compiler completo, oracle qualification ou decision run é necessário para concluir ExecPlan 1.
+
+## 73. E3 — Archaeological Regression Corpus
+
+ExecPlan separado após G2.
+
+Reimplementar offline as classes históricas de measurement failure.
+
+Nenhuma model call necessária.
+
+Objetivo:
+
+~~~
+protect semantics
+not architecture
+~~~
+
+Gate:
+
+todos os regressions necessários passam antes de material decisório futuro.
+
+## 74. E4 — Evaluation Author v0
+
+ExecPlan condicionado.
 
 Implementar:
 
 ~~~
-skill
-→ blueprint
+skill snapshot
+→ Blueprint DRAFT/BLOCKED/READY
 ~~~
 
-Sem compiler Promptfoo completo.
+Sem:
 
-Sem execução decisória.
+~~~
+full compiler
+decision execution
+automatic claims promotion
+~~~
 
-Primeiro objetivo:
+Primeira pergunta:
 
-conseguimos descobrir uma avaliação defensável?
+> conseguimos descobrir estrutura de avaliação defensável sem fabricar contexto ausente?
 
-### E5 — Blind Author benchmark
+## 75. E5 — Blind Author Benchmark
 
-Executar o Author sobre uma skill com reference evaluation existente sem mostrar a reference.
+Executar Author contra skill com adjudicated reference evaluation.
 
-Adjudicar divergências.
+Reference permanece oculta.
 
-Medir precision e recall de estrutura.
+Avaliar:
 
-#### Gate G5
+~~~
+precision
+recall
+critical omissions
+fabrications
+uncertainty behavior
+blocking quality
+contract semantics
+evidence compatibility
+~~~
 
-Não avançar para automação end to end se o Author:
+### Gate G5
 
-- inventar requisitos críticos frequentemente;
-- perder contratos críticos;
-- confundir usage com stress;
-- não identificar negative activation;
-- produzir evidência incompatível com os claims;
-- produzir oracles não qualificáveis.
+Não avançar para autoria automatizada como caminho normal se o Author:
 
-### E6 — Blueprint compiler
+~~~
+inventa requisitos críticos frequentemente
+perde contratos críticos
+confunde usage e stress
+ignora negative activation
+prescreve wording incidental
+escolhe evidence incompatível
+inventa contexto decisório
+não sabe bloquear quando deveria
+produz oracles não qualificáveis
+~~~
+
+Resultado válido:
+
+~~~
+automatic Author not defensible
+~~~
+
+## 76. E6 — Blueprint Compiler
+
+Somente após Author/schema suficientemente estáveis.
 
 Implementar deterministicamente:
 
 ~~~
-blueprint
-→ Promptfoo suite
+Blueprint
+→ Promptfoo TestSuiteConfiguration
 ~~~
 
-Testar compiler sem modelos sempre que possível.
+Testar sem modelos sempre que possível.
 
-### E7 — Oracle generation and qualification
+## 77. E7 — Oracle Generation and Qualification
 
-Gerar qualification probes.
+Gerar qualification material.
 
-Executar judge baseline.
+Testar graders.
 
-Confirmar:
+Nenhum oracle não qualificado entra em future decision suite.
+
+Qualification policy deve já incluir:
 
 ~~~
-known valid
-known invalid
-alternative valid
-unsupported fluency
+repetitions
+acceptance criteria
+disagreement handling
+validity fingerprint
+staleness
 ~~~
 
-#### Gate G7
+## 78. E8 — Development Canary
 
-Nenhum oracle não qualificado entra em decision suite.
-
-### E8 — Development canary real
-
-Executar material exclusivamente development.
+Executar somente material DEVELOPMENT.
 
 Exercitar:
 
 ~~~
-author output
+intake
+author
+blueprint
 compiler
 Promptfoo
 executor
 direct assertions
-judge qualification
+qualification
 semantic judge
-evidence aggregation
+aggregation
+provenance
 ~~~
 
-Não produzir conclusão sobre a skill.
+Não produzir conclusão confirmatória sobre a skill.
 
-#### Gate G8
-
-Qualquer mudança material posterior em:
-
-~~~
-Blueprint
-compiler
-schemas
-Promptfoo version
-Codex SDK
-model condition
-judge policy
-~~~
-
-revoga o canary.
-
-### E9 — Freeze
+## 79. E9 — Freeze
 
 Congelar:
 
@@ -1351,36 +2606,49 @@ Blueprint
 compiler version
 Promptfoo version
 Codex SDK version
-model configuration
-judge configuration
-qualification
+model condition
+judge condition
+qualification state
 sampling plan
+analysis plan
+cache policy
+thread persistence policy
+workspace policy
 stopping rules
 ~~~
 
-Só então gerar ou selecionar fresh decision material.
+Somente depois disso decision material pode ser gerado ou selecionado.
 
-### E10 — Decision evaluation
+## 80. E10 — Decision Evaluation
 
-Executar casos inéditos.
+E10 não faz parte da Foundation.
 
-Nenhuma alteração retrospectiva de contrato ou threshold é permitida para transformar resultado desfavorável em favorável.
+É fase posterior.
 
-Mudança necessária após início da decision evaluation:
+Executar material inédito sob configuração congelada.
+
+Nenhuma alteração retrospectiva pode transformar resultado desfavorável em favorável.
+
+Mudança material:
 
 ~~~
-run invalidated
-→ finding becomes development information
-→ new decision material required
+decision run
+    → INVALIDATED
 ~~~
 
-### E11 — Model optimization
+O achado pode migrar para development knowledge.
 
-Somente depois do pipeline qualificado.
+Novo decision material será necessário.
 
-#### Executor
+## 81. E11 — Model Optimization
 
-Comparar inicialmente:
+E11 também está fora da Foundation.
+
+Somente executar depois de pipeline qualificado.
+
+### Executor
+
+Comparações iniciais possíveis:
 
 ~~~
 Luna max
@@ -1388,9 +2656,7 @@ Luna xhigh
 Luna high
 ~~~
 
-#### Judge
-
-Comparar:
+### Judge
 
 ~~~
 Terra xhigh
@@ -1398,17 +2664,15 @@ Terra high
 Luna max
 ~~~
 
-#### Author
+### Author
 
-Criar matriz própria conforme benchmark demonstrar necessidade.
+Matriz definida com base no Author benchmark.
 
 Critério:
 
-> menor compute que continua preservando as propriedades decisórias exigidas.
+> menor compute que preserve as propriedades decisórias exigidas.
 
-## 34. Responsabilidades presumidas
-
-A investigação começa com esta hipótese:
+## 82. Ownership matrix inicial
 
 | Responsabilidade | Dono presumido |
 | --- | --- |
@@ -1416,108 +2680,168 @@ A investigação começa com esta hipótese:
 | Provider lifecycle | Promptfoo |
 | Generic sandbox configuration | Promptfoo |
 | Session IDs | Promptfoo |
-| Generic trajectory | Promptfoo |
+| Generic provider trajectory | Promptfoo |
 | Token usage | Promptfoo |
 | Generic assertions | Promptfoo |
-| Dataset expansion | Promptfoo |
+| Dataset/case expansion mechanics | Promptfoo |
 | LLM grader invocation | Promptfoo |
 | Agent grader invocation | Promptfoo |
-| Skill intake | Skill Evidence |
-| Fingerprint policy | Skill Evidence |
+| Generic cache mechanics | Promptfoo |
+| Generic concurrency mechanics | Promptfoo |
+| Skill intake policy | Skill Evidence |
+| Snapshot/fingerprint policy | Skill Evidence |
 | Evaluation Blueprint | Skill Evidence |
+| Blueprint lifecycle | Skill Evidence |
 | Claims | Skill Evidence |
 | Behavioral contracts | Skill Evidence |
 | Activation boundaries | Skill Evidence |
+| Decision context semantics | Skill Evidence |
 | Required evidence policy | Skill Evidence |
 | Oracle generation policy | Skill Evidence |
 | Oracle qualification | Skill Evidence |
+| Author qualification | Skill Evidence |
 | Eligibility | Skill Evidence |
 | Case/claim semantics | Skill Evidence |
 | Development/decision isolation | Skill Evidence |
+| Workspace isolation semantics | Skill Evidence |
+| Cache admissibility semantics | Skill Evidence |
+| Sampling semantics | Skill Evidence |
+| Analysis/aggregation policy | Skill Evidence |
 | Provenance requirements | Skill Evidence |
-| Review | Skill Evidence |
-| Archive | Skill Evidence |
-| Missing deterministic checks | Small Adapter |
+| Review/archive | Skill Evidence |
+| Missing deterministic check | Small Adapter, if justified |
 | Rich Codex protocol events | Not justified yet |
 
-A exploração pode mudar essa tabela.
+E2 pode modificar essa matriz.
 
-Não presumir que Skill Evidence precisa manter uma responsabilidade apenas porque ela existia anteriormente.
+Ela não é uma verdade antecipada.
 
-## 35. Definition of Done desta feature
+## 83. Stop rules
 
-Esta feature não termina quando Promptfoo executa um YAML.
-
-Ela termina quando conseguimos demonstrar:
-
-1. branch novo realmente independente da V1;
-2. autenticação ChatGPT funcionando via Codex SDK;
-3. modelos e reasoning explicitamente fixados;
-4. observabilidade Promptfoo caracterizada;
-5. regressões arqueológicas protegidas;
-6. Evaluation Blueprint schema implementado;
-7. Eval Author produzindo Blueprint a partir somente da skill;
-8. Author benchmark cego executado;
-9. falsos contratos medidos;
-10. compiler Blueprint → Promptfoo funcionando;
-11. direct evidence priorizada;
-12. judges semanticamente separados do executor;
-13. oracle qualification funcionando;
-14. development e decision material separados;
-15. provenance suficiente para auditoria;
-16. um development canary real concluído sem defeito de instrumento;
-17. uma ownership matrix final produzida;
-18. todo código próprio existente possuir justificativa explícita.
-
-## 36. Critério de fracasso da exploração
-
-A exploração também deve poder concluir que uma hipótese não funciona.
-
-Resultados válidos incluem:
-
-~~~
-Promptfoo observability insufficient
-Eval Author unreliable
-automatic contract inference insufficient
-oracle generation not defensible
-certain evidence requires custom adapter
-App Server required
-some claims cannot be automated
-~~~
-
-Não contornar um resultado negativo apenas adicionando mais código até o experimento “passar”.
-
-O objetivo é descobrir a menor arquitetura defensável.
-
-## 37. Regra de stop
-
-Não executar decision cases reais enquanto qualquer um destes pontos estiver aberto:
+Nenhum decision run enquanto existir:
 
 ~~~
 instrument instability
-unknown critical event
+unknown critical observability requirement
 unqualified oracle
+stale oracle
+unqualified Author condition when required
 unfrozen Blueprint
 unfrozen decision rules
-missing required evidence
-unresolved regression from historical corpus
+missing mandatory evidence
+unresolved critical regression
+workspace contamination risk
+invalid cache policy
+invalid thread persistence policy
+decision material contamination
+unresolved sampling design
+blocking unresolved requirement
 ~~~
 
 Nenhuma quantidade de judge compute corrige measurement invalidity.
 
-## 38. Resultado arquitetural desejado
+## 84. Critérios de fracasso legítimo
 
-Se a hipótese principal se confirmar, o produto deverá convergir para:
+A exploração pode concluir:
+
+~~~
+Promptfoo observability insufficient
+Promptfoo experimental trace surface too unstable
+SDK insufficient
+App Server required
+custom adapter required
+Eval Author unreliable
+automatic contract inference insufficient
+decision context cannot be inferred
+oracle generation not defensible
+judge qualification too unstable
+some claims cannot be automated
+some skills require human decision input
+~~~
+
+Esses são resultados científicos válidos.
+
+Não adicionar arquitetura apenas para evitar concluir que uma hipótese falhou.
+
+## 85. Critério para novas abstrações
+
+Todo Pull Request que introduzir nova responsabilidade própria deve responder:
+
+> Esta responsabilidade é necessária para preservar uma propriedade exigida pela THEORY que Promptfoo não consegue fornecer adequadamente?
+
+Se:
+
+~~~
+NO
+~~~
+
+não implementar.
+
+Se:
+
+~~~
+UNKNOWN
+~~~
+
+fazer spike.
+
+Se:
+
+~~~
+YES
+~~~
+
+o PR precisa trazer a evidência que sustenta a conclusão.
+
+## 86. Definition of Done da Foundation arquitetural
+
+A Foundation completa, considerando múltiplos ExecPlans futuros, não termina quando Promptfoo executa YAML.
+
+Ela deve eventualmente demonstrar:
+
+1. reconstrução independente da V1;
+2. infraestrutura genérica delegada quando possível;
+3. authentication condition caracterizada;
+4. modelos e reasoning explicitamente registrados;
+5. intake reproduzível;
+6. fingerprint defensável;
+7. observability caracterizada;
+8. cache, thread persistence e concorrência semanticamente controlados;
+9. regressões históricas protegidas;
+10. Blueprint normativo implementado;
+11. lifecycle formalizado;
+12. unresolved requirements first class;
+13. Author capaz de bloquear em vez de inventar;
+14. Author benchmark cego executado;
+15. invented requirement rate medido;
+16. compiler determinístico;
+17. direct evidence priorizada;
+18. judges separados do executor;
+19. qualification válida e versionada;
+20. development e decision separados;
+21. provenance auditável;
+22. pelo menos um development canary sem defeito conhecido de instrumento;
+23. ownership matrix final;
+24. todo código próprio com justificativa explícita.
+
+E10 e E11 não são requisitos para concluir a Foundation.
+
+## 87. Resultado arquitetural desejado
+
+Se a hipótese se confirmar:
 
 ~~~
 Skill Evidence
 │
 ├── intake
+├── snapshot/fingerprint
 ├── Evaluation Author
 ├── Evaluation Blueprint
+├── lifecycle
 ├── qualification
 ├── evidence policy
 ├── eligibility
+├── sampling semantics
 ├── provenance
 ├── review
 └── archive
@@ -1531,56 +2855,203 @@ Skill Evidence
    │    │    │
    └────┼────┘
         ▼
-   Codex SDK
+    Codex SDK
 ~~~
 
 O diferencial do produto deixa de ser:
 
-> “possuímos nosso próprio framework de avaliação”.
+> “possuímos nosso próprio framework de avaliação.”
 
 E passa a ser:
 
-> “transformamos uma skill probabilística em uma avaliação fundamentada, auditável e falsificável, qualificamos a evidência antes de permitir conclusões e delegamos execução genérica a uma infraestrutura especializada.”
+> “Transformamos uma skill probabilística em uma avaliação fundamentada, auditável e falsificável; explicitamos quando informação decisória está ausente; qualificamos instrumentos e evidência antes de permitir conclusões; e delegamos execução genérica a uma infraestrutura especializada.”
 
-## 39. Pergunta que deve orientar cada Pull Request
+## 88. Distinção essencial sobre automação
 
-Antes de adicionar uma nova abstração própria, responder:
-
-> Esta responsabilidade é necessária para preservar alguma propriedade exigida pela THEORY que Promptfoo não consegue fornecer?
-
-Se a resposta for:
+O objetivo de automação continua agressivo:
 
 ~~~
-não
+skill-evidence evaluate <skill>
 ~~~
 
-não implementar.
+Mas existem duas formas de automação.
 
-Se for:
-
-~~~
-não sabemos
-~~~
-
-fazer spike.
-
-Somente se for:
+Forma incorreta:
 
 ~~~
-sim, e temos evidência
+missing information
+      ↓
+LLM guesses
+      ↓
+complete-looking eval
+      ↓
+PASS/FAIL
 ~~~
 
-a responsabilidade entra no Skill Evidence.
+Forma desejada:
 
-## 40. Princípio final
+~~~
+skill
+  ↓
+maximum defensible inference
+  ↓
+explicit uncertainty
+  ↓
+DRAFT / BLOCKED / READY
+  ↓
+only qualified evidence
+  ↓
+bounded conclusion
+~~~
+
+O produto deve otimizar para a segunda.
+
+## 89. Princípio de epistemic monotonicity
+
+Adicionar um Judge, um modelo mais caro ou mais reasoning nunca pode aumentar a força de uma conclusão quando a evidência necessária não existe.
+
+Exemplo:
+
+~~~
+required filesystem event not observable
+~~~
+
+não pode virar:
+
+~~~
+probably happened according to Terra
+~~~
+
+A resposta permanece:
+
+~~~
+INCONCLUSIVE
+~~~
+
+até que a observabilidade seja corrigida ou o claim seja enfraquecido.
+
+## 90. Princípio de no silent promotion
+
+Nenhum componente pode promover silenciosamente:
+
+~~~
+DRAFT → READY
+READY → FROZEN
+NOT_ELIGIBLE → ELIGIBLE
+INCONCLUSIVE → PASS
+NOT_EVALUATED → SUPPORTED
+development evidence → decision evidence
+heuristic evidence → causal evidence
+experimental signal → stable signal
+~~~
+
+Toda promoção precisa de regra explícita e provenance.
+
+## 91. Princípio de reversibilidade experimental
+
+Cada estágio deve poder descobrir que a arquitetura presumida está errada.
+
+Especialmente:
+
+~~~
+E2 pode rejeitar SDK only
+E5 pode rejeitar automatic Author
+E7 pode rejeitar determinado Judge
+E8 pode revelar defeito de instrumento
+~~~
+
+O roadmap não deve transformar essas hipóteses em compromissos arquiteturais antecipados.
+
+## 92. Escopo autorizado imediatamente
+
+Após aprovação deste RFC, o primeiro trabalho autorizado é apenas:
+
+> ExecPlan 1 — Theory First Promptfoo Foundation: E0–E2
+
+Esse ExecPlan deve conter:
+
+~~~
+E0 clean foundation
+E1 authentication
+E2 observability
+ownership matrix
+G1
+G2
+~~~
+
+Não deve implementar antecipadamente:
+
+~~~
+production Evaluation Author
+full Blueprint compiler
+historical regression corpus
+oracle qualification system
+decision evaluation
+model optimization
+App Server integration
+large adapter layer
+~~~
+
+a menos que algo mínimo seja indispensável para E0–E2 e esteja explicitamente justificado.
+
+## 93. Entregáveis esperados do ExecPlan 1
+
+Ao final, queremos fatos, não uma arquitetura grande.
+
+Entregáveis:
+
+1. clean branch;
+2. minimal TypeScript/package foundation;
+3. reproducible Promptfoo Node API integration;
+4. authentication experiment;
+5. disposable observability canary;
+6. version/provenance report;
+7. observability capability table;
+8. stable vs experimental signal classification;
+9. cache/thread/concurrency/workspace findings;
+10. Experimental Ownership Matrix;
+11. explicit G2 recommendation.
+
+A recomendação final de G2 deve ser uma destas, ou combinação explicitamente justificada:
+
+~~~
+CONTINUE_WITH_CODEX_SDK
+CONTINUE_WITH_SMALL_ADAPTER
+SPIKE_APP_SERVER
+WEAKEN_SUPPORTED_CLAIMS
+STOP_AND_REASSESS
+~~~
+
+## 94. Pergunta final da Foundation
+
+A pergunta central permanece:
+
+> Qual é a menor camada própria necessária para transformar uma skill em uma avaliação defensável, enquanto Promptfoo assume toda infraestrutura genérica que puder assumir sem reduzir a força da evidência, ocultar measurement defects ou ampliar indevidamente os claims?
+
+Agora existe uma segunda pergunta igualmente obrigatória:
+
+> Quando a skill não contém informação suficiente para uma decisão defensável, o sistema consegue reconhecer esse limite e bloquear corretamente em vez de fabricar completude?
+
+As duas perguntas definem o sucesso desta reconstrução.
+
+## 95. Princípio final
 
 Esta feature não é uma migração da V1.
 
-É uma reconstrução da arquitetura a partir das responsabilidades essenciais.
+É uma reconstrução a partir de responsabilidades essenciais.
 
-A V1 permanece valiosa porque revelou falhas reais de measurement, qualification, observability e evaluation design.
+A V1 permanece valiosa porque revelou falhas reais de:
 
-Mas essas descobertas devem sobreviver como:
+~~~
+measurement
+qualification
+observability
+semantic checking
+evidence handling
+evaluation design
+~~~
+
+Essas descobertas devem sobreviver como:
 
 ~~~
 principles
@@ -1597,12 +3068,37 @@ old abstractions
 old architecture
 ~~~
 
-A pergunta central desta implementação é:
+Promptfoo também não é presumido correto por autoridade.
 
-> Qual é a menor camada própria que precisamos manter para transformar somente uma skill em uma avaliação defensável, enquanto Promptfoo assume toda infraestrutura genérica que puder assumir sem reduzir a força da evidência ou ampliar indevidamente os claims?
+Ele é a infraestrutura candidata.
 
-Essa pergunta, e não paridade com a implementação histórica, define o sucesso.
+Cada responsabilidade delegada a ele continua sujeita à pergunta:
 
-## Nota final do analista
+> A superfície fornecida preserva a propriedade de medição que o claim necessita?
 
-Eu faria essa especificação substituir a anterior como diretriz da nova fundação, preservando a anterior apenas como documento da exploração que levou à decisão. A mudança mais importante para o dev é que ele agora tem autorização explícita para não reproduzir a V1: cada responsabilidade antiga precisa se justificar novamente.
+Se sim:
+
+~~~
+delegate
+~~~
+
+Se não sabemos:
+
+~~~
+experiment
+~~~
+
+Se não:
+
+~~~
+adapter
+weaken claim
+change infrastructure
+or stop
+~~~
+
+O objetivo não é maximizar automação.
+
+O objetivo é:
+
+> maximizar automação sem ultrapassar a evidência disponível.
