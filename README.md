@@ -1,6 +1,6 @@
 # Skill Evidence
 
-`skill-evidence` is a private Node/TypeScript CLI for collecting an auditable evidence chain about probabilistic Codex skills. Evaluation v2 evaluates explicit TypeScript invocation of `refactor-design` with deterministic preflight, strict evidence artifacts, isolated execution, calibrated semantic judgment, and explicit session and credit authorization.
+`skill-evidence` is a private Node/TypeScript CLI for collecting an auditable evidence chain about probabilistic Codex skills. Evaluation v3 evaluates explicit TypeScript invocation of `refactor-design` with deterministic preflight, strict evidence artifacts, isolated execution, calibrated semantic judgment, and explicit session and credit authorization.
 
 The implementation operationalizes `renanfranca/skill-evaluation-theory@572e963ea6f1207ab53c533592cb70a8239e221c`, which remains normative, and records the target skill as `renanfranca/codex-skills@ed5738175f19307bd13bd75b86514ac0f1db5f84`. It neither imports `develop-skill-with-evals` nor reads anything under `refactor-design/evals/`.
 
@@ -93,20 +93,22 @@ and credits. Historical Evidence v1 and v2 remain renderable.
 
 Case states are `PASS`, `FAIL`, `INCONCLUSIVE`, and `ERROR`. Claim states are `SUPPORTED`, `NOT_SUPPORTED`, `INCONCLUSIVE`, and `NOT_EVALUATED`. Causal contribution, version comparison, stability, robustness, generalization, implicit activation, and other languages remain `NOT_EVALUATED`.
 
+The path audit permits only the exact absolute disposable sink `/dev/null` after a redirection or `tee` operand. It continues to record every other absolute target outside the workspace—including `/etc/...`, `/tmp/...`, `/dev/zero`, `/dev/null/...`, and any mixed command with a prohibited target—as a direct violation.
+
 ## Evaluation isolation
 
-Eight historical cases are development/regression material and cannot influence
-eligibility: the four cases used by the first pilot plus its four prior
-development cases. Four new decision cases—`usage-job-presenter`,
-`usage-stable-route-parser`, `stress-exported-sentinel`, and
-`stress-immutable-balance`—are two usage and two stress cases and alone feed a
-future decision. They have only been exercised with the local fake executable
-during implementation, never sent to a model. Every referenced `examples.json`
-is a strict version-1 package with exactly `known-valid`, `known-invalid`,
-`alternative-valid`, and `unsupported-fluency` judge-input probes. Only the
-sixteen probes from decision cases enter the single future calibration session.
-Their locally derived results are respectively `PASS`, `FAIL`, `PASS`, and
-`INCONCLUSIVE`.
+Twelve historical cases are development/regression material and cannot
+influence eligibility: the eight cases already retained for development plus
+the four cases exposed by the v2 pilot. Four new decision cases—
+`usage-alert-presenter`, `usage-stable-command-map`,
+`stress-red-serializer`, and `stress-exported-fallback`—are two usage and two
+stress cases and alone feed a future decision. They have only been exercised
+with the local fake executable during implementation, never sent to a model.
+Every referenced `examples.json` is a strict version-1 package with exactly
+`known-valid`, `known-invalid`, `alternative-valid`, and
+`unsupported-fluency` judge-input probes. Only the sixteen probes from decision
+cases enter the single future calibration session. Their locally derived
+results are respectively `PASS`, `FAIL`, `PASS`, and `INCONCLUSIVE`.
 
 Executors receive only the public prompt, disposable fixture, and repository-scoped filtered `$refactor-design` snapshot. Contracts, oracles, qualification examples, expected behavior, and judge packets remain outside their workspace. The executor condition uses `workspace-write`, disabled network access, no additional writable roots, and no `/tmp` or `$TMPDIR` exception. The original skill and filtered snapshot are fingerprinted; relevant unknown events make observability incomplete.
 

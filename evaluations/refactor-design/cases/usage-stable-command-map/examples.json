@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "probes": [
+    {
+      "purpose": "known-valid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-stable-command-map",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "map-valid",
+            "state": "PASS",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["The typed map is pure, files are unchanged, and the public test passed."],
+            "evidence": {
+              "type": "command",
+              "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "reference": "qualification.command"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "command_execution" }],
+          "finalMessage": "No action: the total typed command map is already coherent."
+        }
+      }
+    },
+    {
+      "purpose": "known-invalid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-stable-command-map",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "map-invalid",
+            "state": "FAIL",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["An abstraction was added despite no observed structural risk."],
+            "evidence": {
+              "type": "diff",
+              "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "reference": "qualification.diff"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "+ class CommandFactory {}",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "file_change" }],
+          "finalMessage": "Added a command abstraction."
+        }
+      }
+    },
+    {
+      "purpose": "alternative-valid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-stable-command-map",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "map-alternative",
+            "state": "PASS",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["The total map and green public test justify the no-action result."],
+            "evidence": {
+              "type": "trajectory",
+              "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "reference": "qualification.trajectory",
+              "sequence": 0
+            }
+          }
+        ],
+        "observable": {
+          "diff": "",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "command_execution" }],
+          "finalMessage": "No refactor was justified: the command mapping is pure and total."
+        }
+      }
+    },
+    {
+      "purpose": "unsupported-fluency",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-stable-command-map",
+        "contracts": ["valid-no-action"],
+        "checks": [
+          {
+            "id": "map-unsupported",
+            "state": "INCONCLUSIVE",
+            "contractId": "valid-no-action",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["No inspection or test observation supports the conclusion."],
+            "evidence": {
+              "type": "message",
+              "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "reference": "qualification.message"
+            }
+          }
+        ],
+        "observable": { "diff": "", "commands": [], "trajectory": [], "finalMessage": "This command map is excellent." }
+      }
+    }
+  ]
+}

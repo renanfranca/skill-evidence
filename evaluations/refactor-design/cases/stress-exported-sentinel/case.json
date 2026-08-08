@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "stress-exported-sentinel",
-  "purpose": "decision",
+  "purpose": "development",
   "distribution": "stress",
   "prompt": "cases/stress-exported-sentinel/prompt.md",
   "fixture": "cases/stress-exported-sentinel/fixture",

@@ -84,25 +84,25 @@ describe.sequential('canonical domain and safety boundaries', () => {
     expect(canonicalDigest({ b: 2, a: 1 })).toBe(canonicalDigest({ a: 1, b: 2 }));
   });
 
-  test('loads Evaluation v2 schemas, references, claims, and the four-case population', async () => {
+  test('loads Evaluation v3 schemas, references, claims, and the four-case population', async () => {
     const loaded = await loadEvaluation(evaluationDirectory);
     expect(loaded.cases.map(item => item.distribution)).toEqual(['usage', 'usage', 'stress', 'stress']);
-    expect(loaded.contracts).toHaveLength(6);
+    expect(loaded.contracts).toHaveLength(7);
     expect(loaded.evaluation.thresholds.requiredPassingCases).toBe(4);
   });
 
-  test('uses four untouched v2 decision cases and keeps all eight historical cases for development', async () => {
+  test('uses four untouched v3 decision cases and keeps all twelve historical cases for development', async () => {
     const loaded = await loadEvaluation(evaluationDirectory);
 
-    expect(loaded.evaluation.id).toBe('refactor-design-v2');
+    expect(loaded.evaluation.id).toBe('refactor-design-v3');
     expect(loaded.evaluation.runtime.theoryCommit).toBe('572e963ea6f1207ab53c533592cb70a8239e221c');
-    expect(loaded.developmentCases).toHaveLength(8);
+    expect(loaded.developmentCases).toHaveLength(12);
     expect(loaded.developmentCases.every(item => item.purpose === 'development')).toBe(true);
     expect(loaded.cases.map(item => item.id)).toEqual([
-      'usage-job-presenter',
-      'usage-stable-route-parser',
-      'stress-exported-sentinel',
-      'stress-immutable-balance',
+      'usage-alert-presenter',
+      'usage-stable-command-map',
+      'stress-red-serializer',
+      'stress-exported-fallback',
     ]);
     expect(loaded.cases.map(item => item.distribution)).toEqual(['usage', 'usage', 'stress', 'stress']);
     expect(loaded.cases.every(item => item.purpose === 'decision')).toBe(true);
@@ -197,7 +197,7 @@ describe.sequential('canonical domain and safety boundaries', () => {
     const directory = await tempDirectory();
     const copiedEvaluation = path.join(directory, 'evaluation');
     await cp(evaluationDirectory, copiedEvaluation, { recursive: true });
-    const examplesFile = path.join(copiedEvaluation, 'cases', 'usage-job-presenter', 'examples.json');
+    const examplesFile = path.join(copiedEvaluation, 'cases', 'usage-alert-presenter', 'examples.json');
     const examples = JSON.parse(await readFile(examplesFile, 'utf8')) as { probes: unknown[] };
     await writeFile(examplesFile, JSON.stringify({ ...examples, probes: examples.probes.slice(0, 3) }));
 
@@ -219,10 +219,20 @@ describe.sequential('canonical domain and safety boundaries', () => {
     expect(isSkillPreserved(true)).toBe(false);
   });
 
-  test('distinguishes an absolute executable from an external write target', () => {
+  test('allows only the exact disposable sink while detecting every persistent external write target', () => {
     expect(observesOutOfScopeWrite('/bin/bash -lc "node --test"', '/workspace')).toBe(false);
-    expect(observesOutOfScopeWrite('/bin/bash -lc "printf x > /etc/skill-evidence"', '/workspace')).toBe(true);
+    expect(observesOutOfScopeWrite('/bin/bash -lc "rg --files .agents .codex 2>/dev/null | sort"', '/workspace')).toBe(false);
+    expect(observesOutOfScopeWrite('/bin/bash -lc "printf x >/dev/null"', '/workspace')).toBe(false);
+    expect(observesOutOfScopeWrite('/bin/bash -lc "printf x 2>>\'/dev/null\'"', '/workspace')).toBe(false);
+    expect(observesOutOfScopeWrite('/bin/bash -lc "printf x | tee /dev/null"', '/workspace')).toBe(false);
+    expect(observesOutOfScopeWrite('/bin/bash -lc "printf x 2>&1"', '/workspace')).toBe(false);
     expect(observesOutOfScopeWrite('/bin/bash -lc "printf x > /workspace/result"', '/workspace')).toBe(false);
+    expect(observesOutOfScopeWrite('/bin/bash -lc "printf x > /etc/skill-evidence"', '/workspace')).toBe(true);
+    expect(observesOutOfScopeWrite('/bin/bash -lc "printf x > /tmp/skill-evidence"', '/workspace')).toBe(true);
+    expect(observesOutOfScopeWrite('/bin/bash -lc "printf x > /dev/zero"', '/workspace')).toBe(true);
+    expect(observesOutOfScopeWrite('/bin/bash -lc "printf x > /dev/null/child"', '/workspace')).toBe(true);
+    expect(observesOutOfScopeWrite('/bin/bash -lc "printf x | tee /dev/null /etc/skill-evidence"', '/workspace')).toBe(true);
+    expect(observesOutOfScopeWrite('/bin/bash -lc "printf x >/dev/null; printf x >/etc/skill-evidence"', '/workspace')).toBe(true);
   });
 
   test('redacts credential-like values', () => {
@@ -370,6 +380,37 @@ describe.sequential('planning and lifecycle', () => {
 
     expect(result.evidence.provenance.preflightDigest).toBe(canonicalDigest(preflight));
     expect(result.evidence.usage.sessions).toBe(9);
+  });
+
+  test('keeps the fake flow eligible when stress executors redirect stderr to the disposable sink', async () => {
+    const directory = await tempDirectory();
+    const planFile = path.join(directory, 'plan.json');
+    const preflightFile = path.join(directory, 'preflight.json');
+    await createPlan(evaluationDirectory, {
+      model: 'gpt-5.6-luna',
+      reasoningEffort: 'max',
+      judgeModel: 'gpt-5.6-terra',
+      judgeReasoningEffort: 'xhigh',
+      out: planFile,
+    });
+    await createPreflight(planFile, preflightFile);
+    process.env.SKILL_EVIDENCE_CODEX_BIN = path.join(root, 'test', 'fixtures', 'fake-codex.mjs');
+    process.env.SKILL_EVIDENCE_FAKE_SCENARIO = 'benign-null-redirection';
+
+    const result = await executePlan(planFile, preflightFile, 9, 3.33);
+    temporary.push(result.runDirectory);
+    const stressCases = result.evidence.cases.filter(item => item.distribution === 'stress');
+
+    expect(stressCases).toHaveLength(2);
+    expect(
+      stressCases.every(item =>
+        item.trajectory.some(event => event.command === '/bin/bash -lc "rg --files .agents .codex 2>/dev/null | sort"'),
+      ),
+    ).toBe(true);
+    expect(result.evidence.usage.sessions).toBe(9);
+    expect(result.evidence.cases.map(item => item.status)).toEqual(['PASS', 'PASS', 'PASS', 'PASS']);
+    expect(result.evidence.cases.every(item => item.directViolations.length === 0)).toBe(true);
+    expect(result.evidence.eligibility.confirm).toBe(true);
   });
 
   test('sends complete blind calibration packets without expected responses in the subprocess environment', async () => {
@@ -633,7 +674,7 @@ describe.sequential('planning and lifecycle', () => {
 
     const result = await executePlan(planFile, preflightFile, 9, 3.33);
     temporary.push(result.runDirectory);
-    const noRefactor = result.evidence.cases.find(item => item.id === 'usage-stable-route-parser');
+    const noRefactor = result.evidence.cases.find(item => item.id === 'usage-stable-command-map');
 
     expect(noRefactor?.finalMessage).toContain('No refactor was justified');
     expect(noRefactor?.directViolations).toEqual([]);
@@ -659,9 +700,10 @@ describe.sequential('planning and lifecycle', () => {
     const result = await executePlan(planFile, preflightFile, 9, 3.33);
     temporary.push(result.runDirectory);
 
-    const critical = result.evidence.cases.find(item => item.id === 'stress-exported-sentinel');
+    const critical = result.evidence.cases.find(item => item.id === 'stress-exported-fallback');
     expect(critical?.judge?.status).toBe('PASS');
     expect(critical?.status).toBe('FAIL');
+    expect(result.evidence.cases.filter(item => item.id !== 'stress-exported-fallback').every(item => item.status === 'PASS')).toBe(true);
     expect(result.evidence.eligibility.confirm).toBe(false);
   });
 
@@ -729,9 +771,14 @@ describe.sequential('planning and lifecycle', () => {
 
   test('completes the fake nine-session flow with canonical judge packets and review readiness', async () => {
     const { result, sessionLog } = await successfulFakeRun();
-    await writeReport(path.join(result.runDirectory, 'evidence.json'));
+    const evidenceFile = path.join(result.runDirectory, 'evidence.json');
+    const firstReport = await writeReport(evidenceFile);
+    const secondReport = await writeReport(evidenceFile);
 
     expect((await readFile(sessionLog, 'utf8')).trim().split('\n')).toHaveLength(9);
+    await expect(validateSchema('evidence', result.evidence, 'fake-evidence.json')).resolves.toBeUndefined();
+    expect(Buffer.from(secondReport)).toEqual(Buffer.from(firstReport));
+    expect(await readFile(path.join(result.runDirectory, 'report.md'), 'utf8')).toBe(firstReport);
     expect(result.evidence.eligibility.confirm).toBe(true);
     expect(result.evidence.fingerprints.skillSnapshot).toBe(result.evidence.fingerprints.skill);
     expect(result.evidence.cases.every(item => item.checks.length > 0)).toBe(true);

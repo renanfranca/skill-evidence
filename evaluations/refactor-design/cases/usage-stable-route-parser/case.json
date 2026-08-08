@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "usage-stable-route-parser",
-  "purpose": "decision",
+  "purpose": "development",
   "distribution": "usage",
   "prompt": "cases/usage-stable-route-parser/prompt.md",
   "fixture": "cases/usage-stable-route-parser/fixture",

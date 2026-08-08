@@ -1,0 +1,1 @@
+Review this completed typed command map with the refactor-design skill. Run the public test and refactor only if there is a concrete structural risk; otherwise conclude that no action is justified and leave files unchanged.

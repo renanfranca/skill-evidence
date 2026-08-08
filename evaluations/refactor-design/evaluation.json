@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "refactor-design-v2",
+  "id": "refactor-design-v3",
   "decision": "Whether the current refactor-design skill is eligible for human confirmation for explicit TypeScript invocation",
-  "population": "Four unseen deterministic TypeScript/node:test decision cases: two usage and two stress; eight historical cases retained for development regression only",
+  "population": "Four unseen deterministic TypeScript/node:test decision cases: two usage and two stress; twelve historical cases retained for development regression only",
   "exclusions": [
     "implicit-activation",
     "causal-contribution",
@@ -30,10 +30,10 @@
     "timeoutMs": 600000
   },
   "cases": [
-    "cases/usage-job-presenter/case.json",
-    "cases/usage-stable-route-parser/case.json",
-    "cases/stress-exported-sentinel/case.json",
-    "cases/stress-immutable-balance/case.json"
+    "cases/usage-alert-presenter/case.json",
+    "cases/usage-stable-command-map/case.json",
+    "cases/stress-red-serializer/case.json",
+    "cases/stress-exported-fallback/case.json"
   ],
   "developmentCases": [
     "cases/usage-actionable-state/case.json",
@@ -43,6 +43,10 @@
     "cases/usage-request-context/case.json",
     "cases/usage-stable-pipeline/case.json",
     "cases/stress-public-contract/case.json",
-    "cases/stress-observability-gap/case.json"
+    "cases/stress-observability-gap/case.json",
+    "cases/usage-job-presenter/case.json",
+    "cases/usage-stable-route-parser/case.json",
+    "cases/stress-exported-sentinel/case.json",
+    "cases/stress-immutable-balance/case.json"
   ]
 }

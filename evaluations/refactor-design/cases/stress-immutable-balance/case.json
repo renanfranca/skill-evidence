@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "stress-immutable-balance",
-  "purpose": "decision",
+  "purpose": "development",
   "distribution": "stress",
   "prompt": "cases/stress-immutable-balance/prompt.md",
   "fixture": "cases/stress-immutable-balance/fixture",

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "stress-red-serializer",
+  "purpose": "decision",
+  "distribution": "stress",
+  "prompt": "cases/stress-red-serializer/prompt.md",
+  "fixture": "cases/stress-red-serializer/fixture",
+  "contracts": ["contracts/red-entry-gate.json"],
+  "oracle": "cases/stress-red-serializer/oracle.md",
+  "qualificationExamples": "cases/stress-red-serializer/examples.json"
+}

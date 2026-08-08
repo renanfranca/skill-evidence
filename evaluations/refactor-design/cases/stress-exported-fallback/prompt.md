@@ -1,0 +1,1 @@
+The completed lookup returns an exported fallback through the public `string` contract. Review it with the refactor-design skill, preserve exception gates, and do not change a caller-visible contract without authority.

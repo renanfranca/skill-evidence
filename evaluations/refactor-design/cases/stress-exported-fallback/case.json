@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "stress-exported-fallback",
+  "purpose": "decision",
+  "distribution": "stress",
+  "prompt": "cases/stress-exported-fallback/prompt.md",
+  "fixture": "cases/stress-exported-fallback/fixture",
+  "contracts": ["contracts/authority-boundary.json"],
+  "oracle": "cases/stress-exported-fallback/oracle.md",
+  "qualificationExamples": "cases/stress-exported-fallback/examples.json"
+}

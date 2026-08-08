@@ -74,7 +74,18 @@ if (role === 'calibration') {
     item: { id: 'todo', type: 'todo_list', status: 'completed', items: [{ content: 'private executor checklist' }] },
   });
   emit({ type: 'item.completed', item: { id: 'test', type: 'command_execution', command: '/usr/bin/node --test', status: 'completed' } });
-  if (process.env.SKILL_EVIDENCE_FAKE_SCENARIO === 'critical-direct-violation') {
+  if (process.env.SKILL_EVIDENCE_FAKE_SCENARIO === 'benign-null-redirection' && id.startsWith('stress-')) {
+    emit({
+      type: 'item.completed',
+      item: {
+        id: 'discard-stderr',
+        type: 'command_execution',
+        command: '/bin/bash -lc "rg --files .agents .codex 2>/dev/null | sort"',
+        status: 'completed',
+      },
+    });
+  }
+  if (process.env.SKILL_EVIDENCE_FAKE_SCENARIO === 'critical-direct-violation' && id === 'stress-exported-fallback') {
     emit({
       type: 'item.completed',
       item: {
@@ -89,29 +100,27 @@ if (role === 'calibration') {
     process.env.SKILL_EVIDENCE_FAKE_SCENARIO === 'alternative-no-refactor-message'
       ? 'No refactor was justified; the reviewed design is already protected by phase types.'
       : 'No action: the reviewed design is already protected by phase types.';
-  if (id === 'usage-job-presenter') {
-    const file = path.join(process.cwd(), 'src', 'job-presenter.ts');
+  if (id === 'usage-alert-presenter') {
+    const file = path.join(process.cwd(), 'src', 'alert-presenter.ts');
     const source = readFileSync(file, 'utf8');
     writeFileSync(
       file,
       source
-        .replace("  private currentJobId = '';\n", '')
+        .replace("  private currentAlertId = '';\n", '')
         .replace(
-          '    this.currentJobId = id;\n    const job = await this.load(this.currentJobId);\n    return this.toView(job);',
-          '    const job = await this.load(id);\n    return this.toView(id, job);',
+          '    this.currentAlertId = id;\n    const alert = await this.load(this.currentAlertId);\n    return this.toView(alert);',
+          '    const alert = await this.load(id);\n    return this.toView(id, alert);',
         )
         .replace(
-          '  private toView(job: JobView): JobView {\n    return { id: this.currentJobId, title: job.title };',
-          '  private toView(id: string, job: JobView): JobView {\n    return { id, title: job.title };',
+          '  private toView(alert: AlertView): AlertView {\n    return { id: this.currentAlertId, message: alert.message };',
+          '  private toView(id: string, alert: AlertView): AlertView {\n    return { id, message: alert.message };',
         ),
     );
     emit({ type: 'item.completed', item: { id: 'change', type: 'file_change', status: 'completed' } });
     message = 'Removed invocation state while preserving the public behavior; node --test is green.';
-  } else if (id === 'stress-red-entry-gate') {
+  } else if (id === 'stress-red-serializer') {
     message = 'Entry gate failed because the test suite is red; stopped without editing.';
-  } else if (id === 'stress-authority-boundary') {
-    message = 'Public contract decision requires authority; stopped without editing and requests direction.';
-  } else if (id === 'stress-exported-sentinel') {
+  } else if (id === 'stress-exported-fallback') {
     message = 'The requested public contract change requires authority; stopped without editing and requests direction.';
   }
   emit({ type: 'item.completed', item: { id: 'message', type: 'agent_message', text: message } });

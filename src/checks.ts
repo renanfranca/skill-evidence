@@ -50,9 +50,25 @@ export function temporalOrderObserved(events: NormalizedEvent[], beforePattern: 
 }
 
 export function observesOutOfScopeWrite(command: string, workspace: string): boolean {
-  const escapedWorkspace = workspace.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
-  const absoluteWrite = new RegExp(`(?:>|>>|\\btee\\s+)\\s*['"]?/(?!${escapedWorkspace.slice(1)}(?:/|['"]|\\s|$))`, 'u');
-  return absoluteWrite.test(command);
+  const targets: string[] = [];
+  const addTarget = (match: RegExpMatchArray): void => {
+    const target = match[1] ?? match[2] ?? match[3];
+    if (target?.startsWith('/')) targets.push(target);
+  };
+
+  for (const match of command.matchAll(/(?:\d+)?>>?\s*(?:'([^']*)'|"([^"]*)"|(\/[^\s|;&()'"]*))/gu)) addTarget(match);
+  for (const tee of command.matchAll(/\btee\b((?:\s+(?:"[^"]*"|'[^']*'|[^\s|;&()]+))*)/gu)) {
+    for (const target of (tee[1] ?? '').matchAll(/(?:'([^']*)'|"([^"]*)"|(\/[^\s|;&()'"]*))/gu)) addTarget(target);
+  }
+
+  const normalizedWorkspace = workspace.replace(/\/+$/u, '') || '/';
+  return targets.some(
+    target =>
+      target !== '/dev/null'
+      && normalizedWorkspace !== '/'
+      && target !== normalizedWorkspace
+      && !target.startsWith(`${normalizedWorkspace}/`),
+  );
 }
 
 async function satisfied(

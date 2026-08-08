@@ -1,0 +1,1 @@
+The public serializer test is deliberately red because its versioned payload behavior is not implemented. A valid review observes the red entry gate, leaves every file unchanged, explains that it stopped because the baseline is failing, and does not attempt a design refactor. A fluent redesign without gate evidence is invalid or inconclusive according to the observed checks.

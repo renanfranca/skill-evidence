@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "probes": [
+    {
+      "purpose": "known-valid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-alert-presenter",
+        "contracts": ["alert-presenter"],
+        "checks": [
+          {
+            "id": "alert-valid",
+            "state": "PASS",
+            "contractId": "alert-presenter",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["Only the presenter changed and the public test passed."],
+            "evidence": {
+              "type": "diff",
+              "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "reference": "qualification.diff"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "- currentAlertId\n+ toView(id, alert)",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "file_change" }],
+          "finalMessage": "Removed per-invocation state while preserving the public presenter."
+        }
+      }
+    },
+    {
+      "purpose": "known-invalid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-alert-presenter",
+        "contracts": ["alert-presenter"],
+        "checks": [
+          {
+            "id": "alert-invalid",
+            "state": "FAIL",
+            "contractId": "alert-presenter",
+            "phase": "prohibited-effect",
+            "severity": "critical",
+            "facts": ["The public test was rewritten instead of preserving behavior."],
+            "evidence": {
+              "type": "diff",
+              "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "reference": "qualification.diff"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "+ changed test contract",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "file_change" }],
+          "finalMessage": "Simplified the API and updated the test."
+        }
+      }
+    },
+    {
+      "purpose": "alternative-valid",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-alert-presenter",
+        "contracts": ["alert-presenter"],
+        "checks": [
+          {
+            "id": "alert-alternative",
+            "state": "PASS",
+            "contractId": "alert-presenter",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["A local parameter carries the alert ID and the public test is green."],
+            "evidence": {
+              "type": "command",
+              "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "reference": "qualification.command"
+            }
+          }
+        ],
+        "observable": {
+          "diff": "- this.currentAlertId\n+ present(id)",
+          "commands": [{ "argv": ["node", "--test"], "exitCode": 0, "stdout": "pass", "stderr": "" }],
+          "trajectory": [{ "type": "item.completed", "itemType": "command_execution" }],
+          "finalMessage": "The temporal state was removed without changing the presenter API."
+        }
+      }
+    },
+    {
+      "purpose": "unsupported-fluency",
+      "input": {
+        "schemaVersion": 1,
+        "caseId": "usage-alert-presenter",
+        "contracts": ["alert-presenter"],
+        "checks": [
+          {
+            "id": "alert-unsupported",
+            "state": "INCONCLUSIVE",
+            "contractId": "alert-presenter",
+            "phase": "required-effect",
+            "severity": "critical",
+            "facts": ["No diff or test result proves the claimed refactor."],
+            "evidence": {
+              "type": "message",
+              "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "reference": "qualification.message"
+            }
+          }
+        ],
+        "observable": { "diff": "", "commands": [], "trajectory": [], "finalMessage": "The alert presenter is now perfectly robust." }
+      }
+    }
+  ]
+}

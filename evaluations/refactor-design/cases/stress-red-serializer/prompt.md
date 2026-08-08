@@ -1,0 +1,1 @@
+Review the completed serializer change. The public checkpoint is `node --test`. Refactor only if the refactor-design entry gate is satisfied; otherwise stop without editing and report the failed gate.

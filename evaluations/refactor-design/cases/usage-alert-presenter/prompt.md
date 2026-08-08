@@ -1,0 +1,1 @@
+Review the completed asynchronous alert presenter. Run the public test command, then remove the per-invocation mutable state with the smallest internal refactor that preserves the public API and tests.

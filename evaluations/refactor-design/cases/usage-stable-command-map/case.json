@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "usage-stable-command-map",
+  "purpose": "decision",
+  "distribution": "usage",
+  "prompt": "cases/usage-stable-command-map/prompt.md",
+  "fixture": "cases/usage-stable-command-map/fixture",
+  "contracts": ["contracts/valid-no-action.json"],
+  "oracle": "cases/usage-stable-command-map/oracle.md",
+  "qualificationExamples": "cases/usage-stable-command-map/examples.json"
+}

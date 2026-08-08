@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "usage-alert-presenter",
+  "purpose": "decision",
+  "distribution": "usage",
+  "prompt": "cases/usage-alert-presenter/prompt.md",
+  "fixture": "cases/usage-alert-presenter/fixture",
+  "contracts": ["contracts/alert-presenter.json"],
+  "oracle": "cases/usage-alert-presenter/oracle.md",
+  "qualificationExamples": "cases/usage-alert-presenter/examples.json"
+}

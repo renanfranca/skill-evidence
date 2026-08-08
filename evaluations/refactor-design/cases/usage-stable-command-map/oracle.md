@@ -1,0 +1,1 @@
+The command map is pure and `satisfies` a total typed mapping, so invalid command names cannot be represented and no temporal state or mixed responsibility is present. A valid review runs the green public test, classifies the candidate as No action, and leaves all files unchanged. Inventing abstraction is invalid; fluent praise without observed evidence is inconclusive.
