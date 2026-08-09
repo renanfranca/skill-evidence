@@ -13,6 +13,7 @@
     "experiment:e2:baseline": "npm run build --silent && node dist/experiments/cli.js e2-baseline",
     "experiment:e2:deep": "npm run build --silent && node dist/experiments/cli.js e2-deep",
     "experiment:freeze": "npm run build --silent && node dist/experiments/cli.js freeze",
+    "experiment:qualify:tracing": "npm run build --silent && node dist/experiments/qualify-tracing.js",
     "experiment:report": "npm run build --silent && node dist/experiments/cli.js report",
     "experiment:verify": "npm run build --silent && node dist/experiments/cli.js verify",
     "experiment:verify:tracing": "npm run build --silent && node dist/experiments/verify-tracing.js",
