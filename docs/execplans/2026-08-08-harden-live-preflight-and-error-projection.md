@@ -4,7 +4,7 @@
 - Executor: `gpt-5.6-terra`, reasoning `xhigh`
 - THEORY consulted in full: commit [`572e963ea6f1207ab53c533592cb70a8239e221c`](https://github.com/renanfranca/skill-evaluation-theory/blob/572e963ea6f1207ab53c533592cb70a8239e221c/THEORY.md)
 - Planning baseline: `80d392287e60b2255e3a548126c9e6a6b26adefe`
-- Status: complete and green; uncommitted pending separate commit authorization
+- Status: complete, green, and committed at `43cb680358ad2ee6b31c17962d5624a342d76d76`
 
 This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mitigations`, and `Lessons Learned` current while implementation advances. It is a self-contained handoff for the executor named above.
 
@@ -198,7 +198,7 @@ Final validation completed on 2026-08-09 after the authorized monotonic-timeout 
 - [x] Milestone 3 test-runner stabilization completed with 20 standard passes and one pass during an observed +339-second wall-clock jump.
 - [x] Post-stabilization design and documentation review completed with `No action`.
 - [x] Final ordered validation passed with exactly 45 tests, local `EXACT_SUPPORTED`, and the exact tracing checkpoint.
-- [ ] Separate commit authorization requested only after the uncommitted implementation is reviewed.
+- [x] Separate commit authorization received; the reviewed implementation was committed at `43cb680358ad2ee6b31c17962d5624a342d76d76`.
 
 ## Decisions
 

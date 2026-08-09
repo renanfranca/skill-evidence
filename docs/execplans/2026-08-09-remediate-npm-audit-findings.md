@@ -4,7 +4,7 @@
 - Executor: `gpt-5.6-terra`, reasoning `xhigh`
 - THEORY consulted in full: commit [`572e963ea6f1207ab53c533592cb70a8239e221c`](https://github.com/renanfranca/skill-evaluation-theory/blob/572e963ea6f1207ab53c533592cb70a8239e221c/THEORY.md)
 - Planning baseline: `43cb680358ad2ee6b31c17962d5624a342d76d76`
-- Status: complete and green; uncommitted pending separate authorization
+- Status: complete, green, and committed at `0055bb5c10895aaa8862b985e77106a754eddf9f`
 
 This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mitigations`, and `Lessons Learned` current while implementation advances. It is a self-contained handoff for the executor named above.
 
@@ -79,6 +79,7 @@ The tracing commands remain deterministic, local-provider, isolated, and loopbac
 - [x] Complete Milestone 2 with zero-audit and full-suite evidence.
 - [x] Complete post-GREEN design review and final validation.
 - [x] Reconcile documentation and leave changes uncommitted pending separate authorization.
+- [x] Receive separate commit authorization and commit the reviewed change at `0055bb5c10895aaa8862b985e77106a754eddf9f`.
 
 ## Decisions
 
