@@ -47,9 +47,8 @@ describe('experiment condition configuration', () => {
     expect(deep.providerConfig).toMatchObject({
       cli_config: {
         otel: {
-          exporter: 'otlp-http',
+          exporter: { 'otlp-http': { endpoint: 'http://127.0.0.1:4318/v1/logs', protocol: 'json' } },
           log_user_prompt: false,
-          otlp_http: { endpoint: 'http://127.0.0.1:4318/v1/logs', protocol: 'json' },
         },
       },
       deep_tracing: true,

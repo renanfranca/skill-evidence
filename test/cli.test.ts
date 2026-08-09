@@ -36,4 +36,72 @@ describe('experimental command interface', () => {
     expect(report).not.toHaveLength(0);
     expect(report.every((row) => row.versionFingerprint === 'scientific-digest')).toBe(true);
   });
+
+  it('stops G2 when baseline passes but the deep canary errors despite trace presence', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-cli-g2-'));
+    const campaignDirectory = join(root, '.skill-evidence', 'campaigns', 'campaign-1');
+    const baselineCanary = { effects: [], limitations: [], response: 'E2_CANARY_OK', status: 'PASS' };
+    const deepCanary = { effects: [], limitations: ['The provider failed before the canary completed.'], response: null, status: 'ERROR' };
+    await mkdir(join(campaignDirectory, 'raw'), { recursive: true });
+    await Promise.all([
+      writeFile(join(campaignDirectory, 'freeze.json'), JSON.stringify({ scientificConfigurationDigest: 'scientific-digest' })),
+      writeFile(join(campaignDirectory, 'e1-curated.json'), '{}'),
+      writeFile(
+        join(campaignDirectory, 'e2-baseline-curated.json'),
+        JSON.stringify({ canary: baselineCanary, workspaceAfter: { entries: {} } }),
+      ),
+      writeFile(join(campaignDirectory, 'e2-deep-curated.json'), JSON.stringify({ canary: deepCanary, workspaceAfter: { entries: {} } })),
+      writeFile(
+        join(campaignDirectory, 'raw', 'e2-baseline-summary.json'),
+        JSON.stringify({ results: [{ response: { output: 'E2_CANARY_OK' } }] }),
+      ),
+      writeFile(
+        join(campaignDirectory, 'raw', 'e2-deep-summary.json'),
+        JSON.stringify({ results: [{ response: { error: 'sanitized provider error' } }] }),
+      ),
+      writeFile(
+        join(campaignDirectory, 'raw', 'e2-deep-traces.json'),
+        JSON.stringify([{ spans: [{ attributes: { command: 'redacted' }, name: 'command' }], traceId: 'trace' }]),
+      ),
+    ]);
+
+    await runCli(['report', '--campaign', 'campaign-1'], { environment: {}, root });
+
+    const recommendation = JSON.parse(await readFile(join(root, 'docs', 'experiments', 'campaign-1-g2.json'), 'utf8')) as {
+      options: string[];
+    };
+    expect(recommendation.options).toEqual(['STOP_AND_REASSESS']);
+  });
+
+  it('does not use a baseline final response when the deep final response is missing', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-cli-g2-'));
+    const campaignDirectory = join(root, '.skill-evidence', 'campaigns', 'campaign-1');
+    const passingCanary = { effects: [], limitations: [], response: 'E2_CANARY_OK', status: 'PASS' };
+    await mkdir(join(campaignDirectory, 'raw'), { recursive: true });
+    await Promise.all([
+      writeFile(join(campaignDirectory, 'freeze.json'), JSON.stringify({ scientificConfigurationDigest: 'scientific-digest' })),
+      writeFile(join(campaignDirectory, 'e1-curated.json'), '{}'),
+      writeFile(
+        join(campaignDirectory, 'e2-baseline-curated.json'),
+        JSON.stringify({ canary: passingCanary, workspaceAfter: { entries: {} } }),
+      ),
+      writeFile(
+        join(campaignDirectory, 'e2-deep-curated.json'),
+        JSON.stringify({ canary: passingCanary, workspaceAfter: { entries: {} } }),
+      ),
+      writeFile(
+        join(campaignDirectory, 'raw', 'e2-baseline-summary.json'),
+        JSON.stringify({ results: [{ response: { output: 'E2_CANARY_OK' } }] }),
+      ),
+      writeFile(join(campaignDirectory, 'raw', 'e2-deep-summary.json'), JSON.stringify({ results: [{ response: {} }] })),
+      writeFile(join(campaignDirectory, 'raw', 'e2-deep-traces.json'), '[]'),
+    ]);
+
+    await runCli(['report', '--campaign', 'campaign-1'], { environment: {}, root });
+
+    const recommendation = JSON.parse(await readFile(join(root, 'docs', 'experiments', 'campaign-1-g2.json'), 'utf8')) as {
+      options: string[];
+    };
+    expect(recommendation.options).toEqual(['STOP_AND_REASSESS']);
+  });
 });

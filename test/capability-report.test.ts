@@ -32,7 +32,10 @@ describe('G2 capability reporting', () => {
       observed: true,
       sourceSurface: 'synthetic-workspace-snapshot',
     });
-    expect(recommendG2(matrix).options).toEqual(['SPIKE_APP_SERVER', 'WEAKEN_SUPPORTED_CLAIMS']);
+    expect(recommendG2(matrix, { effects: [], limitations: [], response: 'E2_CANARY_OK', status: 'PASS' }).options).toEqual([
+      'SPIKE_APP_SERVER',
+      'WEAKEN_SUPPORTED_CLAIMS',
+    ]);
   });
 
   it('keeps G2 implementation ownership with the human operator', () => {

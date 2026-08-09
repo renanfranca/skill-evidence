@@ -258,17 +258,21 @@ export function experimentalOwnershipMatrix(): OwnershipRow[] {
 }
 
 export function recommendG2(matrix: CapabilityRow[], deepCanary?: CanaryAssessment): G2Recommendation {
-  if (deepCanary?.status === 'INVALID_CANARY') {
+  if (deepCanary?.status !== 'PASS') {
     return {
-      limitations: ['The deep canary is invalid, so negative event-observability claims are prohibited.'],
+      limitations: [
+        deepCanary?.status === 'INVALID_CANARY'
+          ? 'The deep canary is invalid, so negative event-observability claims are prohibited.'
+          : 'The deep canary did not pass, so G2 lacks the required deep evidence.',
+      ],
       options: ['STOP_AND_REASSESS'],
     };
   }
-  const finalResponse = matrix.some((entry) => entry.signal === 'final response' && entry.observed);
+  const finalResponse = matrix.find((entry) => entry.capabilityId === 'deep-final-response');
   const trajectory = matrix.find((entry) => entry.capabilityId === 'deep-command-trajectory');
-  if (!finalResponse) {
+  if (finalResponse?.observed !== true) {
     return {
-      limitations: ['The canary final response was not observed through the configured public surface.'],
+      limitations: ['The deep canary final response was not observed through the configured public surface.'],
       options: ['STOP_AND_REASSESS'],
     };
   }

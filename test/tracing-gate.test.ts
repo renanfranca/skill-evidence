@@ -2,6 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import { canonicalJson } from '../experiments/canonical.js';
 import {
+  codexOtelQualificationConditions,
+  qualifyCodexOtel,
+  renderCodexOtelQualification,
+  type CodexOtelQualificationAttempt,
+  type CodexOtelWorkerRequest,
+} from '../experiments/qualify-codex-otel.js';
+import {
   classifyTracingAttempts,
   qualifyPromptfooTracing,
   renderTracingQualification,
@@ -172,5 +179,100 @@ describe('Promptfoo tracing qualification', () => {
     const result = classifyTracingAttempts(attempts);
 
     expect(result).toBe('BLOCKED');
+  });
+});
+
+describe('Codex OTEL parsing qualification', () => {
+  it('requires two isolated exact accepts and two expected legacy rejections and emits only canonical sanitized evidence', async () => {
+    const requests: CodexOtelWorkerRequest[] = [];
+    const launch = (request: CodexOtelWorkerRequest) => {
+      requests.push(request);
+      const exact = request.condition.id === 'exact-nested';
+      const attempt: CodexOtelQualificationAttempt = {
+        cliVersion: '0.147.0',
+        condition: request.condition,
+        exitStatus: exact ? 'ZERO' : 'NONZERO',
+        parserClassification: exact ? 'ACCEPTED' : 'EXPECTED_STRUCT_VARIANT_REJECTION',
+        repetition: request.repetition,
+      };
+      return Promise.resolve({
+        attempt: { ...attempt, diagnostic: '/tmp/private-home/auth.json feature-list SECRET' },
+        codexHomeIdentity: `home-${requests.length}`,
+        processId: 100 + requests.length,
+      });
+    };
+
+    const report = await qualifyCodexOtel(launch);
+    const rendered = renderCodexOtelQualification(report);
+
+    expect(requests).toEqual([
+      { condition: codexOtelQualificationConditions['exact-nested'], repetition: 1 },
+      { condition: codexOtelQualificationConditions['exact-nested'], repetition: 2 },
+      { condition: codexOtelQualificationConditions['legacy-scalar'], repetition: 1 },
+      { condition: codexOtelQualificationConditions['legacy-scalar'], repetition: 2 },
+    ]);
+    expect(report).toMatchObject({
+      cliVersion: '0.147.0',
+      codexHomeIsolationVerified: true,
+      processIsolationVerified: true,
+      purpose: 'DEVELOPMENT',
+      result: 'EXACT_SUPPORTED',
+      schemaVersion: 1,
+    });
+    expect(report.conditions.map((condition) => condition.attempts.length)).toEqual([2, 2]);
+    expect(report.limitations).toEqual([
+      'Parsing qualification does not establish OTEL delivery.',
+      'Parsing qualification does not establish authenticated identity.',
+      'Parsing qualification does not establish zero egress.',
+      'Parsing qualification does not establish live readiness.',
+    ]);
+    expect(rendered).toBe(canonicalJson(report) + '\n');
+    expect(rendered).not.toMatch(/\/tmp\/|processId|codexHomeIdentity|auth\.json|feature-list|SECRET|diagnostic/);
+
+    const inconsistent = await qualifyCodexOtel((request) => {
+      const exact = request.condition.id === 'exact-nested';
+      return Promise.resolve({
+        attempt: {
+          cliVersion: '0.147.0',
+          condition: request.condition,
+          exitStatus: exact ? 'ZERO' : 'NONZERO',
+          parserClassification: exact ? 'EXPECTED_STRUCT_VARIANT_REJECTION' : 'EXPECTED_STRUCT_VARIANT_REJECTION',
+          repetition: request.repetition,
+        },
+        codexHomeIdentity: `home-${request.condition.id}-${request.repetition}`,
+        processId: request.condition.id === 'exact-nested' ? request.repetition : request.repetition + 2,
+      });
+    });
+    expect(inconsistent.result).toBe('BLOCKED');
+
+    const reused = await qualifyCodexOtel((request) =>
+      Promise.resolve({
+        attempt: {
+          cliVersion: '0.147.0',
+          condition: request.condition,
+          exitStatus: request.condition.id === 'exact-nested' ? 'ZERO' : 'NONZERO',
+          parserClassification: request.condition.id === 'exact-nested' ? 'ACCEPTED' : 'EXPECTED_STRUCT_VARIANT_REJECTION',
+          repetition: request.repetition,
+        },
+        codexHomeIdentity: 'reused-home',
+        processId: 100,
+      }),
+    );
+    expect(reused.result).toBe('BLOCKED');
+
+    const wrongVersion = await qualifyCodexOtel((request) =>
+      Promise.resolve({
+        attempt: {
+          cliVersion: '0.148.0',
+          condition: request.condition,
+          exitStatus: request.condition.id === 'exact-nested' ? 'ZERO' : 'NONZERO',
+          parserClassification: request.condition.id === 'exact-nested' ? 'ACCEPTED' : 'EXPECTED_STRUCT_VARIANT_REJECTION',
+          repetition: request.repetition,
+        },
+        codexHomeIdentity: `home-${request.condition.id}-${request.repetition}`,
+        processId: request.condition.id === 'exact-nested' ? request.repetition : request.repetition + 2,
+      }),
+    );
+    expect(wrongVersion).toMatchObject({ cliVersion: '0.148.0', result: 'BLOCKED' });
   });
 });
