@@ -6,7 +6,9 @@
 - Planning baseline: `a0dd21d998dff438fd7ccd55bf8b5f0fafe159a4`
 - Campaign ID: `foundation-e0-e2-gate2-20260809-r3`
 - Preparation commit: `d0fbf31` (`docs: authorize corrected Gate 2 campaign`)
-- Status: preparation committed; operational preflight passed and freeze pending
+- Frozen revision: `74dbd356b3bedfd3d557403fd5b3f9f6eae3cf30`
+- Scientific configuration digest: `bbd1444af8502b704df51f44d662196443dda39ed38d1b73edfe4a1a3d249ed0`
+- Status: complete; E1, baseline, and deep passed; G2 recommends SDK-first with weakened trace-dependent claims
 
 This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mitigations`, and `Lessons Learned` current while execution advances.
 
@@ -41,6 +43,18 @@ Preparation documentation is committed before a new freeze binds the exact clean
 When both E2 commands run and all required artifacts exist, `experiment:report` creates exactly four sanitized `r3` reports: E1, capability matrix, G2, and ownership matrix. A favorable G2 requires a passing deep canary and observed deep final response. If deep runs but fails, the complete report may be generated, but G2 must contain only `STOP_AND_REASSESS`. If execution stops before deep, no interface-incompatible partial report is created.
 
 No public TypeScript API, CLI command, report schema, freeze schema, direct dependency, RFC, ADR, or historical artifact changes.
+
+## Campaign Result
+
+The freeze bound schema 3 to clean local commit `74dbd356b3bedfd3d557403fd5b3f9f6eae3cf30`, Promptfoo `0.122.0`, Codex SDK and CLI `0.147.0`, and scientific configuration digest `bbd1444af8502b704df51f44d662196443dda39ed38d1b73edfe4a1a3d249ed0`. The selected external Codex home was writable, reported a ChatGPT login, and matched its one-way frozen identity. The freeze contained no external path, credential key, or `auth.json` reference, and no reservation existed before E1.
+
+E1 consumed one reservation and returned exact `E1_AUTH_OK` without a provider error, so G1 passed. Promptfoo logged the known failed trace-store query for this non-persisted condition, but it did not remove or contradict the direct response and curated G1 evidence.
+
+Baseline E2 consumed the second reservation and passed: provider status was `SUCCESS`, the response was `E2_CANARY_OK`, and the mechanical canary confirmed all four byte-exact filesystem effects. Baseline trace signals remain unrequested and `INSUFFICIENT` by design.
+
+Deep E2 consumed the third and final reservation and passed under the nested OTLP/HTTP exporter: provider status was `SUCCESS`, response and canary were `E2_CANARY_OK`, all four filesystem effects passed, and one correlated trace was recovered. The capability matrix contains 24 rows: eight `NATIVE_STABLE`, seven observed `NATIVE_EXPERIMENTAL`, and nine `INSUFFICIENT`. The experimental trace rows include receiver transport, evaluation linkage, command trajectory, file operations, ordering, controlled recovery, and skill-usage metadata; none is promoted to stable evidence or causal skill contribution.
+
+The complete four-report set is canonical and sanitized. G2 is eligible as the bounded Foundation recommendation because the deep canary passed and `deep-final-response` was observed. It offers `CONTINUE_WITH_CODEX_SDK` together with `WEAKEN_SUPPORTED_CLAIMS`; its explicit limitation is that deep trace evidence remains experimental and is not itself decision-eligible. This supports continuing SDK-first only within stable observed surfaces while weakening claims that depend on experimental traces. It does not authorize product implementation automatically.
 
 ## Milestones
 
@@ -133,9 +147,10 @@ The tracked record distinguishes direct observations, configuration inferences, 
 - [x] Complete Milestone 1 validation: audit zero, 48 tests, offline provider imports zero, both qualifiers `EXACT_SUPPORTED`, loopback tracing passed, formatting and diff checks passed, and historical digests matched.
 - [x] Create the Milestone 1 preparation commit at `d0fbf31`.
 - [x] Start Milestone 2: confirm two writable ChatGPT-authenticated Codex homes, select the previously designated external home, confirm forbidden API keys absent, worktree clean, and campaign `r3` absent without reading credentials.
-- [ ] Create and validate the Milestone 2 freeze.
-- [ ] Complete Milestone 3 conditional live sequence and reporting.
-- [ ] Complete Milestone 4 reconciliation, final validation, and result commit.
+- [x] Create and validate the Milestone 2 freeze at `74dbd356b3bedfd3d557403fd5b3f9f6eae3cf30` with scientific digest `bbd1444af8502b704df51f44d662196443dda39ed38d1b73edfe4a1a3d249ed0` and no reservation.
+- [x] Complete Milestone 3: E1, baseline, and deep each ran once and passed; all three authorized reservations are consumed; four canonical sanitized reports were generated.
+- [x] Start Milestone 4: reconcile direct observations, limitations, report digests, and the bounded G2 recommendation.
+- [x] Complete Milestone 4 reconciliation and final validation; the dedicated result commit is the canonical completion marker.
 
 ## Decisions
 
@@ -163,6 +178,14 @@ The tracked record distinguishes direct observations, configuration inferences, 
   Rationale: changing source or scientific conditions after freeze would invalidate the campaign and prespecification.
   Date/Author: 2026-08-09 / implementation agent
 
+- Decision: accept the emitted G2 as the bounded Foundation recommendation and preserve both options without automatically choosing an implementation.
+  Rationale: direct deep evidence satisfied the corrected mandatory gates, while the recommendation accurately retains the limitation that experimental trace signals cannot support stable claims.
+  Date/Author: 2026-08-09 / implementation agent
+
+- Decision: interpret the combined options as SDK-first for stable native surfaces plus explicit claim weakening for trace-dependent capabilities.
+  Rationale: eight stable rows support native SDK continuation, while seven trace-derived rows remain experimental and nine rows remain insufficient; collapsing them into one unconditional architecture claim would exceed the evidence.
+  Date/Author: 2026-08-09 / implementation agent
+
 ## Risks and Mitigations
 
 - Risk: a stale or unwritable login consumes a reservation. Mitigation: perform host-level writability, identity, and login checks immediately before freeze and E1.
@@ -171,12 +194,17 @@ The tracked record distinguishes direct observations, configuration inferences, 
 - Risk: accidental retries or parallel calls exceed authority. Mitigation: run sequentially, inspect the exclusive ledger after each call, and stop on every failed prerequisite.
 - Risk: raw artifacts disclose sensitive state. Mitigation: keep `.skill-evidence/` ignored, inspect only enumerated projections, and leakage-check every staged file.
 - Risk: historical evidence is rewritten. Mitigation: verify recorded SHA-256 digests before preparation and after final reconciliation.
+- Risk: the successful deep run promotes experimental traces into stable or causal claims. Mitigation: preserve every row's signal-specific classification and the G2 limitation; do not infer skill contribution from metadata.
 
 ## Validation Strategy
 
 Milestone 1 uses the full provider-free and loopback-only validation sequence. Milestone 2 validates preconditions and freeze integrity without a provider call. Milestone 3 validates each gate and ledger before considering the next authorized call. Milestone 4 runs non-live regression and artifact checks only. No successful validation may override a failed mandatory gate or direct critical evidence.
 
 The Milestone 1 sequence passed on 2026-08-09. `npm audit --json` reported zero vulnerabilities; Vitest reported 48 passing tests in 14 files; offline verification reported provider imports `0`; both development qualifiers reported `EXACT_SUPPORTED`; loopback tracing reported runtime, typed, and integration checks true; Prettier and `git diff --check` passed; and the four historical `r2` SHA-256 digests matched their ExecPlan 7 records.
+
+Final validation passed on 2026-08-09 without rerunning a live command. Typecheck, lint, Prettier, build, and `git diff --check` passed; Vitest again reported 48 passing tests in 14 files; offline verification again reported provider imports `0`; all `r3` reports were canonical and passed leakage checks; and the four historical `r2` digests remained unchanged.
+
+The final `r3` report SHA-256 digests in filename order are `f3add9719f72a420681c7c428718c7cf983f596e4f2d06a3052f1f9fa0585b24`, `332de02dd1780517da45b728f4e4e527e208423b9729f0a5adffc97df46090ad`, `c0f2ac8eb15d9b844f9eef530982e1a357888a63fb0f9743f26a2aa1114dfc4b`, and `75fa290ab044082ddcccfd519d0ed3c7594c186b66c5b26a7c6cf1db9fa90395`.
 
 ## Documentation Impact
 
@@ -188,4 +216,6 @@ There is no deployment. Before freeze, preparation documentation can be correcte
 
 ## Lessons Learned
 
-- Pending execution. Record any non-obvious operational or evidentiary finding immediately.
+- `codex login status` writes its success message to stderr in this environment. A pipe that checks stdout alone falsely fails the preflight even though the login command exits successfully; redirect both streams before matching the fixed status line.
+- The nested Codex OTLP/HTTP exporter that was only parser-qualified in ExecPlan 7 also completed the live deep condition and delivered one correlated trace. This is direct evidence for this frozen condition, not a stable public API or general delivery guarantee.
+- A valid G2 can preserve multiple bounded options. Here, continuing SDK-first and weakening trace-dependent claims are complementary rather than competing conclusions.
