@@ -17,6 +17,9 @@ function mustRedact(key: string, value: unknown): boolean {
 }
 
 export function sanitizeForPersistence(value: unknown, externalCodexHome?: string): unknown {
+  if (value === undefined) {
+    return null;
+  }
   if (typeof value === 'string') {
     return externalCodexHome === undefined ? value : value.replaceAll(externalCodexHome, '<EXTERNAL_CODEX_HOME>');
   }
@@ -25,10 +28,9 @@ export function sanitizeForPersistence(value: unknown, externalCodexHome?: strin
   }
   if (value !== null && typeof value === 'object') {
     return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).map(([key, item]) => [
-        key,
-        mustRedact(key, item) ? '<REDACTED>' : sanitizeForPersistence(item, externalCodexHome),
-      ]),
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, item]) => item !== undefined)
+        .map(([key, item]) => [key, mustRedact(key, item) ? '<REDACTED>' : sanitizeForPersistence(item, externalCodexHome)]),
     );
   }
   return value;

@@ -7,6 +7,7 @@
 - Hardened instrument commit: `60c024062df5aa1c1eadf08ced3de9e61bb7536f`
 - Requalified instrument: ExecPlan 3 based on `63e6dc1`; Gate 2 must bind its freeze to the resulting clean Gate 1 commit
 - Status: Gate 2 campaign `foundation-e0-e2-gate2-20260808` stopped at E1 with `g1: ERROR`; one live invocation was consumed and G2 was not produced.
+- Follow-up: [ExecPlan 4 — Harden Live Preflight and Error Projection](2026-08-08-harden-live-preflight-and-error-projection.md); this pointer does not modify or reopen the stopped campaign.
 
 This is the living execution record for the RFC 0001 E0–E2 scope. It implements only the smallest direct Promptfoo Node API harness needed to investigate authentication and observability. It does not authorize product architecture, E3, an App Server, an adapter, a Judge, a decision evaluation, copied V1 code, or any live invocation before separate Gate 2 authorization.
 

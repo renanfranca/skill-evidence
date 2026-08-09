@@ -1,11 +1,13 @@
-import { access, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { access, chmod, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { canonicalJson } from '../experiments/canonical.js';
 import { foundationConditions } from '../experiments/conditions.js';
 import { createInstrumentFreeze } from '../experiments/freeze.js';
+import { sanitizeForPersistence } from '../experiments/redaction.js';
 import { runLiveExperiment } from '../experiments/run.js';
 
 function resolvedLockfile(): string {
@@ -67,6 +69,97 @@ describe('live E1 orchestration', () => {
     expect(await readFile(join(root, 'campaigns', 'c1', 'e1-curated.json'), 'utf8')).not.toContain(externalCodexHome);
   });
 
+  it('canonically persists undefined Promptfoo fields while preserving the provider error and G1 ERROR', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-runner-provider-error-'));
+    const externalCodexHome = join(root, 'dedicated-login');
+    const manifestPath = join(root, 'package.json');
+    const lockfilePath = join(root, 'package-lock.json');
+    const providerError = 'failed to initialize the in-process app-server client';
+    await mkdir(externalCodexHome);
+    await writeFile(manifestPath, JSON.stringify({ dependencies: { '@openai/codex-sdk': '0.147.0', promptfoo: '0.122.0' } }));
+    await writeFile(lockfilePath, resolvedLockfile());
+    await createInstrumentFreeze({
+      artifactRoot: root,
+      campaignId: 'provider-error',
+      externalCodexHome,
+      lockfilePath,
+      manifestPath,
+      repositoryCommit: 'abc123',
+      scientificConfiguration: foundationConditions(),
+    });
+
+    const result = await runLiveExperiment({
+      artifactRoot: root,
+      campaignId: 'provider-error',
+      environment: {},
+      externalCodexHome,
+      kind: 'e1',
+      loadPromptfoo: () =>
+        Promise.resolve({
+          evaluate: () =>
+            Promise.resolve({
+              toEvaluateSummary: () =>
+                Promise.resolve({
+                  optional: undefined,
+                  results: [
+                    {
+                      optional: undefined,
+                      response: {
+                        diagnostics: [
+                          undefined,
+                          {
+                            apiKey: 'sensitive-key',
+                            reasoning: 'private chain',
+                            source: externalCodexHome,
+                            tokenUsage: { completionDetails: { reasoning: 7 } },
+                          },
+                        ],
+                        error: providerError,
+                        optional: undefined,
+                      },
+                    },
+                  ],
+                }),
+            }),
+        }),
+      lockfilePath,
+      manifestPath,
+      repositoryCommit: 'abc123',
+    });
+
+    const summaryText = await readFile(join(root, 'campaigns', 'provider-error', 'raw', 'e1-summary.json'), 'utf8');
+    const summary = JSON.parse(summaryText) as { results: Array<{ response: { diagnostics: unknown[]; error: string } }> };
+    const report = JSON.parse(await readFile(join(root, 'campaigns', 'provider-error', 'e1-curated.json'), 'utf8')) as {
+      g1: string;
+      providerError: string;
+    };
+    expect(summaryText).toBe(canonicalJson(summary) + '\n');
+    expect(summary).toEqual({
+      results: [
+        {
+          response: {
+            diagnostics: [
+              null,
+              {
+                apiKey: '<REDACTED>',
+                reasoning: '<REDACTED>',
+                source: '<EXTERNAL_CODEX_HOME>',
+                tokenUsage: { completionDetails: { reasoning: 7 } },
+              },
+            ],
+            error: providerError,
+          },
+        },
+      ],
+    });
+    expect(result).toMatchObject({ status: 'ERROR' });
+    expect(report).toMatchObject({ g1: 'ERROR', providerError });
+    expect(summaryText).not.toContain('sensitive-key');
+    expect(summaryText).not.toContain('private chain');
+    expect(summaryText).not.toContain(externalCodexHome);
+    expect(sanitizeForPersistence(undefined)).toBeNull();
+  });
+
   it('fails closed on a forbidden host key before spending the E1 invocation budget', async () => {
     const root = await mkdtemp(join(tmpdir(), 'skill-evidence-runner-key-'));
     const externalCodexHome = join(root, 'dedicated-login');
@@ -105,6 +198,60 @@ describe('live E1 orchestration', () => {
 
     expect(loads).toBe(0);
     await expect(readFile(join(root, 'campaigns', 'c2', 'budget-ledger.json'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('rejects a non-writable external CODEX_HOME before loading Promptfoo or reserving budget', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-runner-read-only-'));
+    const externalCodexHome = join(root, 'dedicated-login');
+    const manifestPath = join(root, 'package.json');
+    const lockfilePath = join(root, 'package-lock.json');
+    await mkdir(externalCodexHome);
+    await writeFile(manifestPath, JSON.stringify({ dependencies: { '@openai/codex-sdk': '0.147.0', promptfoo: '0.122.0' } }));
+    await writeFile(lockfilePath, resolvedLockfile());
+    await createInstrumentFreeze({
+      artifactRoot: root,
+      campaignId: 'read-only-home',
+      externalCodexHome,
+      lockfilePath,
+      manifestPath,
+      repositoryCommit: 'abc123',
+      scientificConfiguration: foundationConditions(),
+    });
+    let loads = 0;
+    await chmod(externalCodexHome, 0o500);
+
+    try {
+      const rejection = await runLiveExperiment({
+        artifactRoot: root,
+        campaignId: 'read-only-home',
+        environment: {},
+        externalCodexHome,
+        kind: 'e1',
+        loadPromptfoo: () => {
+          loads += 1;
+          return Promise.reject(new Error('must not load'));
+        },
+        lockfilePath,
+        manifestPath,
+        repositoryCommit: 'abc123',
+      }).then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+
+      expect(rejection).toBeInstanceOf(Error);
+      expect((rejection as Error).message).toBe('external CODEX_HOME is not writable: read-only filesystem or insufficient permissions');
+      expect((rejection as Error).message).not.toContain(externalCodexHome);
+      expect(loads).toBe(0);
+      await expect(readFile(join(root, 'campaigns', 'read-only-home', 'reservations', 'e1.json'), 'utf8')).rejects.toMatchObject({
+        code: 'ENOENT',
+      });
+      await expect(readFile(join(root, 'campaigns', 'read-only-home', 'budget-ledger.json'), 'utf8')).rejects.toMatchObject({
+        code: 'ENOENT',
+      });
+    } finally {
+      await chmod(externalCodexHome, 0o700);
+    }
   });
 
   it('refuses the deep invocation before loading a provider when the baseline canary is absent', async () => {

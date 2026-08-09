@@ -1,3 +1,4 @@
+import { constants } from 'node:fs';
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
@@ -65,7 +66,11 @@ async function assertExternalCodexHome(path: string): Promise<string> {
   if (path.trim().length === 0) {
     throw new Error('SKILL_EVIDENCE_EXPERIMENT_CODEX_HOME must name a dedicated logged-in CODEX_HOME');
   }
-  await access(path);
+  try {
+    await access(path, constants.W_OK);
+  } catch {
+    throw new Error('external CODEX_HOME is not writable: read-only filesystem or insufficient permissions');
+  }
   return (await codexHomeDirectoryIdentity(path)).canonicalPath;
 }
 
