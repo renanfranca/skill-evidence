@@ -5,7 +5,8 @@
 - THEORY consulted in full: commit [`572e963ea6f1207ab53c533592cb70a8239e221c`](https://github.com/renanfranca/skill-evaluation-theory/blob/572e963ea6f1207ab53c533592cb70a8239e221c/THEORY.md)
 - Planning baseline: `a0dd21d998dff438fd7ccd55bf8b5f0fafe159a4`
 - Campaign ID: `foundation-e0-e2-gate2-20260809-r3`
-- Status: authorized; preparation validated and ready to commit
+- Preparation commit: `d0fbf31` (`docs: authorize corrected Gate 2 campaign`)
+- Status: preparation committed; operational preflight passed and freeze pending
 
 This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mitigations`, and `Lessons Learned` current while execution advances.
 
@@ -69,7 +70,7 @@ Stop before cost unless every operational precondition holds, then bind one new 
 
 #### Changes
 
-Use the operator-designated dedicated logged-in `CODEX_HOME` only in the command environment. Confirm it is writable, its directory identity is stable, `codex login status` reports a ChatGPT login, the worktree is clean and aligned with origin, forbidden API-key variables are absent, and no `r3` campaign directory exists. Run `npm run experiment:freeze -- --campaign foundation-e0-e2-gate2-20260809-r3` once.
+Use the operator-designated dedicated logged-in `CODEX_HOME` only in the command environment. Confirm it is writable, its directory identity is stable, `codex login status` reports a ChatGPT login, the worktree is clean, forbidden API-key variables are absent, and no `r3` campaign directory exists. The preparation commit may be ahead of origin because pushes are out of scope; freeze the exact local commit. Run `npm run experiment:freeze -- --campaign foundation-e0-e2-gate2-20260809-r3` once.
 
 Inspect only the canonical freeze projection. Record its commit and scientific digest; confirm schema 3, Promptfoo `0.122.0`, Codex SDK/CLI `0.147.0`, the qualified nested OTLP/HTTP configuration, no path or credential leakage, and no reservation or ledger before E1.
 
@@ -130,8 +131,9 @@ The tracked record distinguishes direct observations, configuration inferences, 
 - [x] Confirm the planning baseline is clean, aligned with origin, offline-provider-free, `EXACT_SUPPORTED` for Codex OTEL parsing, and green with 48 tests.
 - [x] Milestone 1 started: create the living campaign protocol.
 - [x] Complete Milestone 1 validation: audit zero, 48 tests, offline provider imports zero, both qualifiers `EXACT_SUPPORTED`, loopback tracing passed, formatting and diff checks passed, and historical digests matched.
-- [ ] Create the Milestone 1 preparation commit.
-- [ ] Complete Milestone 2 preflight and freeze.
+- [x] Create the Milestone 1 preparation commit at `d0fbf31`.
+- [x] Start Milestone 2: confirm two writable ChatGPT-authenticated Codex homes, select the previously designated external home, confirm forbidden API keys absent, worktree clean, and campaign `r3` absent without reading credentials.
+- [ ] Create and validate the Milestone 2 freeze.
 - [ ] Complete Milestone 3 conditional live sequence and reporting.
 - [ ] Complete Milestone 4 reconciliation, final validation, and result commit.
 
@@ -147,6 +149,14 @@ The tracked record distinguishes direct observations, configuration inferences, 
 
 - Decision: keep the exact path and credential content of the designated Codex home outside tracked and rendered evidence.
   Rationale: only writability, login status, and one-way directory identity are required for the experiment boundary.
+  Date/Author: 2026-08-09 / implementation agent
+
+- Decision: reuse the previously designated external Codex home rather than the Linux default; do not persist either path.
+  Rationale: both candidates are writable and report a ChatGPT login, while continuity with the prior operator designation minimizes an unplanned environment change. Principal continuity remains unproven.
+  Date/Author: 2026-08-09 / implementation agent
+
+- Decision: permit the clean preparation commit to remain ahead of origin and freeze its exact local identity.
+  Rationale: pushing is explicitly out of scope, while the harness requires a clean exact commit rather than remote publication.
   Date/Author: 2026-08-09 / implementation agent
 
 - Decision: stop and require a separate ExecPlan if a new instrument defect appears.
