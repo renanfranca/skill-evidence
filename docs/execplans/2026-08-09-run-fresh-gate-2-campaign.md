@@ -5,7 +5,8 @@
 - THEORY consulted in full: commit [`572e963ea6f1207ab53c533592cb70a8239e221c`](https://github.com/renanfranca/skill-evaluation-theory/blob/572e963ea6f1207ab53c533592cb70a8239e221c/THEORY.md)
 - Planning baseline: `0055bb5c10895aaa8862b985e77106a754eddf9f`
 - Campaign ID: `foundation-e0-e2-gate2-20260809-r2`
-- Status: Gate 1 preparation; no provider invocation reserved
+- Preparation commit: `f690f92` (`docs: authorize fresh Gate 2 campaign`)
+- Status: Gate 1 qualified and ready to freeze; no provider invocation reserved
 
 This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mitigations`, and `Lessons Learned` current while execution advances.
 
@@ -132,7 +133,7 @@ The committed record distinguishes observed facts, configuration inference, miss
 - [x] Verify the proposed external login is host-writable and reports a ChatGPT login without reading credential content.
 - [x] Milestone 1 started: create the living plan and reconcile prior plan statuses.
 - [x] Milestone 1 validation complete: audit zero, 45 tests, offline provider imports zero, local `EXACT_SUPPORTED`, and tracing checkpoint passed.
-- [ ] Milestone 1 documentation commit created and worktree clean.
+- [x] Milestone 1 documentation committed at `f690f92`; the living readiness update will be committed before freeze.
 - [ ] Milestone 2 freeze created on the exact committed revision.
 - [ ] Milestone 2 E1 executed and G1 recorded.
 - [ ] Milestone 3 conditional E2 sequence completed or stopped at its first failed gate.
