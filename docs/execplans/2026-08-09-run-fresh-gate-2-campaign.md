@@ -6,7 +6,9 @@
 - Planning baseline: `0055bb5c10895aaa8862b985e77106a754eddf9f`
 - Campaign ID: `foundation-e0-e2-gate2-20260809-r2`
 - Preparation commit: `f690f92` (`docs: authorize fresh Gate 2 campaign`)
-- Status: Gate 1 qualified and ready to freeze; no provider invocation reserved
+- Frozen revision: `6cb75e8b7765c3c7019f08496a9555d383a7d3fc`
+- Scientific configuration digest: `619ecfe10f997814259bc3d13d6a8ba625019ee0ed8778a554c25d659b14e658`
+- Status: complete; E1 and baseline E2 passed, deep E2 ended `ERROR`, and the emitted G2 is not decision-eligible
 
 This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mitigations`, and `Lessons Learned` current while execution advances.
 
@@ -28,7 +30,7 @@ Out of scope: retries, reuse or modification of any earlier freeze or campaign, 
 
 **E1** is the one-call authentication and requested-condition check whose only accepted response is `E1_AUTH_OK`. **G1** is `PASS` only when E1 returns that exact response without a provider error. **E2 baseline** is the normal tracing condition with a mechanical workspace canary. **E2 deep** adds Codex deep tracing and requires a valid baseline canary. **G2** is the bounded capability recommendation derived only after both E2 conditions run. **Freeze** is the ignored canonical record binding the campaign to one Git commit, manifest, lockfile, dependency versions, scientific configuration, and login-directory identity. **Reservation** is the exclusive ignored record proving that a provider invocation started and cannot be retried.
 
-The designated external `CODEX_HOME` is `/home/renanfranca/.codex`. It is named here because the operator supplied it explicitly; no credential content or file below that directory may be inspected or persisted. The harness records only a one-way device/inode identity digest and sanitizes the path from evidence.
+The designated external `CODEX_HOME` is represented as `<OPERATOR_DESIGNATED_CODEX_HOME>`. Its real path is local operator state and must not be persisted; no credential content or file below that directory may be inspected. The harness records only a one-way device/inode identity digest and sanitizes the path from evidence.
 
 ## Existing Context
 
@@ -43,6 +45,18 @@ The preparation documentation is committed before the freeze, and the freeze bin
 If both E2 conditions run, `experiment:report` creates four sanitized files below `docs/experiments/`: the E1 result, capability matrix, G2 recommendation, and ownership matrix. If evidence is incomplete, no interface-incompatible partial report is created. The final ExecPlan records the exact freeze, configuration digest, reservations, outcomes, limitations, validations, and stopping decision; ignored raw artifacts remain local.
 
 No public TypeScript API, CLI command, schema, scientific condition, threshold, model, retry setting, or direct dependency version changes.
+
+## Campaign Result
+
+The freeze bound schema 3 to clean commit `6cb75e8b7765c3c7019f08496a9555d383a7d3fc`, Promptfoo `0.122.0`, Codex SDK and CLI `0.147.0`, and scientific configuration digest `619ecfe10f997814259bc3d13d6a8ba625019ee0ed8778a554c25d659b14e658`. Its leakage check found no external login path, credential key, or `auth.json` reference. No reservation existed before E1.
+
+E1 returned exact `E1_AUTH_OK` without a provider error, so G1 passed. Promptfoo logged a failed E1 trace-store query under the non-persisted condition, but the sanitized summary and curated G1 evidence remained complete. Baseline E2 then returned `E2_CANARY_OK`; its provider status was `SUCCESS`, and the four expected filesystem effects were observed byte-exactly. Its trace receiver also reported observations, but baseline trace rows remain unrequested and insufficient by design.
+
+Deep E2 consumed the third and final authorized reservation, then Codex Exec rejected the requested OTEL configuration before the canary ran: `Error loading config.toml: invalid type: unit variant, expected struct variant` at `otel.exporter`. The sanitized deep report therefore has provider `ERROR`, response `null`, canary `ERROR`, no filesystem effects, and trace observations from the failed execution. No retry occurred.
+
+Because both E2 commands ran and all required raw and curated inputs existed, the existing report command emitted the complete four-file public set. The capability matrix contains 24 rows and correctly marks deep final response, token usage, session, workspace mutation, file operations, ordering, and recovery as `INSUFFICIENT`; it also records the provider error and several trace signals as observed. The emitted G2 nevertheless offers `CONTINUE_WITH_CODEX_SDK` and `WEAKEN_SUPPORTED_CLAIMS` because `recommendG2()` accepts a final response from either condition and handles `INVALID_CANARY` but not deep canary `ERROR` as a mandatory stop.
+
+That G2 output is preserved as evaluator evidence but is not eligible for an architecture decision. The operational conclusion is to stop and separately harden the G2 gate and qualify the exact Codex OTEL configuration before any new campaign. Historical evidence and all three reservations remain immutable.
 
 ## Milestones
 
@@ -74,7 +88,7 @@ Prove preconditions before cost, freeze the clean committed instrument once, and
 
 #### Changes
 
-Outside the restricted sandbox, export `SKILL_EVIDENCE_EXPERIMENT_CODEX_HOME=/home/renanfranca/.codex` only for the command process. Confirm host-level `W_OK`, stable directory identity, ChatGPT login status, clean Git state, absence of `OPENAI_API_KEY` and `CODEX_API_KEY`, and absence of the campaign directory. Do not inspect credential files.
+Outside the restricted sandbox, export `SKILL_EVIDENCE_EXPERIMENT_CODEX_HOME=<OPERATOR_DESIGNATED_CODEX_HOME>` only for the command process. Confirm host-level `W_OK`, stable directory identity, ChatGPT login status, clean Git state, absence of `OPENAI_API_KEY` and `CODEX_API_KEY`, and absence of the campaign directory. Do not inspect credential files.
 
 Run `npm run experiment:freeze -- --campaign foundation-e0-e2-gate2-20260809-r2`, inspect the canonical ignored freeze for expected commit and version fields, then run `npm run experiment:e1 -- --campaign foundation-e0-e2-gate2-20260809-r2` exactly once. Inspect the sanitized curated E1 artifact mechanically.
 
@@ -134,11 +148,11 @@ The committed record distinguishes observed facts, configuration inference, miss
 - [x] Milestone 1 started: create the living plan and reconcile prior plan statuses.
 - [x] Milestone 1 validation complete: audit zero, 45 tests, offline provider imports zero, local `EXACT_SUPPORTED`, and tracing checkpoint passed.
 - [x] Milestone 1 documentation committed at `f690f92`; the living readiness update will be committed before freeze.
-- [ ] Milestone 2 freeze created on the exact committed revision.
-- [ ] Milestone 2 E1 executed and G1 recorded.
-- [ ] Milestone 3 conditional E2 sequence completed or stopped at its first failed gate.
-- [ ] Milestone 3 complete reports and G2 generated when eligible.
-- [ ] Milestone 4 final record validated and committed.
+- [x] Milestone 2 freeze created on clean commit `6cb75e8b7765c3c7019f08496a9555d383a7d3fc`.
+- [x] Milestone 2 E1 executed once; exact `E1_AUTH_OK` produced G1 `PASS`.
+- [x] Milestone 3 executed baseline once with canary `PASS`, then deep once with provider and canary `ERROR`; all three authorized reservations are consumed.
+- [x] Milestone 3 generated the complete four-report set and classified its G2 output as not decision-eligible because it conflicts with the failed deep gate.
+- [x] Milestone 4 final record and four public reports validated; their dedicated Git commit is the canonical completion marker.
 
 ## Decisions
 
@@ -150,13 +164,17 @@ The committed record distinguishes observed facts, configuration inference, miss
   Rationale: G1 and the baseline canary are stopping gates; consuming later calls after failure would violate the prespecified design.
   Date/Author: 2026-08-09 / operator
 
-- Decision: designate `/home/renanfranca/.codex` as the external experiment login and run live commands outside the restricted sandbox.
+- Decision: use the operator-designated external experiment login and run live commands outside the restricted sandbox without recording its real path.
   Rationale: the sandbox returns `EROFS`, while the host-level `W_OK` check passes and the Codex CLI reports a ChatGPT login. The harness still cannot establish authenticated-principal continuity.
   Date/Author: 2026-08-09 / operator and planning agent
 
 - Decision: commit preparation documentation before freeze and commit results separately afterward.
   Rationale: the freeze requires a clean commit, while the living result record can only be completed after observation.
   Date/Author: 2026-08-09 / planning agent
+
+- Decision: preserve the generated G2 file but prohibit using its options as the campaign decision.
+  Rationale: direct evidence shows the deep provider and canary failed, while the current recommendation logic does not treat canary `ERROR` as a stop and uses a baseline final response to satisfy its cross-condition check. THEORY prohibits an evaluator output from overriding direct critical evidence.
+  Date/Author: 2026-08-09 / implementation agent
 
 ## Risks and Mitigations
 
@@ -167,6 +185,7 @@ The committed record distinguishes observed facts, configuration inference, miss
 - Risk: raw artifacts disclose sensitive content. Mitigation: keep `.skill-evidence/` ignored, inspect only sanitized projections, run leakage checks, and stage files explicitly.
 - Risk: dependency or worktree drift invalidates comparability. Mitigation: validate before freeze and require the freeze comparison before every invocation.
 - Risk: the report's recommendation is mistaken for authority. Mitigation: G2 may only name bounded options; follow-up work requires a separate plan and authorization.
+- Risk: the generated G2 obscures an invalid deep condition. Mitigation: retain the artifact as observed evaluator output, mark it not decision-eligible in the canonical campaign record, and require a separate behavior-led correction before another campaign.
 
 ## Validation Strategy
 
@@ -192,3 +211,7 @@ Ignored campaign artifacts must remain preserved locally for audit. The final tr
 - A broad three-call authorization remains safe only when represented as three exclusive, ordered reservations with mandatory stopping gates.
 - The first sandboxed `npm ci` emitted its normal deprecation warnings but failed in npm's exit handler because it could not write `~/.npm/_logs`. After full host access was granted, `env TMPDIR=/tmp npm ci` reproduced the lockfile successfully, installed 848 packages, and reported zero vulnerabilities.
 - Milestone 1 validation on 2026-08-09 reported zero audit findings across 967 dependencies, exactly 45 passing tests in 14 files, passing typecheck, lint, build, formatting, and diff checks, and offline verification with provider imports `0`. The deterministic qualifier returned `EXACT_SUPPORTED` with two supported exact repetitions and two unsupported non-persisted comparisons; the loopback-only tracing checkpoint passed runtime, typed, and integration checks.
+- A tracked living-plan update cannot be committed between live gates because every invocation requires both a clean worktree and the exact repository commit recorded by the freeze. Results therefore remained in ignored canonical campaign artifacts during the E1-to-E2 sequence and were reconciled immediately after the sequence stopped.
+- The E1 and baseline gates demonstrated that the dedicated ChatGPT login and mechanical canary work under the frozen condition. Deep failed earlier, at Codex configuration parsing, so it supplies no evidence about deep canary behavior or usable deep observability.
+- `recommendG2()` can produce a favorable option after deep provider failure because it does not require the deep canary to pass and its final-response check spans both conditions. This is a newly observed evaluator failure mode, not evidence supporting either option.
+- Final reconciliation validated exactly four canonical public JSON reports with no external home path, credential key, `auth.json`, or raw-reasoning marker. Typecheck, lint, Prettier, build, and diff checks passed; Vitest again reported exactly 45 passing tests in 14 files, and offline verification again reported provider imports `0`. No live command was rerun during validation.
