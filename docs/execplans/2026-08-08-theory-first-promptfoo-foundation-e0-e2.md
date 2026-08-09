@@ -6,7 +6,7 @@
 - Foundation commit: `b1d087898e18c3929d024e47bd52ef2331781cae`
 - Hardened instrument commit: `60c024062df5aa1c1eadf08ced3de9e61bb7536f`
 - Requalified instrument: ExecPlan 3 based on `63e6dc1`; Gate 2 must bind its freeze to the resulting clean Gate 1 commit
-- Status: Gate 1 complete with `EXACT_SUPPORTED`; Gate 2 remains unauthorized and no live call has occurred.
+- Status: Gate 2 campaign `foundation-e0-e2-gate2-20260808` stopped at E1 with `g1: ERROR`; one live invocation was consumed and G2 was not produced.
 
 This is the living execution record for the RFC 0001 E0–E2 scope. It implements only the smallest direct Promptfoo Node API harness needed to investigate authentication and observability. It does not authorize product architecture, E3, an App Server, an adapter, a Judge, a decision evaluation, copied V1 code, or any live invocation before separate Gate 2 authorization.
 
@@ -49,11 +49,21 @@ Capability rows use signal-specific evidence. Trace-dependent facts are never `N
 - [x] Receive `ALTERNATIVE_SUPPORTED` from ExecPlan 2: the exact condition remained unsupported and the persisted condition is only a future candidate.
 - [x] Complete ExecPlan 3 Gate 1: version the promoted E2 condition, invalidate earlier freezes, and requalify it as `EXACT_SUPPORTED` with two fresh-process repetitions.
 - [x] Pass the exact E2 loopback tracing checkpoint without credentials, external provider, or model invocation.
-- [ ] Obtain separate operator authorization for E1 after qualification and review.
-- [ ] Create an instrument freeze with the operator's dedicated external login path.
-- [ ] Execute the one E1 invocation and record G1.
-- [ ] Execute baseline E2 and deep E2 only after their preceding gates.
-- [ ] Commit curated reports only after verifying their bounded, sanitized contents.
+- [x] Obtain separate operator authorization for up to one E1, one baseline E2, and one deep E2 invocation.
+- [x] Create the exclusive campaign freeze at clean commit `1fb8803` with scientific configuration digest `619ecfe10f997814259bc3d13d6a8ba625019ee0ed8778a554c25d659b14e658`.
+- [x] Execute the one E1 invocation and observe `g1: ERROR` with no response and a provider error.
+- [x] Stop before baseline E2 because G1 did not pass; deep E2 and G2 therefore remain unobserved.
+- [x] Preserve the ignored campaign artifacts and do not generate interface-incompatible partial reports.
+
+## Gate 2 campaign record
+
+Campaign `foundation-e0-e2-gate2-20260808` froze schema 3 at repository commit `1fb8803fe014fed9c83a012bbb3e17271f63eb40`. The freeze records Promptfoo `0.122.0`, Codex SDK and CLI `0.147.0`, and scientific configuration digest `619ecfe10f997814259bc3d13d6a8ba625019ee0ed8778a554c25d659b14e658`. Before the freeze, the branch was clean, `codex login status` reported a ChatGPT login, forbidden host API keys were absent, and the offline checkpoint passed with zero provider imports.
+
+The only live reservation was E1 attempt 1 at `2026-08-09T01:53:25.523Z`. Promptfoo started one test case, but Codex Exec exited before returning `E1_AUTH_OK`; the operator-visible error reported failure to initialize the in-process app-server client because of a read-only filesystem. The curated E1 artifact declares `g1: ERROR`, `response: null`, and `providerError: "cannot canonically serialize undefined"`. That mismatch limits diagnosis: the curated projection preserves the gate outcome but not the operator-visible causal error. It is an instrument or execution-environment defect for separately authorized development, not a reason to retry or adapt this frozen campaign.
+
+The campaign consumed one of the authorized maximum of three live invocations. Baseline E2, deep E2, and G2 were not run. No four-report set was generated because the existing report interface requires E2 evidence and partial substitutes are prohibited. Mechanical inspection confirmed the six ignored campaign JSON artifacts are canonical and contain no real external `CODEX_HOME` path, credential-like value, `auth.json` reference, or raw reasoning field.
+
+Result: G1 is `ERROR`; G2 and its recommendation are unavailable. The bounded operational recommendation is to stop this campaign and reassess the read-only app-server initialization and provider-error projection as separate development before seeking authorization for any new campaign.
 
 ## Decisions
 
@@ -63,6 +73,7 @@ Capability rows use signal-specific evidence. Trace-dependent facts are never `N
 - ExecPlan 3 prospectively supersedes the E2 portion of that condition with versioned `writeLatestResults=true`, while preserving E1 at `false`; schema-2 freezes are incompatible and cannot be reused.
 - The hardening history is preserved as a closed record instead of being mixed into this RFC-scoped plan.
 - E1 remains blocked regardless of a capability result until a later plan and explicit authorization change the frozen scientific configuration, if required.
+- Campaign `foundation-e0-e2-gate2-20260808` is immutable and terminated after its failed E1 gate; it cannot be retried or extended.
 
 ## Risks and mitigations
 
@@ -71,13 +82,15 @@ Capability rows use signal-specific evidence. Trace-dependent facts are never `N
 - The external login path is sanitized before any persisted projection.
 - Missing observation is never promoted to observed absence.
 - Local persistence is distinct from sharing: all suites retain `sharing=false`, and every Promptfoo database remains temporary and isolated.
-- The qualified instrument still requires a new clean-commit campaign and freeze plus separate Gate 2 authorization before E1.
+- The failed E1 reservation and all associated raw and curated artifacts remain ignored and preserved below `.skill-evidence/`.
+- Any correction to app-server initialization or provider-error projection requires separate development and cannot modify this campaign's evidence.
 
 ## Lessons learned
 
 - Typed presence, runtime presence, stable documentation, and operational integration are separate facts.
 - Scientific configuration must not be changed adaptively after evidence is observed.
 - The local deterministic provider can qualify only the bounded Promptfoo tracing lifecycle, not Codex deep tracing, authenticated-account continuity, zero egress, or live readiness.
+- A provider failure can expose a second projection defect; the gate outcome remains usable while causal diagnosis must stay explicitly limited.
 
 ## Validation
 
