@@ -1,5 +1,10 @@
+import { mkdir, mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
+import { runArchaeologicalConformance } from '../experiments/archaeological.js';
 import { canonicalJson } from '../experiments/canonical.js';
 import {
   codexOtelQualificationConditions,
@@ -8,6 +13,11 @@ import {
   type CodexOtelQualificationAttempt,
   type CodexOtelWorkerRequest,
 } from '../experiments/qualify-codex-otel.js';
+import {
+  qualifyArchaeologicalRegressions,
+  renderArchaeologicalQualification,
+  type ArchaeologicalWorkerEvidence,
+} from '../experiments/qualify-archaeological.js';
 import {
   classifyTracingAttempts,
   qualifyPromptfooTracing,
@@ -41,6 +51,176 @@ function attempt(
 describe('exact-condition tracing checkpoint', () => {
   it('uses the frozen live persistence setting', () => {
     expect(tracingGateWriteLatestResults).toBe(true);
+  });
+});
+
+describe('archaeological regression qualification', () => {
+  it('delegates executable-path and external-write classification to Promptfoo assertions', async () => {
+    const report = await qualifyArchaeologicalRegressions(() => runArchaeologicalConformance());
+
+    expect(report.promptfooVersion).toBe('0.122.0');
+    expect(report.rules).toContainEqual({
+      id: 'R1',
+      observations: [
+        { actual: 'PASS', expected: 'PASS', id: 'absolute-executable-path' },
+        { actual: 'FAIL', expected: 'FAIL', id: 'external-write-target' },
+      ],
+      owner: 'PROMPTFOO_ASSERTION',
+    });
+  });
+
+  it('delegates semantic equivalence and its invalid contrast to a Promptfoo grader', async () => {
+    const report = await qualifyArchaeologicalRegressions(() => runArchaeologicalConformance());
+
+    expect(report.rules).toContainEqual({
+      id: 'R3',
+      observations: [
+        { actual: 'PASS', expected: 'PASS', id: 'equivalent-no-refactor-conclusion' },
+        { actual: 'FAIL', expected: 'FAIL', id: 'unsupported-refactor-conclusion' },
+      ],
+      owner: 'PROMPTFOO_GRADER',
+    });
+  });
+
+  it('lets Promptfoo scoring keep a direct critical violation authoritative over favorable judgment', async () => {
+    const report = await qualifyArchaeologicalRegressions(() => runArchaeologicalConformance());
+
+    expect(report.rules).toContainEqual({
+      id: 'R6',
+      observations: [
+        { actual: 'FAIL', expected: 'FAIL', id: 'critical-violation-overrides-favorable-judge' },
+        { actual: 'PASS', expected: 'PASS', id: 'favorable-judge-without-critical-violation' },
+      ],
+      owner: 'PROMPTFOO_SCORING',
+    });
+  });
+
+  it('blocks known unavailable evidence and preserves a late unknown event as inconclusive', async () => {
+    const report = await qualifyArchaeologicalRegressions(() => runArchaeologicalConformance());
+
+    expect(report.rules).toContainEqual({
+      id: 'R2',
+      observations: [
+        { actual: 'BLOCKED', expected: 'BLOCKED', id: 'known-unavailable-critical-evidence' },
+        { actual: 'INCONCLUSIVE', expected: 'INCONCLUSIVE', id: 'late-relevant-unknown-event' },
+        { actual: 'BLOCKED', expected: 'BLOCKED', id: 'missing-disposition-metadata' },
+      ],
+      owner: ['SKILL_EVIDENCE_PREFLIGHT', 'SKILL_EVIDENCE_NORMALIZATION'],
+    });
+  });
+
+  it('sends Promptfoo graders only opaque expectation-blind qualification packets', async () => {
+    const report = await qualifyArchaeologicalRegressions(() => runArchaeologicalConformance());
+
+    expect(report.rules).toContainEqual({
+      id: 'R4',
+      observations: [
+        { actual: 'PASS', expected: 'PASS', id: 'opaque-observable-digest' },
+        { actual: 'FAIL', expected: 'FAIL', id: 'label-derived-identifier' },
+      ],
+      owner: 'SKILL_EVIDENCE_INPUT_PROJECTION',
+    });
+    expect(report.graderCalls).toBe(3);
+  });
+
+  it('keeps missing required evidence from invoking a grader or becoming a pass', async () => {
+    const report = await qualifyArchaeologicalRegressions(() => runArchaeologicalConformance());
+
+    expect(report.rules).toContainEqual({
+      id: 'R5',
+      observations: [
+        { actual: 'BLOCKED', expected: 'BLOCKED', id: 'known-missing-required-evidence' },
+        { actual: 'INCONCLUSIVE', expected: 'INCONCLUSIVE', id: 'late-missing-required-evidence' },
+      ],
+      owner: ['SKILL_EVIDENCE_PREFLIGHT', 'SKILL_EVIDENCE_NORMALIZATION'],
+    });
+    expect(report.graderCalls).toBe(3);
+  });
+
+  it('renders a complete canonical development report without evaluator-private data', async () => {
+    const report = await qualifyArchaeologicalRegressions(() => runArchaeologicalConformance());
+    const rendered = renderArchaeologicalQualification(report);
+
+    expect(report).toMatchObject({
+      executionProviderCalls: 10,
+      graderCalls: 3,
+      promptfooVersion: '0.122.0',
+      purpose: 'DEVELOPMENT',
+      result: 'SUPPORTED_WITH_THIN_CONTROL_PLANE',
+      schemaVersion: 1,
+    });
+    expect(report.rules.map((rule) => rule.id)).toEqual(['R1', 'R2', 'R3', 'R4', 'R5', 'R6']);
+    expect(rendered).toBe(canonicalJson(report) + '\n');
+    expect(rendered).not.toMatch(/\/tmp\/|processId|known-valid|expectedstatus/i);
+  });
+
+  it('blocks an apparently successful report with duplicated rule evidence', async () => {
+    const evidence = await runArchaeologicalConformance();
+    const duplicated = { ...evidence, rules: [...evidence.rules.slice(0, 5), evidence.rules[0]!] };
+
+    const report = await qualifyArchaeologicalRegressions(() => Promise.resolve(duplicated));
+
+    expect(report.result).toBe('BLOCKED');
+  });
+
+  it('reports insufficient conformance when well-formed evidence misses a prespecified disposition', async () => {
+    const evidence = await runArchaeologicalConformance();
+    const firstRule = evidence.rules[0]!;
+    const firstObservation = firstRule.observations[0]!;
+    const mismatched = {
+      ...evidence,
+      rules: [
+        {
+          ...firstRule,
+          observations: [{ ...firstObservation, actual: 'FAIL' as const }, ...firstRule.observations.slice(1)],
+        },
+        ...evidence.rules.slice(1),
+      ],
+    };
+
+    const report = await qualifyArchaeologicalRegressions(() => Promise.resolve(mismatched));
+
+    expect(report.result).toBe('INSUFFICIENT');
+  });
+
+  it('rejects a fixture manifest that duplicates an otherwise complete rule', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-archaeological-'));
+    const fixtureDirectory = join(root, 'evaluations', 'refactor-design', 'archaeological');
+    const fixture = JSON.parse(
+      await readFile(join(process.cwd(), 'evaluations', 'refactor-design', 'archaeological', 'cases.json'), 'utf8'),
+    ) as { rules: unknown[]; schemaVersion: 1 };
+    await mkdir(fixtureDirectory, { recursive: true });
+    await symlink(join(process.cwd(), 'node_modules'), join(root, 'node_modules'));
+    await writeFile(
+      join(fixtureDirectory, 'cases.json'),
+      JSON.stringify({ ...fixture, rules: [...fixture.rules, fixture.rules[0]] }),
+      'utf8',
+    );
+
+    await expect(runArchaeologicalConformance(root)).rejects.toThrow('archaeological fixture manifest is invalid');
+  });
+
+  it('blocks malformed worker evidence instead of throwing during classification', async () => {
+    const malformed = {
+      executionProviderCalls: 9,
+      graderCalls: 3,
+      promptfooVersion: '0.122.0',
+      rules: [null, null, null, null, null, null],
+    } as unknown as ArchaeologicalWorkerEvidence;
+
+    const report = await qualifyArchaeologicalRegressions(() => Promise.resolve(malformed));
+
+    expect(report.result).toBe('BLOCKED');
+  });
+
+  it('blocks favorable rows whose provider call counts contradict the fixed corpus', async () => {
+    const evidence = await runArchaeologicalConformance();
+
+    const report = await qualifyArchaeologicalRegressions(() =>
+      Promise.resolve({ ...evidence, executionProviderCalls: 0, graderCalls: 0 }),
+    );
+
+    expect(report.result).toBe('BLOCKED');
   });
 });
 

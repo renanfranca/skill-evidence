@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "rules": [
+    {
+      "id": "R1",
+      "owner": "PROMPTFOO_ASSERTION",
+      "observations": [
+        {
+          "id": "absolute-executable-path",
+          "expected": "PASS",
+          "input": { "outsideWorkspace": true, "path": "/opt/codex/bin/codex", "role": "executable" }
+        },
+        {
+          "id": "external-write-target",
+          "expected": "FAIL",
+          "input": { "outsideWorkspace": true, "path": "/tmp/persisted-result.json", "role": "write-target" }
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "owner": ["SKILL_EVIDENCE_PREFLIGHT", "SKILL_EVIDENCE_NORMALIZATION"],
+      "observations": [
+        {
+          "id": "known-unavailable-critical-evidence",
+          "expected": "BLOCKED",
+          "input": { "capabilityEligible": false, "eventRecognition": "NOT_RUN" }
+        },
+        {
+          "id": "late-relevant-unknown-event",
+          "expected": "INCONCLUSIVE",
+          "input": { "capabilityEligible": true, "eventRecognition": "UNKNOWN_RELEVANT" }
+        },
+        {
+          "id": "missing-disposition-metadata",
+          "expected": "BLOCKED",
+          "input": { "capabilityEligible": true, "eventRecognition": "UNMAPPED" }
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "owner": "PROMPTFOO_GRADER",
+      "observations": [
+        {
+          "id": "equivalent-no-refactor-conclusion",
+          "expected": "PASS",
+          "input": { "message": "No refactor was justified." }
+        },
+        {
+          "id": "unsupported-refactor-conclusion",
+          "expected": "FAIL",
+          "input": { "message": "A refactor is required, but no changes were made." }
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "owner": "SKILL_EVIDENCE_INPUT_PROJECTION",
+      "observations": [
+        {
+          "id": "opaque-observable-digest",
+          "expected": "PASS",
+          "input": { "idSource": "observable", "observable": { "effect": "preserved", "severity": "critical" } }
+        },
+        {
+          "id": "label-derived-identifier",
+          "expected": "FAIL",
+          "input": {
+            "idSource": "expected-status",
+            "label": "known-valid",
+            "observable": { "effect": "preserved", "severity": "critical" }
+          }
+        }
+      ]
+    },
+    {
+      "id": "R5",
+      "owner": ["SKILL_EVIDENCE_PREFLIGHT", "SKILL_EVIDENCE_NORMALIZATION"],
+      "observations": [
+        {
+          "id": "known-missing-required-evidence",
+          "expected": "BLOCKED",
+          "input": { "capabilityEligible": false, "evidenceState": "MISSING_KNOWN" }
+        },
+        {
+          "id": "late-missing-required-evidence",
+          "expected": "INCONCLUSIVE",
+          "input": { "capabilityEligible": true, "evidenceState": "MISSING_LATE" }
+        }
+      ]
+    },
+    {
+      "id": "R6",
+      "owner": "PROMPTFOO_SCORING",
+      "observations": [
+        {
+          "id": "critical-violation-overrides-favorable-judge",
+          "expected": "FAIL",
+          "input": { "directCriticalViolation": true, "semanticSatisfied": true }
+        },
+        {
+          "id": "favorable-judge-without-critical-violation",
+          "expected": "PASS",
+          "input": { "directCriticalViolation": false, "semanticSatisfied": true }
+        }
+      ]
+    }
+  ]
+}

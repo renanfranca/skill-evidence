@@ -13,6 +13,7 @@ During the Theory First Promptfoo Foundation, TypeScript lives in `experiments/`
 - `npm run prettier:check` verifies formatting; use `npm run prettier:format` to fix it.
 - `npm run build` compiles the experimental harness to ESM in `dist/`; it does not build a product CLI during the Foundation.
 - `npm run experiment:verify` is the public offline checkpoint and must not import Promptfoo or initiate a provider invocation.
+- `npm run experiment:qualify:archaeological` runs the deterministic local Promptfoo conformance corpus for RFC regressions R1–R6; it is development evidence, not decision evidence.
 - `npm run experiment:verify:tracing` is a separate local integration checkpoint. It imports Promptfoo, starts a loopback-only receiver on `127.0.0.1`, and uses a deterministic local provider; it configures no external provider or endpoint, but does not prove zero egress.
 
 Run these validations before a pull request. Model-backed runs are separate.

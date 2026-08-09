@@ -1,229 +1,252 @@
-# Protect E3 Archaeological Regressions
+# Qualify E3 Archaeological Regressions through Promptfoo
 
 - Date: 2026-08-09
 - Intended executor: `gpt-5.6-terra`, reasoning `xhigh`
 - THEORY consulted in full: commit [`572e963ea6f1207ab53c533592cb70a8239e221c`](https://github.com/renanfranca/skill-evaluation-theory/blob/572e963ea6f1207ab53c533592cb70a8239e221c/THEORY.md)
 - Branch: `feat/e3-archaeological-regression-corpus`
 - Planning baseline and branch point: `0e8975148041396b634ca7635f8e0ba03ddb728a`
-- Status: planned; implementation requires approval of this ExecPlan
+- Status: approved and in progress
 
 This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mitigations`, and `Lessons Learned` current while work advances.
 
-Safety boundary: This task is limited to authorized, defensive offline maintenance of this repository. It must not invoke a provider, use credentials, create a campaign or freeze, or produce decision evidence.
+Safety boundary: This task is limited to authorized, defensive offline maintenance of this repository. It uses only deterministic local providers and must not invoke a model, use credentials, configure an external endpoint, create a campaign or freeze, or produce decision evidence.
 
 ## Purpose / Big Picture
 
-Implement RFC 0001 stage E3 as a deterministic Archaeological Regression Corpus. The public offline checkpoint will prove that six historical measurement failures remain rejected before any future decision material can be produced, while preserving the Foundation's zero-provider-import boundary.
+Implement RFC 0001 stage E3 as a conformance experiment that proves the six prescribed historical regression properties R1–R6 can be preserved while Promptfoo remains the generic runner, assertion engine, scorer, and grader invoker. The observable result is a canonical development report from `npm run experiment:qualify:archaeological` whose six rules pass through the pinned Promptfoo Node API and whose ownership rows show only the thin Skill Evidence control needed for preflight, blind input projection, and explicit domain-status normalization.
 
-The implementation protects semantic requirements rather than copying the V1 architecture. A user can observe success through `npm run experiment:verify`, which will report six passing archaeological regressions and zero provider imports.
+This plan replaces the rejected design that would have built a parallel archaeological evaluator. It produces inputs and policies that Promptfoo executes; Skill Evidence never reinterprets output prose, paths, or evidence after Promptfoo has graded them.
 
 ## Scope
 
-In scope: structured offline fixtures for RFC regressions R1–R6; a small experimental evaluator for their explicit facts; behavior-focused Vitest coverage; integration into the existing offline verification command; formatting coverage for `evaluations/`; and documentation reconciliation.
+In scope: structured development fixtures for RFC regressions R1–R6; deterministic local Promptfoo providers; serializable Promptfoo test definitions; versioned custom assertions or scoring functions only where built-ins are insufficient; capability preflight for known missing evidence; blind qualification-input projection; explicit normalization of structured Promptfoo metadata to RFC/ADR statuses; a canonical development qualifier; behavior-focused Vitest coverage; a new local integration checkpoint; and documentation reconciliation.
 
-Out of scope: copying V1 implementation files; creating `src/`, product schemas, a product CLI, a Blueprint, an Author, compiler, Judge invocation, Promptfoo execution, model calls, credentials, live tracing, a campaign, a freeze, decision cases, statistical claims, or changes to historical reports.
+Out of scope: copying V1 runner, checks, events, Judge, process, or workspace architecture; creating `src/`, product schemas, a product CLI, a Blueprint, an Author, the E6 compiler, a generic assertion framework, a generic grader, a generic result aggregator, model calls, credentials, external network endpoints, live tracing, campaigns, freezes, decision cases, statistical claims, or changes to historical reports.
 
 ## Definitions
 
-**Archaeological regression** is an offline fixture that preserves a legitimate semantic requirement learned from a historical measurement defect without preserving the implementation that caused it. **Direct critical violation** is independently checkable evidence of a prohibited effect and overrides a favorable semantic judgment. **Required-evidence availability** states whether the selected surface can observe the fact needed by a claim; unavailable evidence is `INSUFFICIENT`, while a required observation that should be available but is missing makes the case `INCONCLUSIVE`. **Blind qualification packet** is the projection visible to an evaluator; expected status and semantic labels remain in the local oracle projection only.
+**Promptfoo conformance case** is a development-only known-valid or known-invalid fixture executed by Promptfoo to prove a required semantic property. **Thin control plane** is the smallest Skill Evidence responsibility Promptfoo cannot own: capability eligibility before execution, expectation-blind packet construction, and translation of enumerated assertion metadata into RFC/ADR states. **Domain-status normalization** reads only fixed metadata such as `skillEvidenceDisposition: 'INCONCLUSIVE'`; it must not parse prose, inspect paths, rerun assertions, or recompute scores. **Semantic grader** in E3 is a deterministic local provider used through Promptfoo's grader interface; it makes no model or network call.
 
 The six RFC regressions are:
 
 1. R1: an observed absolute executable path is not automatically an out-of-workspace write.
-2. R2: relevant unknown events cannot be discarded silently, and a fact unavailable from the selected surface cannot satisfy required evidence.
-3. R3: `No refactor was justified.` cannot fail merely because it does not contain the incidental phrase `no action`.
+2. R2: relevant unknown events cannot be discarded silently, and an unavailable required observation cannot be treated as satisfied evidence.
+3. R3: `No refactor was justified.` cannot fail merely because it omits the incidental phrase `no action`.
 4. R4: qualification input cannot reveal expected status directly or indirectly.
-5. R5: a Judge cannot turn missing required evidence into `PASS`.
-6. R6: a directly observed critical violation resolves to `FAIL` even when semantic judgment is favorable.
+5. R5: missing required evidence cannot be converted into `PASS` by a Judge.
+6. R6: a directly observed critical violation remains `FAIL` despite favorable semantic judgment.
 
 ## Existing Context
 
-RFC 0001 sections 12, 13, and 73 authorize consulting V1 only to reconstruct these six failure classes and require E3 to run offline before future decision material. The merged E0–E2 Foundation exposes `verifyOffline` through `npm run experiment:verify`; it currently checks pinned dependencies, safety invariants, and zero Promptfoo imports.
+RFC 0001 assigns generic evaluation, assertions, grader invocation, datasets, cache, concurrency, and provider lifecycle to Promptfoo. Its normative flow is `Evaluation Blueprint → deterministic compiler → serializable Promptfoo configuration → promptfoo.evaluate() → raw Promptfoo result → Skill Evidence normalization`. It reserves analysis and aggregation policy for Skill Evidence and explicitly authorizes E3 to reimplement properties R1–R6, not V1 architecture.
 
-The historical branch `origin/feat/skill-evidence-v1` was inspected without copying it. Its records show the concrete defects behind the RFC list: absolute executable paths and `/dev/null` were misclassified as writes; a relevant `todo_list` event made observability incomplete; a literal `no action` check rejected a semantically valid conclusion; calibration labels could reveal expectations; missing evidence could reach a favorable Judge; and favorable judgment could conflict with direct critical evidence. Foundation campaigns also confirmed that evaluator gates must fail closed, but their reports remain immutable and outside E3 fixtures.
+ADR 0002 requires capability preflight before Executor or Judge calls. Known absence of every eligible evidence path blocks a decision-critical run; missing observation discovered after an eligible preflight becomes `INCONCLUSIVE`; direct critical evidence becomes `FAIL`; loss of an advertised capability invalidates the run. These states are not interchangeable with Promptfoo's generic boolean assertion result, so the thin control plane may project explicit metadata without reevaluating the assertion.
 
-Current TypeScript belongs in `experiments/`, tests in `test/`, and evaluation fixtures in `evaluations/refactor-design/`. No `src/` or product schema exists. The baseline has 48 passing tests in 14 files and `experiment:verify` reports zero provider imports.
+The merged E0–E2 Foundation pins Promptfoo `0.122.0`, exposes `promptfoo.evaluate()` through existing deterministic local qualification, and provides temporary cache/database/log isolation in `experiments/isolation.ts`. `npm run experiment:verify` is the public provider-free checkpoint and must continue importing neither Promptfoo nor any provider. Promptfoo-backed development qualifications therefore remain separate commands.
+
+The historical V1 branch was consulted only for provenance. Its incidents match R1–R6: path-role confusion, silent unknown events, literal semantic checks, expectation leakage, missing evidence reaching a favorable Judge, and favorable judgment overriding direct failure. No V1 implementation file is copied.
 
 ## Desired End State
 
-`evaluations/refactor-design/archaeological/cases.json` is the canonical fixture set and contains exactly one structured entry for each ID R1–R6. Fixtures record enumerated observations and expected dispositions; prose is explanatory only and never drives evaluation. Loading rejects malformed, duplicate, missing, or unknown regression IDs.
+`evaluations/refactor-design/archaeological/` contains a canonical structured fixture manifest and versioned JavaScript assertion/scoring files. It contains exactly R1–R6, with at least one known-valid and one discriminating known-invalid or boundary observation for each rule. Fixture prose is descriptive and never drives a result.
 
-`experiments/archaeological.ts` exposes a development-only `verifyArchaeologicalRegressions(root)` boundary returning `{ passed: 6, total: 6 }` only when every rule holds. The implementation uses explicit observation roles, evidence availability, qualified semantic assessment, and precedence rules; it does not infer a write from a path string, semantic satisfaction from wording, or evidence from fluent prose.
+`experiments/qualify-archaeological.ts` owns the stable development-report contract and orchestration seam. `experiments/qualify-archaeological-worker.ts` imports Promptfoo only inside `withPromptfooIsolation`, runs the eligible serializable cases with deterministic local execution and grading providers, and returns sanitized facts. The parent never exposes temporary paths, raw prompts, expected labels, process IDs, or evaluator payloads.
 
-`verifyOffline` always executes the corpus, retains `providerImports: 0`, and adds `archaeologicalRegressions: 6` to `OfflineVerificationResult`. The CLI prints `offline verification passed; archaeological regressions: 6; provider imports: 0`. A corpus failure makes the command nonzero before any provider import or invocation. No public product API, schema, direct dependency, report, freeze, RFC, or ADR changes.
+The canonical schema-1 report contains `purpose: 'DEVELOPMENT'`, Promptfoo `0.122.0`, exactly six ordered rule rows, ownership for each rule, provider and grader call counts, `result: 'SUPPORTED_WITH_THIN_CONTROL_PLANE' | 'INSUFFICIENT' | 'BLOCKED'`, explicit limitations, and proof that known missing-evidence variants started neither execution nor grading. The favorable result requires every known-valid and known-invalid contrast to produce its prespecified disposition and every report fact to be internally consistent.
+
+`npm run experiment:qualify:archaeological` builds and emits the canonical report. `npm run experiment:verify` remains byte-compatible in behavior and continues reporting zero provider imports. No public product API, product schema, direct dependency, freeze, campaign, RFC, ADR, or historical report changes.
 
 ## Milestones
 
-### Milestone 1 — Establish the canonical corpus contract
+### Milestone 1 — Qualify Promptfoo-owned assertion semantics
 
 #### Goal
 
-Create the six-case fixture boundary and reject drift in its identity or shape.
+Prove R1, R3, and R6 through Promptfoo assertions and scoring rather than a parallel Skill Evidence evaluator.
 
 #### Changes
 
-- Add `evaluations/refactor-design/archaeological/cases.json` with exactly R1–R6, structured observations, local oracle expectations, source provenance to RFC 0001, and no copied V1 code or prompt material.
-- Add the fixture loader and discriminated development types in `experiments/archaeological.ts`; validate required fields, allowed enumerations, unique IDs, and exact six-case completeness without introducing a product JSON schema.
-- Add `test/archaeological-regressions.test.ts` through the exported verifier boundary. First prove RED for the missing boundary, then cover malformed, duplicate, missing, and unknown cases using temporary fixture roots.
-- Extend Prettier scripts in `package.json` to include `evaluations/`; update the lockfile only if npm changes package metadata mechanically, with no dependency change.
+- Add the canonical R1, R3, and R6 fixtures plus discriminating contrasts under `evaluations/refactor-design/archaeological/`.
+- Add versioned assertion/scoring modules for structured path-role evidence, deterministic semantic grading, and critical-direct-evidence precedence. Promptfoo must execute every assertion and the R6 scoring function.
+- Add the stable qualifier report seam and worker launcher in `experiments/qualify-archaeological.ts`; add worker execution in `experiments/qualify-archaeological-worker.ts` using `withPromptfooIsolation` and pinned `promptfoo.evaluate()`.
+- Add behavior tests to the existing qualification behavior home `test/tracing-gate.test.ts`; do not mirror production files with a new test file.
 
 #### Validation
 
 - Command: `npm test`
-- Expected result: corpus-contract tests fail before implementation for the predicted missing or permissive behavior, then the full suite passes.
+- Expected result: each behavior first fails for the predicted missing public qualification or wrong Promptfoo disposition, then the full suite passes.
 - Command: `npm run experiment:verify`
-- Expected result: the existing public checkpoint remains green and provider imports remain zero after no more than two TDD cycles.
+- Expected result: provider imports remain zero after no more than two TDD cycles and at milestone completion.
 
 #### Acceptance Criteria
 
-- Exactly R1–R6 load in deterministic order; malformed, duplicate, missing, or extra IDs fail closed.
-- Fixture facts are structured and evaluation never derives status from explanatory prose.
+- R1 accepts an absolute executable observation and rejects an external write-target contrast.
+- R3 accepts the valid paraphrase and rejects an incompatible conclusion through a deterministic local grader invoked by Promptfoo.
+- R6 has a favorable semantic component and a failing direct-critical component; Promptfoo's versioned scoring function makes the case fail and exposes both component results.
 
-### Milestone 2 — Protect path, observability, and semantic-equivalence rules
+### Milestone 2 — Qualify the Skill Evidence control boundary
 
 #### Goal
 
-Reimplement R1–R3 as explicit semantic properties independent of the V1 file and class structure.
+Protect R2, R4, and R5 without taking generic execution or grading away from Promptfoo.
 
 #### Changes
 
-- Make R1 distinguish an observed executable role from an observed write-target role before considering workspace boundaries; the absolute executable fixture must not become a write violation.
-- Make R2 return `INCONCLUSIVE` for an unrecognized relevant event on an otherwise adopted surface and `INSUFFICIENT` when the surface cannot expose a required fact; neither path may return satisfied evidence.
-- Make R3 accept the fixture's qualified semantic assessment plus passing direct effects without exact-string matching; the final message remains observable context, not the oracle.
-- Add one behavior-focused test per rule through `verifyArchaeologicalRegressions`, running the complete suite for each RED and GREEN cycle.
+- Add R2 fixtures for a known unavailable required capability and for a relevant unknown event returned after eligible execution. The first is excluded before Promptfoo; the second uses explicit assertion metadata and normalizes to `INCONCLUSIVE` without prose inference.
+- Add R4 blind qualification fixtures. Send the grader only an opaque digest ID, observable packet, and allowed rubric/oracle; retain expected status and purpose only in the local comparison record. Inspect the captured evaluator-visible payload mechanically for forbidden fields and label-derived IDs.
+- Add R5 fixtures for known missing evidence and late missing evidence. Both start zero grader calls; the first is `BLOCKED`, the second `INCONCLUSIVE`, and neither can become Promptfoo `PASS`.
+- Add behavior tests through the stable qualifier seam and keep the complete suite plus public provider-free checkpoint green.
 
 #### Validation
 
 - Command: `npm test`
-- Expected result: each rule first fails for its predicted legacy disposition and then all tests pass.
+- Expected result: each rule first fails for an unintended provider/grader call, expectation leakage, or favorable missing-evidence result, then the full suite passes.
 - Command: `npm run experiment:verify`
-- Expected result: public offline verification passes after no more than two cycles and at milestone completion, with zero provider imports.
+- Expected result: offline verification remains provider-free after no more than two cycles and at milestone completion.
 
 #### Acceptance Criteria
 
-- R1 cannot manufacture a write from an executable path.
-- R2 distinguishes unrecognized observation from unavailable capability and never promotes either to satisfaction.
-- R3 accepts semantic equivalence without depending on the literal phrase `no action`.
+- Known unavailable critical evidence is blocked before execution; late relevant unknown observation is `INCONCLUSIVE`.
+- The evaluator-visible R4 packet contains no expected status, purpose, semantic label, or label-derived ID.
+- R5 variants invoke no grader and cannot pass.
+- Normalization reads only enumerated structured metadata and never reevaluates evidence.
 
-### Milestone 3 — Protect evaluator blindness and evidence precedence
+### Milestone 3 — Publish the bounded development qualifier
 
 #### Goal
 
-Reimplement R4–R6 so evaluator output cannot override the evidence boundary.
+Expose the complete six-rule conformance matrix as a safe local integration checkpoint.
 
 #### Changes
 
-- Make R4 project a blind qualification packet containing only a digest ID and observable input; expected status, purpose, oracle label, and label-derived identifiers remain exclusively in the local expectation projection.
-- Make R5 stop before semantic evaluation when decision-critical required evidence is missing and resolve the case as `INCONCLUSIVE`; the fixture must prove the Judge callback was not invoked.
-- Make R6 resolve a direct critical violation as `FAIL` regardless of a supplied favorable semantic judgment.
-- Add one behavior-focused test per rule through the exported verifier; inspect canonical projections rather than helper topology.
+- Add `experiment:qualify:archaeological` to `package.json` and include `evaluations/` in Prettier check/format scripts without changing dependencies.
+- Complete report classification, consistency checks, sanitization, canonical rendering, fixed limitations, and fail-closed handling of worker or fixture defects.
+- Run the real local qualifier and record its exact Promptfoo version, six rule results, ownership, call counts, and bounded conclusion in this plan.
+- Keep `experiment:verify` unchanged except for tests proving the new command did not contaminate its zero-import boundary.
 
 #### Validation
 
 - Command: `npm test`
-- Expected result: each rule first fails for expectation leakage, an invoked Judge, or favorable precedence respectively, then the full suite passes.
+- Expected result: all behavior tests pass.
 - Command: `npm run experiment:verify`
-- Expected result: the public checkpoint remains green after no more than two cycles and at milestone completion.
+- Expected result: `offline verification passed; provider imports: 0`.
+- Command: `npm run experiment:qualify:archaeological`
+- Expected result: canonical schema-1 `SUPPORTED_WITH_THIN_CONTROL_PLANE` for Promptfoo `0.122.0`, six passing rule rows, no external provider call, and explicit limitations.
 
 #### Acceptance Criteria
 
-- The serialized evaluator-visible packet contains no expected status, purpose, oracle label, or semantically revealing ID.
-- Missing critical evidence starts no Judge and cannot pass.
-- A direct critical violation remains authoritative.
+- The qualifier is deterministic, local, sanitized, canonical, and nonzero on any failed contrast or consistency check.
+- Promptfoo owns execution/assertion/scoring facts; Skill Evidence owns only the rows explicitly assigned to its control plane.
+- No raw payload, temporary path, credential, expected label, process ID, or model-derived content appears in stdout.
 
-### Milestone 4 — Promote E3 into the offline gate and reconcile documentation
+### Milestone 4 — Review, reconcile, and validate
 
 #### Goal
 
-Make the six regressions a mandatory public offline checkpoint, review the green design, reconcile canonical sources, and complete validation.
+Consolidate the green design, reconcile canonical documentation, preserve historical evidence, and finish the complete repository validation.
 
 #### Changes
 
-- Update `experiments/verify.ts`, `experiments/cli.ts`, and `test/offline-verification.test.ts` so offline verification loads the repository corpus, reports exactly six passes, and still proves the injected Promptfoo loader was never called.
-- After all behavior, `npm test`, and `npm run experiment:verify` are green, run `$refactor-design`; return to behavior TDD if it discovers missing behavior, otherwise apply only justified behavior-preserving changes.
-- Update this plan and `docs/execplans/README.md` with progress and validation. Review `AGENTS.md`, RFC 0001, ADR 0002, and package scripts as canonical sources; update only those whose contract changed and record concrete no-change reasons for the rest.
+- Enter `$refactor-design` only after all behavior, `npm test`, `npm run experiment:verify`, and the archaeological qualifier are green. Return to behavior TDD if the review discovers missing behavior.
+- Update this plan and `docs/execplans/README.md` with progress, design findings, validation, and final status.
+- Review `AGENTS.md`, RFC 0001, ADR 0002, package scripts, and earlier ExecPlans as canonical sources. Update only changed public operations; record concrete no-change reasons for the rest.
 - Preserve all eight `docs/experiments/*.json` files byte-for-byte and keep `dist/`, `.skill-evidence/`, and `coverage/` untracked.
 
 #### Validation
 
-- Run in order: `npm ci`; `npm audit --json`; `npm run typecheck`; `npm run lint`; `npm test`; `npm run prettier:check`; `npm run build`; `npm run experiment:verify`; `npm run experiment:qualify:codex-otel`; `npm run experiment:qualify:tracing`; `npm run experiment:verify:tracing`; `git diff --check`; `git status --short`.
+- Run in order: `npm ci`; `npm audit --json`; `npm run typecheck`; `npm run lint`; `npm test`; `npm run prettier:check`; `npm run build`; `npm run experiment:verify`; `npm run experiment:qualify:archaeological`; `npm run experiment:qualify:codex-otel`; `npm run experiment:qualify:tracing`; `npm run experiment:verify:tracing`; `git diff --check`; `git status --short`.
 - Run `sha256sum docs/experiments/*.json` and compare all eight files with the baseline digests recorded in `Validation Strategy`.
-- Expected result: audit has zero vulnerabilities; all tests and formatting pass; the public output reports six regressions and zero provider imports; both qualifiers are `EXACT_SUPPORTED`; loopback tracing passes; historical digests match; status contains only intended E3 files.
+- Expected result: audit has zero vulnerabilities; all tests and formatting pass; the provider-free checkpoint reports zero imports; all three qualifiers return their favorable bounded result; loopback tracing passes; historical digests match; status contains only intended E3 files.
 
 #### Acceptance Criteria
 
-- E3 is mandatory in the existing provider-free public checkpoint and any regression failure makes it nonzero.
-- No Promptfoo or provider import, model session, credential access, campaign, freeze, or decision artifact occurs.
-- Documentation and the living plan match the implemented behavior.
+- Every milestone behavior and final command is green.
+- Documentation and this living plan match the implemented responsibility boundary.
+- No model session, external provider, credential access, campaign, freeze, or decision artifact occurs.
 
 ## Progress
 
-- [x] Read THEORY commit `572e963ea6f1207ab53c533592cb70a8239e221c` in full.
+- [x] Read THEORY commit `572e963ea6f1207ab53c533592cb70a8239e221c` in full before the initial plan and again before this revision.
 - [x] Confirm Gate 2 completion, merge PR #1 with commit provenance preserved, and branch from merged `main` at `0e897514`.
-- [x] Inspect RFC 0001 R1–R6 and E3 plus the historical V1 records without copying implementation.
-- [x] Create this living ExecPlan before implementation.
-- [ ] Receive approval to execute this ExecPlan.
-- [ ] Milestone 1 started.
-- [ ] Milestone 1 completed.
-- [ ] Milestone 2 started.
-- [ ] Milestone 2 completed.
-- [ ] Milestone 3 started.
-- [ ] Milestone 3 completed.
-- [ ] Milestone 4 started.
-- [ ] Milestone 4 completed.
+- [x] Inspect RFC 0001 R1–R6, Promptfoo ownership, compiler flow, and ADR 0002 preflight/status semantics.
+- [x] Reject the parallel-evaluator design and receive explicit approval for a Promptfoo conformance corpus limited to R1–R6.
+- [x] Revise this living ExecPlan before implementation.
+- [x] Milestone 1 started.
+- [x] Milestone 1 completed: R1, R3, and R6 pass their discriminating Promptfoo assertions, local grader, and scoring cases; 51 tests and the provider-free checkpoint are green.
+- [x] Milestone 2 started.
+- [x] Milestone 2 completed: R2, R4, and R5 preserve preflight, blind projection, and structured normalization boundaries; 54 tests and the provider-free checkpoint are green.
+- [x] Milestone 3 started.
+- [x] Milestone 3 completed: the public command emitted canonical schema-1 `SUPPORTED_WITH_THIN_CONTROL_PLANE` for Promptfoo `0.122.0`, six ordered rule rows, 10 execution calls, 3 grader calls, and fixed limitations; 60 tests and the offline checkpoint are green.
+- [x] Milestone 4 started.
+- [x] Complete the post-GREEN design review: return three fail-closed gaps to behavior TDD, consolidate the shared R2/R5 preflight-normalization transformation, and replace mutable completion sentinels with the isolation callback's explicit result.
+- [x] Milestone 4 completed: all repository checks, the new archaeological qualifier, both prior local qualifiers, loopback tracing verification, and all eight historical-report digests passed on 2026-08-09.
 
 ## Decisions
 
-- Decision: implement E3 before any product CLI, Blueprint, Author, compiler, or decision evaluation.
-  Rationale: RFC 0001 makes E3 the separate post-G2 gate and requires all necessary historical regressions to pass before future decision material.
-  Date/Author: 2026-08-09 / operator authorization and planning agent
+- Decision: use Promptfoo as the only generic runner, assertion engine, scorer, and grader invoker.
+  Rationale: RFC 0001 explicitly delegates those responsibilities and requires custom infrastructure to be justified by demonstrated insufficiency.
+  Date/Author: 2026-08-09 / operator and planning agent
 
-- Decision: implement exactly RFC regressions R1–R6 and no additional Foundation incidents in this first corpus.
-  Rationale: the six rules are the prespecified initial E3 contract; adding post-result cases without a separate decision would expand the gate adaptively.
+- Decision: implement E3 as a Promptfoo conformance experiment before the E6 product compiler.
+  Rationale: hand-authored serializable configurations can qualify R1–R6 now without pulling compiler behavior forward in the roadmap.
+  Date/Author: 2026-08-09 / operator and planning agent
+
+- Decision: retain a thin Skill Evidence control plane for capability preflight, blind packet projection, and explicit domain-status normalization.
+  Rationale: ADR 0002 requires `BLOCKED`, `INCONCLUSIVE`, and `INVALIDATED` semantics that Promptfoo's generic boolean result does not express by itself; the projection must remain mechanical and structured.
+  Date/Author: 2026-08-09 / operator and planning agent
+
+- Decision: implement exactly RFC regressions R1–R6, using later incidents only as provenance rather than new rule IDs.
+  Rationale: this is the prespecified initial E3 contract and avoids adaptive expansion.
+  Date/Author: 2026-08-09 / operator
+
+- Decision: keep `experiment:verify` provider-free and introduce a separate Promptfoo-backed qualifier.
+  Rationale: the repository profile makes zero Promptfoo imports a public safety contract, while local integration qualification necessarily imports the pinned package.
   Date/Author: 2026-08-09 / planning agent
 
-- Decision: place TypeScript in `experiments/`, Vitest behavior in `test/`, and structured fixtures in `evaluations/refactor-design/archaeological/`.
-  Rationale: E3 remains an experiment, and the repository profile explicitly reserves these locations while prohibiting premature product scaffolding.
-  Date/Author: 2026-08-09 / planning agent
-
-- Decision: integrate E3 into `experiment:verify` instead of adding another command.
-  Rationale: the existing command is the provider-free public checkpoint; making the corpus mandatory prevents a future operator from validating the Foundation while accidentally omitting E3.
-  Date/Author: 2026-08-09 / planning agent
-
-- Decision: represent semantic judgment and evidence availability as explicit structured inputs rather than infer them from prose.
-  Rationale: the THEORY forbids a Judge from manufacturing missing evidence and treats exact strings as valid only when textual identity is a real external obligation.
-  Date/Author: 2026-08-09 / planning agent
+- Decision: classify structurally invalid or internally contradictory worker evidence as `BLOCKED`, and classify well-formed disposition mismatches as `INSUFFICIENT`.
+  Rationale: a transport or corpus-integrity defect cannot support a conclusion, while an honestly observed failed contrast is valid evidence that Promptfoo conformance remains insufficient.
+  Date/Author: 2026-08-09 / implementation agent
 
 ## Risks and Mitigations
 
-- Risk: V1 architecture is copied under the label of regression protection. Mitigation: copy no V1 file; implement only the six RFC properties behind a new minimal experimental boundary.
-- Risk: fixtures merely assert hard-coded expected labels. Mitigation: each case contains discriminating structured facts, and tests include counterexamples that would reproduce the historical false disposition.
-- Risk: R3 replaces a bad literal check with another prose heuristic. Mitigation: consume a qualified semantic assessment explicitly and keep the message non-authoritative.
-- Risk: R4 leaks expectations through IDs or purpose fields. Mitigation: derive the public ID from canonical observable input and test the complete serialized packet for forbidden expectation material.
-- Risk: R5 or R6 lets fluent judgment override evidence. Mitigation: do not invoke judgment when critical evidence is missing and apply direct-critical-failure precedence before semantic status.
-- Risk: offline verification accidentally imports Promptfoo. Mitigation: preserve and extend the existing injected-loader assertion and run `experiment:verify` at every milestone.
+- Risk: the qualifier becomes a second evaluator. Mitigation: Promptfoo executes all eligible assertions and scoring; Skill Evidence normalization reads only fixed disposition metadata and cannot inspect raw semantics.
+- Risk: E3 accidentally implements the E6 compiler. Mitigation: use hand-authored serializable development configurations and expose no general Blueprint-to-Promptfoo API.
+- Risk: a custom assertion hides generic framework duplication. Mitigation: add one versioned file only where built-ins cannot preserve the RFC property, and record ownership explicitly in the report.
+- Risk: R3 replaces literal matching with a hard-coded favorable answer. Mitigation: run known-valid and known-invalid semantic contrasts through the same deterministic local grader interface.
+- Risk: R4 leaks expectations through IDs or prompts. Mitigation: derive opaque IDs from canonical observable inputs and inspect the complete evaluator-visible packet mechanically.
+- Risk: R2 or R5 starts a call despite known missing evidence. Mitigation: count execution and grader calls and require zero before a favorable qualification.
+- Risk: domain normalization silently reevaluates assertions. Mitigation: accept only enumerated assertion metadata and test that changing prose without metadata cannot change the projected status.
+- Risk: the local qualifier writes persistent Promptfoo state. Mitigation: run inside `withPromptfooIsolation`, disable cache, telemetry, updates, sharing, and latest-result persistence, then remove temporary storage.
 - Risk: historical campaign evidence changes during formatting. Mitigation: keep reports outside formatter write scope and compare all eight SHA-256 digests in final validation.
 
 ## Validation Strategy
 
-Each behavior uses `$tdd-behavior-autonomous-quiet`: add one observable test, predict and confirm RED, implement minimum GREEN, run the entire `npm test` suite, and run `npm run experiment:verify` after no more than two cycles and at every milestone boundary. Only after all six behaviors and both gates are green may `$refactor-design` run. A design finding that changes behavior returns to TDD before review resumes.
-
-The public checkpoint is `npm run experiment:verify`. Its success must be observable as `offline verification passed; archaeological regressions: 6; provider imports: 0`; no test-only seam is sufficient. Final validation follows the exact repository sequence listed in Milestone 4 and records concrete outcomes here.
+Each behavior uses `$tdd-behavior-autonomous-quiet`: add one observable test through the stable qualifier/report seam, predict and confirm RED, implement minimum GREEN, run the entire `npm test` suite, and run `npm run experiment:verify` after no more than two cycles and at every milestone boundary. The Promptfoo-backed qualifier becomes an additional public integration checkpoint as soon as its first vertical slice exists. Only after R1–R6, the full suite, both public checkpoints, and all milestone criteria are green may `$refactor-design` run.
 
 The immutable historical-report baseline is, in filename order: R2 capability `db7f2f847c9acc03f1f91a2cd68afa2d5c23f539c31008dc0b5fcd41c446ff14`; R2 E1 `5a395aec76ce3575a93655f1f1c19cfa96f137d0c4fc1c847edaac8a2aa3999b`; R2 G2 `c0f2ac8eb15d9b844f9eef530982e1a357888a63fb0f9743f26a2aa1114dfc4b`; R2 ownership `75fa290ab044082ddcccfd519d0ed3c7594c186b66c5b26a7c6cf1db9fa90395`; R3 capability `f3add9719f72a420681c7c428718c7cf983f596e4f2d06a3052f1f9fa0585b24`; R3 E1 `332de02dd1780517da45b728f4e4e527e208423b9729f0a5adffc97df46090ad`; R3 G2 `c0f2ac8eb15d9b844f9eef530982e1a357888a63fb0f9743f26a2aa1114dfc4b`; R3 ownership `75fa290ab044082ddcccfd519d0ed3c7594c186b66c5b26a7c6cf1db9fa90395`.
 
 ## Documentation Impact
 
-This file is the canonical living implementation plan, and `docs/execplans/README.md` must track its status. `package.json` is the canonical command and formatter surface; its `experiment:verify` behavior changes and `evaluations/` becomes formatted input.
+This file is the canonical living implementation record, and `docs/execplans/README.md` tracks its status. `package.json` is the canonical command surface and gains the archaeological qualifier plus formatting coverage for `evaluations/`.
 
-`AGENTS.md` remains accurate because code, tests, fixtures, commands, and workflow stay in their prescribed locations. RFC 0001 remains normative and unchanged because this plan implements its existing R1–R6 and E3 contract. ADR 0002 remains accurate because missing evidence still blocks or yields bounded inconclusiveness, while infrastructure development remains offline and out of band. Historical ExecPlans and experiment reports remain unchanged because E3 protects semantic properties rather than revising prior evidence.
+`AGENTS.md` gains the separate archaeological qualification command because code, tests, fixtures, commands, safety boundaries, and workflow stay in their prescribed locations. RFC 0001 remains normative and unchanged because the design delegates generic execution and assertions to Promptfoo while implementing only its named R1–R6 properties. ADR 0002 remains accurate because preflight and domain statuses retain their prescribed behavior. Earlier ExecPlans and all experiment reports remain historical evidence and are never regenerated or formatted.
 
 ## Rollout and Recovery
 
-There is no deployment or live rollout. Land the corpus, verifier, tests, package formatting coverage, and documentation together so `experiment:verify` never observes a partial gate. Recovery is a normal revert of the E3 commit; never rewrite historical reports or reuse a failed verification as decision evidence. Any expansion beyond R1–R6 requires a separate prespecified update to this living plan or a later ExecPlan before implementation.
+There is no deployment or live rollout. Land fixtures, versioned assertion/scoring files, qualifier, tests, package command, and documentation together. Recovery is a normal revert of the E3 implementation; never rewrite historical reports or use a failed development qualification as decision evidence. Any expansion beyond R1–R6 or promotion into product Blueprint/compiler code requires a later authorized ExecPlan.
 
 ## Lessons Learned
 
-- The merged Foundation supplies capability evidence but not regression semantics; E3 is the explicit bridge before Author or decision work.
-- The V1 records confirm that correct precedence can amplify a bad detector: direct evidence must remain authoritative, but the detector producing it must itself be qualified by boundary regressions.
-- Semantic equivalence and missing evidence are separate problems. A qualified semantic assessment can recognize valid alternative wording, but it still cannot fill an observation the selected surface never exposed.
+- The original E3 design incorrectly treated regression protection as authorization to build another evaluator. The RFC instead makes Promptfoo the default owner of execution, assertions, and graders.
+- Promptfoo's `GradingResult` exposes boolean pass/fail plus component results and arbitrary structured metadata. This is enough for Promptfoo to own scoring while Skill Evidence preserves bounded RFC/ADR dispositions mechanically.
+- E3 can qualify hand-authored serializable configurations without implementing the E6 compiler early.
+- The first public checkpoint after R1 and R3 found that Vitest transpilation accepted fixture variables typed as `unknown` while the strict Promptfoo Node API requires `VarValue`. The fixture contract now uses Promptfoo's erased type-only import, preserving the offline runtime boundary while making `npm run build` authoritative for integration typing.
+- The Milestone 2 checkpoint found that an R4 fixture lookup could leave `observable` undefined at the Promptfoo API boundary. The projection now rejects that malformed input before execution instead of relying on a fixture assumption.
+- The post-GREEN review found three consistency gaps that required renewed behavior TDD: malformed IPC evidence could throw, favorable rows could contradict fixed provider-call counts, and absent disposition metadata could fall back to Promptfoo's generic boolean. All now fail closed.
+- R2 and R5 share one preflight-plus-structured-normalization transformation, while their Promptfoo assertion modules remain distinct domain policies. Returning the complete isolation result directly also removes an empty array that previously doubled as hidden completion state.
+
+## Outcomes
+
+E3 now has a deterministic, local Promptfoo conformance corpus for RFC regressions R1–R6. Promptfoo remains the sole generic execution, assertion, scoring, and grader engine. Skill Evidence contributes only capability preflight, expectation-blind input projection, and strict structured disposition normalization. The canonical result is `SUPPORTED_WITH_THIN_CONTROL_PLANE` for Promptfoo `0.122.0`, with 10 execution-provider calls and 3 grader calls.
+
+Final validation passed with npm audit reporting zero vulnerabilities; strict typecheck and lint; 60 Vitest tests; Prettier; build; provider-free offline verification; archaeological qualification; Codex OTEL `EXACT_SUPPORTED`; Promptfoo tracing `EXACT_SUPPORTED`; loopback tracing verification; `git diff --check`; and exact preservation of all eight historical report SHA-256 digests. No model session, external provider, campaign, freeze, decision artifact, RFC change, ADR change, or historical report rewrite occurred.
