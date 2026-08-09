@@ -83,8 +83,8 @@ Deliver and exercise the complete hosted CI contract in one bounded milestone.
 - [x] Post-GREEN design review completed: the formatter-coverage gap returned to behavior TDD; no further structural change was justified.
 - [x] Documentation reconciled: `AGENTS.md`, this plan, the ExecPlan index, and the `package.json` formatting surface match the workflow.
 - [x] Final local validation completed: clean install, audit with zero vulnerabilities, typecheck, lint, 61 tests, formatting, build, provider-free verification, and archaeological qualification all passed in workflow order.
-- [ ] Commit pushed, PR opened, and hosted validation observed.
-- [ ] Milestone 1 completed.
+- [x] Commit `30b150a` pushed, draft PR #2 opened to `main`, and hosted run `31338433765` completed successfully in 1m13s.
+- [x] Milestone 1 completed.
 
 ## Decisions
 
@@ -131,3 +131,4 @@ Push the workflow with this branch and open a PR to `main`. GitHub schedules it 
 - A workflow committed to a branch is not exercised by `pull_request` until that branch actually has an open PR; this branch had none when planning began.
 - The post-GREEN review found that the existing Prettier scripts excluded `.github`; without explicit coverage, CI could report formatting success while its own workflow remained unchecked.
 - The first final-validation pass stopped at ESLint because two workflow-text assertions used repeated literal spaces in regular expressions. Replacing them with explicit `{2}` quantifiers preserved behavior and made the test conform to the repository lint contract.
+- The GitHub connector could not create the PR because its integration received HTTP 403. The authenticated `gh` fallback opened draft PR #2 as prescribed by the publication workflow.
