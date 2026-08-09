@@ -27,6 +27,15 @@
     "@openai/codex-sdk": "0.147.0",
     "promptfoo": "0.122.0"
   },
+  "overrides": {
+    "@ai-sdk/provider-utils": {
+      "undici": "6.28.0"
+    },
+    "onnxruntime-node": {
+      "adm-zip": "0.6.0"
+    },
+    "sharp": "0.35.3"
+  },
   "devDependencies": {
     "@types/node": "24.3.0",
     "@typescript-eslint/eslint-plugin": "8.41.0",
