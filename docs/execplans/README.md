@@ -9,6 +9,7 @@
 | [ExecPlan 5 — Remediate npm audit findings](2026-08-09-remediate-npm-audit-findings.md)                             | Complete: audit 0; 45 tests            | Dependency security hardening    |
 | [ExecPlan 6 — Run fresh Gate 2 campaign](2026-08-09-run-fresh-gate-2-campaign.md)                                   | Complete: E1/baseline pass; deep error | Authorized live E0–E2 campaign   |
 | [ExecPlan 7 — Harden G2 and qualify Codex OTEL](2026-08-09-harden-g2-and-qualify-codex-otel.md)                     | Complete: 48 tests; `EXACT_SUPPORTED`  | Development instrument hardening |
+| [ExecPlan 8 — Run fresh Gate 2 campaign after OTEL hardening](2026-08-09-run-fresh-gate-2-campaign-r3.md)           | Authorized: preparation pending        | Authorized live E0–E2 campaign   |
 | [Historical record — Pre-live instrument hardening](2026-08-08-pre-live-instrument-hardening-record.md)             | Closed and blocked at `60c0240`        | Preserved hardening provenance   |
 
 Live experiments are separate from offline validation. Their sanitized curated reports may be committed only after the corresponding provider invocation has completed.
