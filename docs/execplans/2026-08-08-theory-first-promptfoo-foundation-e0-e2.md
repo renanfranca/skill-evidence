@@ -5,9 +5,10 @@
 - THEORY consulted: commit [`572e963ea6f1207ab53c533592cb70a8239e221c`](https://github.com/renanfranca/skill-evaluation-theory/blob/572e963ea6f1207ab53c533592cb70a8239e221c/THEORY.md)
 - Foundation commit: `b1d087898e18c3929d024e47bd52ef2331781cae`
 - Hardened instrument commit: `60c024062df5aa1c1eadf08ced3de9e61bb7536f`
-- Status: blocked before E1. ExecPlan 2 classified tracing as `ALTERNATIVE_SUPPORTED`; no alternative is promoted and no live call has occurred.
+- Requalified instrument: ExecPlan 3 based on `63e6dc1`; Gate 2 must bind its freeze to the resulting clean Gate 1 commit
+- Status: Gate 1 complete with `EXACT_SUPPORTED`; Gate 2 remains unauthorized and no live call has occurred.
 
-This is the living execution record for the RFC 0001 E0–E2 scope. It implements only the smallest direct Promptfoo Node API harness needed to investigate authentication and observability. It does not authorize product architecture, E3, an App Server, an adapter, a Judge, a decision evaluation, copied V1 code, or any live invocation while the tracing gate is blocked.
+This is the living execution record for the RFC 0001 E0–E2 scope. It implements only the smallest direct Promptfoo Node API harness needed to investigate authentication and observability. It does not authorize product architecture, E3, an App Server, an adapter, a Judge, a decision evaluation, copied V1 code, or any live invocation before separate Gate 2 authorization.
 
 ## Purpose and boundaries
 
@@ -32,7 +33,7 @@ The live commands require `SKILL_EVIDENCE_EXPERIMENT_CODEX_HOME` to name a dedic
 
 The exact frozen dependencies are Promptfoo `0.122.0`, `@openai/codex-sdk` `0.147.0`, and the SDK-packaged `@openai/codex` `0.147.0`. Each freeze records canonical lockfile and manifest digests, Git commit, resolved versions, the typed scientific configuration, and its digest. Drift requires a new campaign, E1, and G1.
 
-Each campaign permits at most one started provider invocation for each of `e1`, `e2-baseline`, and `e2-deep`; reservations are exclusive. It sets `maxRetries=0`, `cache=false`, `maxConcurrency=1`, `sharing=false`, `writeLatestResults=false`, `timeoutMs=300000`, and `maxEvalTimeMs=360000`.
+Each campaign permits at most one started provider invocation for each of `e1`, `e2-baseline`, and `e2-deep`; reservations are exclusive. All conditions set `maxRetries=0`, `cache=false`, `maxConcurrency=1`, `sharing=false`, `timeoutMs=300000`, and `maxEvalTimeMs=360000`. E1 retains `writeLatestResults=false`; E2 baseline and deep use `writeLatestResults=true` only for isolated temporary local persistence. Promptfoo telemetry and updates remain disabled, and the temporary database is removed only after sanitized summary and trace projections have been copied into ignored campaign storage.
 
 E1 requests `openai:codex-sdk`, `gpt-5.6-luna`, reasoning `max`, read-only sandbox, no approval, no network, disabled web search, omitted collaboration mode, `features.multi_agent=false`, no persisted or resumed thread, no inherited process environment, no streaming, and no deep tracing. Its sole accepted response is `E1_AUTH_OK`. G1 reports requested and observed settings separately.
 
@@ -46,6 +47,8 @@ Capability rows use signal-specific evidence. Trace-dependent facts are never `N
 - [x] Completed and validated the E0 offline foundation.
 - [x] Preserved the pre-live hardening record separately at commit `60c0240`.
 - [x] Receive `ALTERNATIVE_SUPPORTED` from ExecPlan 2: the exact condition remained unsupported and the persisted condition is only a future candidate.
+- [x] Complete ExecPlan 3 Gate 1: version the promoted E2 condition, invalidate earlier freezes, and requalify it as `EXACT_SUPPORTED` with two fresh-process repetitions.
+- [x] Pass the exact E2 loopback tracing checkpoint without credentials, external provider, or model invocation.
 - [ ] Obtain separate operator authorization for E1 after qualification and review.
 - [ ] Create an instrument freeze with the operator's dedicated external login path.
 - [ ] Execute the one E1 invocation and record G1.
@@ -56,7 +59,8 @@ Capability rows use signal-specific evidence. Trace-dependent facts are never `N
 
 - Direct `promptfoo.evaluate()` remains the only provider invocation surface.
 - The public offline checkpoint is `npm run experiment:verify`; it imports no Promptfoo provider.
-- The live condition remains `writeLatestResults=false`; a qualification alternative cannot mutate it retroactively.
+- At hardened commit `60c0240`, the live condition remained `writeLatestResults=false`; ExecPlan 2 could not mutate it retroactively.
+- ExecPlan 3 prospectively supersedes the E2 portion of that condition with versioned `writeLatestResults=true`, while preserving E1 at `false`; schema-2 freezes are incompatible and cannot be reused.
 - The hardening history is preserved as a closed record instead of being mixed into this RFC-scoped plan.
 - E1 remains blocked regardless of a capability result until a later plan and explicit authorization change the frozen scientific configuration, if required.
 
@@ -66,7 +70,8 @@ Capability rows use signal-specific evidence. Trace-dependent facts are never `N
 - Promptfoo config, cache, and logs use unique temporary directories and are removed in `finally`.
 - The external login path is sanitized before any persisted projection.
 - Missing observation is never promoted to observed absence.
-- A tracing alternative that requires persistence is only a candidate; promotion requires a later ExecPlan, fingerprint, qualification, freeze, and authorization.
+- Local persistence is distinct from sharing: all suites retain `sharing=false`, and every Promptfoo database remains temporary and isolated.
+- The qualified instrument still requires a new clean-commit campaign and freeze plus separate Gate 2 authorization before E1.
 
 ## Lessons learned
 
@@ -90,4 +95,5 @@ git diff --check
 git status --short
 ```
 
-`experiment:verify:tracing` is a local integration checkpoint, not a live command. E1 and E2 remain outside validation and are prohibited while this plan is blocked.
+`experiment:verify:tracing` is a local integration checkpoint, not a live command. E1 and E2 remain outside validation and are prohibited until separate Gate 2 authorization.
+ExecPlan 3 additionally requires `experiment:qualify:tracing` to emit `EXACT_SUPPORTED` and `experiment:verify:tracing` to pass before requesting Gate 2 authorization. Both commands use only a deterministic local provider and may require authorization for loopback bind.

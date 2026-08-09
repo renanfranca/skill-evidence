@@ -14,7 +14,7 @@ export interface InstrumentFreeze {
   repositoryCommit: string;
   scientificConfiguration: ScientificConfiguration;
   scientificConfigurationDigest: string;
-  schemaVersion: 2;
+  schemaVersion: 3;
 }
 
 export interface CreateInstrumentFreezeInput {
@@ -70,7 +70,7 @@ async function fingerprintInput(input: Omit<CreateInstrumentFreezeInput, 'artifa
     repositoryCommit: input.repositoryCommit,
     scientificConfiguration: input.scientificConfiguration,
     scientificConfigurationDigest: sha256(input.scientificConfiguration),
-    schemaVersion: 2,
+    schemaVersion: 3,
   };
 }
 

@@ -22,8 +22,8 @@ export interface ExperimentSuite {
   providers: Array<{ config: ProviderConfig; id: 'openai:codex-sdk' }>;
   sharing: false;
   tests: Array<{ assert: Array<{ type: 'equals'; value: string }> }>;
-  tracing?: Record<string, unknown>;
-  writeLatestResults: false;
+  tracing?: E2TracingConfiguration;
+  writeLatestResults: boolean;
 }
 
 export interface ExperimentInvocation {
@@ -39,6 +39,19 @@ export interface CreateExperimentInvocationInput {
   workingDirectory: string;
 }
 
+export interface E2PromptfooRuntimeCondition {
+  cache: false;
+  sharing: false;
+  tracing: E2TracingConfiguration;
+  writeLatestResults: true;
+}
+
+export interface E2TracingConfiguration {
+  enabled: true;
+  failOnReceiverStartFailure: true;
+  otlp: { http: { acceptFormats: ['json']; enabled: true; host: '127.0.0.1'; port: 4318 } };
+}
+
 export const temporaryWorkspacePlaceholder = '<TEMP_WORKSPACE>';
 export const externalCodexHomePlaceholder = '<EXTERNAL_CODEX_HOME>';
 
@@ -51,7 +64,7 @@ export interface ScientificInvocation {
 export interface ScientificConfiguration {
   dependencyVersions: { codexCli: '0.147.0'; codexSdk: '0.147.0'; promptfoo: '0.122.0' };
   invocations: Record<ExperimentKind, ScientificInvocation>;
-  schemaVersion: 2;
+  schemaVersion: 3;
 }
 
 function createProviderConfig(input: CreateExperimentInvocationInput): ProviderConfig {
@@ -95,7 +108,7 @@ export function createExperimentInvocation(input: CreateExperimentInvocationInpu
     providers: [{ config: providerConfig, id: 'openai:codex-sdk' }],
     sharing: false,
     tests: [{ assert: [{ type: 'equals', value: expected }] }],
-    writeLatestResults: false,
+    writeLatestResults: !e1,
   };
   if (!e1) {
     suite.tracing = {
@@ -112,6 +125,23 @@ export function createExperimentInvocation(input: CreateExperimentInvocationInpu
   };
 }
 
+export function createE2PromptfooRuntimeCondition(): E2PromptfooRuntimeCondition {
+  const invocation = createExperimentInvocation({
+    externalCodexHome: externalCodexHomePlaceholder,
+    kind: 'e2-baseline',
+    workingDirectory: temporaryWorkspacePlaceholder,
+  });
+  if (invocation.suite.tracing === undefined || invocation.suite.writeLatestResults !== true) {
+    throw new Error('E2 Promptfoo runtime condition is incomplete');
+  }
+  return {
+    cache: invocation.options.cache,
+    sharing: invocation.suite.sharing,
+    tracing: invocation.suite.tracing,
+    writeLatestResults: invocation.suite.writeLatestResults,
+  };
+}
+
 export function createScientificConfiguration(): ScientificConfiguration {
   const build = (kind: ExperimentKind): ScientificInvocation =>
     createExperimentInvocation({
@@ -122,7 +152,7 @@ export function createScientificConfiguration(): ScientificConfiguration {
   return {
     dependencyVersions: { codexCli: '0.147.0', codexSdk: '0.147.0', promptfoo: '0.122.0' },
     invocations: { e1: build('e1'), 'e2-baseline': build('e2-baseline'), 'e2-deep': build('e2-deep') },
-    schemaVersion: 2,
+    schemaVersion: 3,
   };
 }
 import { canaryInstructions } from './workspace.js';

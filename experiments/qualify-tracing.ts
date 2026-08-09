@@ -2,15 +2,51 @@ import { fork } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { canonicalJson } from './canonical.js';
+import { createE2PromptfooRuntimeCondition } from './configuration.js';
 
 export type TracingAttemptStatus = 'SUPPORTED' | 'UNSUPPORTED' | 'BLOCKED';
 
 export type TracingQualificationResult = 'EXACT_SUPPORTED' | 'ALTERNATIVE_SUPPORTED' | 'INSUFFICIENT' | 'BLOCKED';
 
+export interface TracingQualificationCondition {
+  cache: false;
+  exact: boolean;
+  id: 'e2-exact' | 'non-persisted-comparison';
+  sharing: false;
+  temporaryDatabase: true;
+  telemetryDisabled: true;
+  updatesDisabled: true;
+  writeLatestResults: boolean;
+}
+
+const e2RuntimeCondition = createE2PromptfooRuntimeCondition();
+
+export const tracingQualificationConditions: Readonly<Record<TracingQualificationCondition['id'], TracingQualificationCondition>> =
+  Object.freeze({
+    'e2-exact': Object.freeze({
+      cache: e2RuntimeCondition.cache,
+      exact: true,
+      id: 'e2-exact',
+      sharing: e2RuntimeCondition.sharing,
+      temporaryDatabase: true,
+      telemetryDisabled: true,
+      updatesDisabled: true,
+      writeLatestResults: e2RuntimeCondition.writeLatestResults,
+    }),
+    'non-persisted-comparison': Object.freeze({
+      cache: false,
+      exact: false,
+      id: 'non-persisted-comparison',
+      sharing: false,
+      temporaryDatabase: true,
+      telemetryDisabled: true,
+      updatesDisabled: true,
+      writeLatestResults: false,
+    }),
+  });
+
 export interface TracingQualificationAttempt {
-  condition: {
-    writeLatestResults: boolean;
-  };
+  condition: TracingQualificationCondition;
   correlatedSpanRecovered: boolean;
   promptfooVersion: string;
   providerCompleted: boolean;
@@ -23,8 +59,8 @@ export interface TracingQualificationAttempt {
 }
 
 export interface TracingWorkerRequest {
+  condition: TracingQualificationCondition;
   repetition: 1 | 2;
-  writeLatestResults: boolean;
 }
 
 export interface TracingWorkerExecution {
@@ -37,7 +73,7 @@ export type TracingWorkerLauncher = (request: TracingWorkerRequest) => Promise<T
 export interface TracingQualificationReport {
   conditions: Array<{
     attempts: TracingQualificationAttempt[];
-    writeLatestResults: boolean;
+    condition: TracingQualificationCondition;
   }>;
   documentationFacts: {
     getTracesStableReferenceEstablishedForPinnedVersion: false;
@@ -48,11 +84,28 @@ export interface TracingQualificationReport {
   promptfooVersion: '0.122.0';
   purpose: 'DEVELOPMENT';
   result: TracingQualificationResult;
-  schemaVersion: 1;
+  schemaVersion: 2;
 }
 
-function attemptsFor(attempts: readonly TracingQualificationAttempt[], writeLatestResults: boolean): TracingQualificationAttempt[] {
-  return attempts.filter((attempt) => attempt.condition.writeLatestResults === writeLatestResults);
+function reportCondition(condition: TracingQualificationCondition): TracingQualificationCondition {
+  return {
+    cache: condition.cache,
+    exact: condition.exact,
+    id: condition.id,
+    sharing: condition.sharing,
+    temporaryDatabase: condition.temporaryDatabase,
+    telemetryDisabled: condition.telemetryDisabled,
+    updatesDisabled: condition.updatesDisabled,
+    writeLatestResults: condition.writeLatestResults,
+  };
+}
+
+function conditionIsKnown(condition: TracingQualificationCondition): boolean {
+  return canonicalJson(condition) === canonicalJson(tracingQualificationConditions[condition.id]);
+}
+
+function attemptsFor(attempts: readonly TracingQualificationAttempt[], exact: boolean): TracingQualificationAttempt[] {
+  return attempts.filter((attempt) => attempt.condition.exact === exact);
 }
 
 function hasBothRepetitions(attempts: readonly TracingQualificationAttempt[]): boolean {
@@ -82,8 +135,8 @@ function attemptIsConsistent(attempt: TracingQualificationAttempt): boolean {
 }
 
 export function classifyTracingAttempts(attempts: readonly TracingQualificationAttempt[]): TracingQualificationResult {
-  const exactAttempts = attemptsFor(attempts, false);
-  const alternativeAttempts = attemptsFor(attempts, true);
+  const exactAttempts = attemptsFor(attempts, true);
+  const alternativeAttempts = attemptsFor(attempts, false);
   const exact = exactAttempts.map((attempt) => attempt.status);
   const alternative = alternativeAttempts.map((attempt) => attempt.status);
   if (
@@ -91,7 +144,7 @@ export function classifyTracingAttempts(attempts: readonly TracingQualificationA
     alternative.length !== 2 ||
     !hasBothRepetitions(exactAttempts) ||
     !hasBothRepetitions(alternativeAttempts) ||
-    attempts.some((attempt) => attempt.status === 'BLOCKED' || !attemptIsConsistent(attempt))
+    attempts.some((attempt) => attempt.status === 'BLOCKED' || !conditionIsKnown(attempt.condition) || !attemptIsConsistent(attempt))
   ) {
     return 'BLOCKED';
   }
@@ -109,7 +162,7 @@ export function classifyTracingAttempts(attempts: readonly TracingQualificationA
 
 function reportAttempt(attempt: TracingQualificationAttempt): TracingQualificationAttempt {
   return {
-    condition: { writeLatestResults: attempt.condition.writeLatestResults },
+    condition: reportCondition(attempt.condition),
     correlatedSpanRecovered: attempt.correlatedSpanRecovered,
     promptfooVersion: attempt.promptfooVersion,
     providerCompleted: attempt.providerCompleted,
@@ -124,7 +177,7 @@ function reportAttempt(attempt: TracingQualificationAttempt): TracingQualificati
 
 function blockedAttempt(request: TracingWorkerRequest): TracingQualificationAttempt {
   return {
-    condition: { writeLatestResults: request.writeLatestResults },
+    condition: reportCondition(request.condition),
     correlatedSpanRecovered: false,
     promptfooVersion: '0.122.0',
     providerCompleted: false,
@@ -139,10 +192,10 @@ function blockedAttempt(request: TracingWorkerRequest): TracingQualificationAtte
 
 export async function qualifyPromptfooTracing(launchWorker: TracingWorkerLauncher): Promise<TracingQualificationReport> {
   const requests: TracingWorkerRequest[] = [
-    { repetition: 1, writeLatestResults: false },
-    { repetition: 2, writeLatestResults: false },
-    { repetition: 1, writeLatestResults: true },
-    { repetition: 2, writeLatestResults: true },
+    { condition: tracingQualificationConditions['e2-exact'], repetition: 1 },
+    { condition: tracingQualificationConditions['e2-exact'], repetition: 2 },
+    { condition: tracingQualificationConditions['non-persisted-comparison'], repetition: 1 },
+    { condition: tracingQualificationConditions['non-persisted-comparison'], repetition: 2 },
   ];
   const attempts: TracingQualificationAttempt[] = [];
   const processIds = new Set<number>();
@@ -158,8 +211,11 @@ export async function qualifyPromptfooTracing(launchWorker: TracingWorkerLaunche
   const processIsolationVerified = processIds.size === requests.length;
   return {
     conditions: [
-      { attempts: attempts.filter((attempt) => !attempt.condition.writeLatestResults), writeLatestResults: false },
-      { attempts: attempts.filter((attempt) => attempt.condition.writeLatestResults), writeLatestResults: true },
+      { attempts: attempts.filter((attempt) => attempt.condition.exact), condition: tracingQualificationConditions['e2-exact'] },
+      {
+        attempts: attempts.filter((attempt) => !attempt.condition.exact),
+        condition: tracingQualificationConditions['non-persisted-comparison'],
+      },
     ],
     documentationFacts: {
       getTracesStableReferenceEstablishedForPinnedVersion: false,
@@ -167,13 +223,13 @@ export async function qualifyPromptfooTracing(launchWorker: TracingWorkerLaunche
     },
     limitations: [
       'Local deterministic evidence does not establish Codex deep tracing, authenticated identity, absence of egress, or live readiness.',
-      'An alternative condition is a development candidate and cannot change the frozen live instrument without a later authorized plan.',
+      'Qualification supports the local tracing condition but does not authorize a live campaign.',
     ],
     processIsolationVerified,
     promptfooVersion: '0.122.0',
     purpose: 'DEVELOPMENT',
     result: processIsolationVerified ? classifyTracingAttempts(attempts) : 'BLOCKED',
-    schemaVersion: 1,
+    schemaVersion: 2,
   };
 }
 
@@ -201,6 +257,14 @@ function isAttempt(value: unknown): value is TracingQualificationAttempt {
   return (
     condition !== null &&
     typeof condition === 'object' &&
+    ((condition as Record<string, unknown>).id === 'e2-exact' ||
+      (condition as Record<string, unknown>).id === 'non-persisted-comparison') &&
+    typeof (condition as Record<string, unknown>).exact === 'boolean' &&
+    (condition as Record<string, unknown>).cache === false &&
+    (condition as Record<string, unknown>).sharing === false &&
+    (condition as Record<string, unknown>).temporaryDatabase === true &&
+    (condition as Record<string, unknown>).telemetryDisabled === true &&
+    (condition as Record<string, unknown>).updatesDisabled === true &&
     typeof (condition as Record<string, unknown>).writeLatestResults === 'boolean' &&
     typeof record.correlatedSpanRecovered === 'boolean' &&
     typeof record.promptfooVersion === 'string' &&
@@ -217,7 +281,7 @@ function isAttempt(value: unknown): value is TracingQualificationAttempt {
 export async function launchTracingWorker(request: TracingWorkerRequest): Promise<TracingWorkerExecution> {
   const workerPath = fileURLToPath(new URL('./qualify-tracing-worker.js', import.meta.url));
   return await new Promise<TracingWorkerExecution>((resolve, reject) => {
-    const child = fork(workerPath, [String(request.writeLatestResults), String(request.repetition)], {
+    const child = fork(workerPath, [request.condition.id, String(request.repetition)], {
       cwd: process.cwd(),
       env: workerEnvironment(),
       execPath: process.execPath,

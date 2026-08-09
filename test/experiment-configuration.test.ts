@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createExperimentInvocation } from '../experiments/configuration.js';
+import { createE2PromptfooRuntimeCondition, createExperimentInvocation } from '../experiments/configuration.js';
 
 describe('experiment condition configuration', () => {
   it('builds the bounded E1 condition without inheriting host credentials or enabling retries', () => {
@@ -62,5 +62,13 @@ describe('experiment condition configuration', () => {
       otlp: { http: { acceptFormats: ['json'], enabled: true, host: '127.0.0.1', port: 4318 } },
     });
     expect(deep.suite.tracing).toEqual(baseline.suite.tracing);
+    expect(baseline.suite).toMatchObject({ sharing: false, writeLatestResults: true });
+    expect(deep.suite).toMatchObject({ sharing: false, writeLatestResults: true });
+    expect(createE2PromptfooRuntimeCondition()).toEqual({
+      cache: baseline.options.cache,
+      sharing: baseline.suite.sharing,
+      tracing: baseline.suite.tracing,
+      writeLatestResults: baseline.suite.writeLatestResults,
+    });
   });
 });

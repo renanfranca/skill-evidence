@@ -11,6 +11,11 @@ export interface PromptfooIsolationEnvironment {
   PROMPTFOO_LOG_DIR: string;
 }
 
+export interface PromptfooIsolationStorage {
+  databasePath: string;
+  root: string;
+}
+
 const isolatedKeys = [
   'PROMPTFOO_CACHE_ENABLED',
   'PROMPTFOO_CACHE_PATH',
@@ -20,7 +25,9 @@ const isolatedKeys = [
   'PROMPTFOO_LOG_DIR',
 ] as const;
 
-export async function withPromptfooIsolation<T>(operation: (environment: PromptfooIsolationEnvironment) => Promise<T>): Promise<T> {
+export async function withPromptfooIsolation<T>(
+  operation: (environment: PromptfooIsolationEnvironment, storage: PromptfooIsolationStorage) => Promise<T>,
+): Promise<T> {
   const root = await mkdtemp(join(tmpdir(), 'skill-evidence-promptfoo-'));
   const environment: PromptfooIsolationEnvironment = {
     PROMPTFOO_CACHE_ENABLED: 'false',
@@ -38,7 +45,7 @@ export async function withPromptfooIsolation<T>(operation: (environment: Promptf
   const previous = new Map<string, string | undefined>(isolatedKeys.map((key) => [key, process.env[key]]));
   Object.assign(process.env, environment);
   try {
-    return await operation(environment);
+    return await operation(environment, { databasePath: join(environment.PROMPTFOO_CONFIG_DIR, 'promptfoo.db'), root });
   } finally {
     for (const key of isolatedKeys) {
       const value = previous.get(key);

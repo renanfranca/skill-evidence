@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { foundationConditions } from '../experiments/conditions.js';
-import { assertFreezeCurrent, createInstrumentFreeze } from '../experiments/freeze.js';
+import { assertFreezeCurrent, createInstrumentFreeze, type InstrumentFreeze } from '../experiments/freeze.js';
 
 describe('instrument freeze', () => {
   it('records normalized instrument provenance and rejects later lockfile drift', async () => {
@@ -41,6 +41,8 @@ describe('instrument freeze', () => {
 
     expect(JSON.stringify(freeze)).toContain('codexHomeDirectoryIdentity');
     expect(JSON.stringify(freeze)).not.toContain(codexHome);
+    expect(freeze.schemaVersion).toBe(3);
+    expect(freeze.scientificConfiguration.schemaVersion).toBe(3);
     expect(freeze.instrument).toEqual({ codexCli: '0.147.0', codexSdk: '0.147.0', promptfoo: '0.122.0' });
     expect(JSON.parse(await readFile(join(artifacts, 'campaigns', 'campaign-a', 'freeze.json'), 'utf8'))).toEqual(freeze);
     await expect(
@@ -53,6 +55,20 @@ describe('instrument freeze', () => {
         scientificConfiguration: foundationConditions(),
       }),
     ).resolves.toBeUndefined();
+
+    const previousFreeze = structuredClone(freeze) as unknown as Record<string, unknown>;
+    previousFreeze.schemaVersion = 2;
+    (previousFreeze.scientificConfiguration as Record<string, unknown>).schemaVersion = 2;
+    await expect(
+      assertFreezeCurrent({
+        externalCodexHome: codexHome,
+        freeze: previousFreeze as unknown as InstrumentFreeze,
+        lockfilePath,
+        manifestPath,
+        repositoryCommit: 'abc123',
+        scientificConfiguration: foundationConditions(),
+      }),
+    ).rejects.toThrow('instrument drift');
 
     await writeFile(lockfilePath, '{"lockfileVersion":3,"changed":true}');
     await expect(

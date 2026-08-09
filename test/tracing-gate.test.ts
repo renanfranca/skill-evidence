@@ -5,6 +5,7 @@ import {
   classifyTracingAttempts,
   qualifyPromptfooTracing,
   renderTracingQualification,
+  tracingQualificationConditions,
   type TracingQualificationAttempt,
   type TracingWorkerRequest,
 } from '../experiments/qualify-tracing.js';
@@ -17,7 +18,7 @@ function attempt(
 ): TracingQualificationAttempt {
   const supported = status === 'SUPPORTED';
   return {
-    condition: { writeLatestResults },
+    condition: writeLatestResults ? tracingQualificationConditions['e2-exact'] : tracingQualificationConditions['non-persisted-comparison'],
     correlatedSpanRecovered: supported,
     promptfooVersion: '0.122.0',
     providerCompleted: supported,
@@ -32,11 +33,24 @@ function attempt(
 
 describe('exact-condition tracing checkpoint', () => {
   it('uses the frozen live persistence setting', () => {
-    expect(tracingGateWriteLatestResults).toBe(false);
+    expect(tracingGateWriteLatestResults).toBe(true);
   });
 });
 
 describe('Promptfoo tracing qualification', () => {
+  it('classifies the named persisted E2 condition as exact instead of inferring exactness from false', () => {
+    const attempts = [
+      attempt(false, 1, 'UNSUPPORTED'),
+      attempt(false, 2, 'UNSUPPORTED'),
+      attempt(true, 1, 'SUPPORTED'),
+      attempt(true, 2, 'SUPPORTED'),
+    ];
+
+    const result = classifyTracingAttempts(attempts);
+
+    expect(result).toBe('EXACT_SUPPORTED');
+  });
+
   it.each([
     {
       expected: 'EXACT_SUPPORTED',
@@ -44,7 +58,7 @@ describe('Promptfoo tracing qualification', () => {
     },
     {
       expected: 'ALTERNATIVE_SUPPORTED',
-      statuses: ['UNSUPPORTED', 'UNSUPPORTED', 'SUPPORTED', 'SUPPORTED'] as const,
+      statuses: ['SUPPORTED', 'SUPPORTED', 'UNSUPPORTED', 'UNSUPPORTED'] as const,
     },
     {
       expected: 'INSUFFICIENT',
@@ -75,7 +89,7 @@ describe('Promptfoo tracing qualification', () => {
       processId += 1;
       return Promise.resolve({
         attempt: {
-          ...attempt(request.writeLatestResults, request.repetition, 'SUPPORTED'),
+          ...attempt(request.condition.writeLatestResults, request.repetition, 'SUPPORTED'),
           diagnostic: '/tmp/skill-evidence-promptfoo-secret/config',
         },
         processId,
@@ -86,13 +100,15 @@ describe('Promptfoo tracing qualification', () => {
     const rendered = renderTracingQualification(report);
 
     expect(requests).toEqual([
-      { repetition: 1, writeLatestResults: false },
-      { repetition: 2, writeLatestResults: false },
-      { repetition: 1, writeLatestResults: true },
-      { repetition: 2, writeLatestResults: true },
+      { condition: tracingQualificationConditions['e2-exact'], repetition: 1 },
+      { condition: tracingQualificationConditions['e2-exact'], repetition: 2 },
+      { condition: tracingQualificationConditions['non-persisted-comparison'], repetition: 1 },
+      { condition: tracingQualificationConditions['non-persisted-comparison'], repetition: 2 },
     ]);
     expect(report.conditions.map((condition) => condition.attempts.length)).toEqual([2, 2]);
+    expect(report.conditions[0]?.condition).toEqual(tracingQualificationConditions['e2-exact']);
     expect(report.result).toBe('EXACT_SUPPORTED');
+    expect(report.limitations).toContain('Qualification supports the local tracing condition but does not authorize a live campaign.');
     expect(rendered).toBe(canonicalJson(report) + '\n');
     expect(rendered).not.toContain('/tmp/');
     expect(rendered).not.toContain('processId');
@@ -102,7 +118,7 @@ describe('Promptfoo tracing qualification', () => {
   it('blocks the conclusion when a worker process is reused', async () => {
     const launchWorker = (request: TracingWorkerRequest) =>
       Promise.resolve({
-        attempt: attempt(request.writeLatestResults, request.repetition, 'SUPPORTED'),
+        attempt: attempt(request.condition.writeLatestResults, request.repetition, 'SUPPORTED'),
         processId: 100,
       });
 
@@ -120,7 +136,7 @@ describe('Promptfoo tracing qualification', () => {
         throw new Error('spawn failed in /tmp/private-worker');
       }
       return Promise.resolve({
-        attempt: attempt(request.writeLatestResults, request.repetition, 'UNSUPPORTED'),
+        attempt: attempt(request.condition.writeLatestResults, request.repetition, 'UNSUPPORTED'),
         processId: 100 + launches,
       });
     };

@@ -2,8 +2,10 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { canonicalJson } from './canonical.js';
+import { createE2PromptfooRuntimeCondition } from './configuration.js';
 import { withPromptfooIsolation } from './isolation.js';
-import type { TracingQualificationAttempt } from './qualify-tracing.js';
+import { tracingQualificationConditions } from './qualify-tracing.js';
+import type { TracingQualificationAttempt, TracingQualificationCondition } from './qualify-tracing.js';
 
 interface TraceContext {
   evaluationId?: string;
@@ -23,6 +25,8 @@ interface TraceResult {
   getTraces?: () => Promise<TraceRecord[]>;
   toEvaluateSummary?: () => Promise<unknown>;
 }
+
+const e2RuntimeCondition = createE2PromptfooRuntimeCondition();
 
 function tracePayload(context: TraceContext): Record<string, unknown> {
   if (context.traceparent === undefined || context.evaluationId === undefined || context.testCaseId === undefined) {
@@ -78,13 +82,13 @@ async function pinnedTypeDeclaresGetTraces(root: string): Promise<boolean> {
 }
 
 function blockedAttempt(
-  writeLatestResults: boolean,
+  condition: TracingQualificationCondition,
   repetition: 1 | 2,
   version: string,
   typedGetTracesPresent: boolean,
 ): TracingQualificationAttempt {
   return {
-    condition: { writeLatestResults },
+    condition,
     correlatedSpanRecovered: false,
     promptfooVersion: version,
     providerCompleted: false,
@@ -97,7 +101,7 @@ function blockedAttempt(
   };
 }
 
-async function qualifyAttempt(writeLatestResults: boolean, repetition: 1 | 2): Promise<TracingQualificationAttempt> {
+async function qualifyAttempt(condition: TracingQualificationCondition, repetition: 1 | 2): Promise<TracingQualificationAttempt> {
   const root = process.cwd();
   let version = 'UNAVAILABLE';
   let typedGetTracesPresent = false;
@@ -105,7 +109,7 @@ async function qualifyAttempt(writeLatestResults: boolean, repetition: 1 | 2): P
     version = await promptfooVersion(root);
     typedGetTracesPresent = await pinnedTypeDeclaresGetTraces(root);
   } catch {
-    return blockedAttempt(writeLatestResults, repetition, version, typedGetTracesPresent);
+    return blockedAttempt(condition, repetition, version, typedGetTracesPresent);
   }
 
   let providerCompleted = false;
@@ -140,14 +144,11 @@ async function qualifyAttempt(writeLatestResults: boolean, repetition: 1 | 2): P
           prompts: ['Produce the deterministic local trace.'],
           providers: [provider],
           tests: [{ assert: [{ type: 'equals', value: 'TRACE_OK' }] }],
-          tracing: {
-            enabled: true,
-            failOnReceiverStartFailure: true,
-            otlp: { http: { acceptFormats: ['json'], enabled: true, host: '127.0.0.1', port: 4318 } },
-          },
-          writeLatestResults,
+          tracing: e2RuntimeCondition.tracing,
+          sharing: condition.sharing,
+          writeLatestResults: condition.writeLatestResults,
         },
-        { cache: false, maxConcurrency: 1 },
+        { cache: condition.cache, maxConcurrency: 1 },
       )) as TraceResult;
       runtimeGetTracesPresent = typeof result.getTraces === 'function';
       if (typeof result.toEvaluateSummary === 'function') {
@@ -165,7 +166,7 @@ async function qualifyAttempt(writeLatestResults: boolean, repetition: 1 | 2): P
 
   const blocked = infrastructureBlocked || version !== '0.122.0' || !typedGetTracesPresent || !runtimeGetTracesPresent;
   return {
-    condition: { writeLatestResults },
+    condition,
     correlatedSpanRecovered,
     promptfooVersion: version,
     providerCompleted,
@@ -178,17 +179,19 @@ async function qualifyAttempt(writeLatestResults: boolean, repetition: 1 | 2): P
   };
 }
 
-function parseArguments(): { repetition: 1 | 2; writeLatestResults: boolean } {
-  const writeLatestResults = process.argv[2] === 'true' ? true : process.argv[2] === 'false' ? false : undefined;
+function parseArguments(): { condition: TracingQualificationCondition; repetition: 1 | 2 } {
+  const conditionId = process.argv[2];
+  const condition =
+    conditionId === 'e2-exact' || conditionId === 'non-persisted-comparison' ? tracingQualificationConditions[conditionId] : undefined;
   const repetition = process.argv[3] === '1' ? 1 : process.argv[3] === '2' ? 2 : undefined;
-  if (writeLatestResults === undefined || repetition === undefined) {
+  if (condition === undefined || repetition === undefined) {
     throw new Error('invalid tracing qualification worker arguments');
   }
-  return { repetition, writeLatestResults };
+  return { condition, repetition };
 }
 
 const request = parseArguments();
-const result = await qualifyAttempt(request.writeLatestResults, request.repetition);
+const result = await qualifyAttempt(request.condition, request.repetition);
 if (process.send !== undefined) {
   process.send(result);
 }

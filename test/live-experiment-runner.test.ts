@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -144,5 +144,68 @@ describe('live E1 orchestration', () => {
     ).rejects.toThrow('valid baseline E2 canary');
 
     expect(loads).toBe(0);
+  });
+
+  it('retains sanitized E2 summary and traces before removing the temporary Promptfoo database', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-runner-retention-'));
+    const externalCodexHome = join(root, 'dedicated-login');
+    const manifestPath = join(root, 'package.json');
+    const lockfilePath = join(root, 'package-lock.json');
+    await mkdir(externalCodexHome);
+    await writeFile(manifestPath, JSON.stringify({ dependencies: { '@openai/codex-sdk': '0.147.0', promptfoo: '0.122.0' } }));
+    await writeFile(lockfilePath, resolvedLockfile());
+    await createInstrumentFreeze({
+      artifactRoot: root,
+      campaignId: 'c4',
+      externalCodexHome,
+      lockfilePath,
+      manifestPath,
+      repositoryCommit: 'abc123',
+      scientificConfiguration: foundationConditions(),
+    });
+    let databasePath = '';
+
+    const result = await runLiveExperiment({
+      artifactRoot: root,
+      campaignId: 'c4',
+      environment: {},
+      externalCodexHome,
+      kind: 'e2-baseline',
+      loadPromptfoo: () =>
+        Promise.resolve({
+          evaluate: async (suite: unknown) => {
+            const invocation = suite as { providers: Array<{ config: { working_dir: string } }> };
+            const workspace = invocation.providers[0]?.config.working_dir;
+            if (workspace === undefined || process.env.PROMPTFOO_CONFIG_DIR === undefined) {
+              throw new Error('isolated E2 paths were unavailable');
+            }
+            databasePath = join(process.env.PROMPTFOO_CONFIG_DIR, 'promptfoo.db');
+            await Promise.all([
+              writeFile(databasePath, 'temporary database'),
+              writeFile(join(workspace, 'created-by-canary.txt'), 'CANARY_CREATED\n'),
+              writeFile(join(workspace, 'target.txt'), 'AFTER\n'),
+            ]);
+            return {
+              getTraces: () => Promise.resolve([{ raw: 'private trace', source: externalCodexHome }]),
+              toEvaluateSummary: () =>
+                Promise.resolve({
+                  results: [{ response: { output: 'E2_CANARY_OK', reasoning: 'private chain', source: externalCodexHome } }],
+                }),
+            };
+          },
+        }),
+      lockfilePath,
+      manifestPath,
+      repositoryCommit: 'abc123',
+    });
+
+    const summary = await readFile(join(root, 'campaigns', 'c4', 'raw', 'e2-baseline-summary.json'), 'utf8');
+    const traces = await readFile(join(root, 'campaigns', 'c4', 'raw', 'e2-baseline-traces.json'), 'utf8');
+    expect(result.status).toBe('PASS');
+    expect(summary).toContain('E2_CANARY_OK');
+    expect(summary).not.toContain('private chain');
+    expect(traces).not.toContain('private trace');
+    expect(summary + traces).not.toContain(externalCodexHome);
+    await expect(access(databasePath)).rejects.toMatchObject({ code: 'ENOENT' });
   });
 });

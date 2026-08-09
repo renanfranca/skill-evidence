@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { createE2PromptfooRuntimeCondition } from './configuration.js';
 import { withPromptfooIsolation } from './isolation.js';
 
 interface TraceContext {
@@ -32,7 +33,8 @@ export interface TraceLifecycleQualification {
   runtimeMethodPresent: boolean;
 }
 
-export const tracingGateWriteLatestResults = false;
+export const tracingGateCondition = createE2PromptfooRuntimeCondition();
+export const tracingGateWriteLatestResults = tracingGateCondition.writeLatestResults;
 
 function tracePayload(context: TraceContext): Record<string, unknown> {
   if (context.traceparent === undefined || context.evaluationId === undefined || context.testCaseId === undefined) {
@@ -104,14 +106,11 @@ export async function verifyTracingLifecycle(root: string): Promise<TraceLifecyc
         prompts: ['Produce the deterministic local trace.'],
         providers: [provider],
         tests: [{ assert: [{ type: 'equals', value: 'TRACE_OK' }] }],
-        tracing: {
-          enabled: true,
-          failOnReceiverStartFailure: true,
-          otlp: { http: { acceptFormats: ['json'], enabled: true, host: '127.0.0.1', port: 4318 } },
-        },
+        tracing: tracingGateCondition.tracing,
+        sharing: tracingGateCondition.sharing,
         writeLatestResults: tracingGateWriteLatestResults,
       },
-      { cache: false, maxConcurrency: 1 },
+      { cache: tracingGateCondition.cache, maxConcurrency: 1 },
     )) as TraceResult;
     if (typeof result.getTraces !== 'function' || typeof result.toEvaluateSummary !== 'function') {
       throw new Error('Promptfoo evaluate() did not return the documented evaluation lifecycle methods');
