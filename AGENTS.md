@@ -18,6 +18,8 @@ During the Theory First Promptfoo Foundation, TypeScript lives in `experiments/`
 
 Run these validations before a pull request. Model-backed runs are separate.
 
+`.github/workflows/ci.yml` runs the deterministic repository checks for every commit on an open pull request. It uses read-only permissions and no repository secrets. Keep model-backed campaigns, Codex OTEL qualification, Promptfoo tracing qualification, and loopback tracing verification as separately authorized local operations.
+
 ## Coding Style & Naming Conventions
 
 Use ESM imports with `.js` extensions, strict types, two-space indentation, LF endings, single quotes, and semicolons. Prettier uses 140 columns and organizes imports. Use kebab-case files (`judge-input.ts`), camelCase values, and PascalCase types. Preserve canonical JSON, deterministic digests, and explicit statuses; do not infer evidence from prose.
