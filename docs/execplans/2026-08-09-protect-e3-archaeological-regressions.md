@@ -5,7 +5,7 @@
 - THEORY consulted in full: commit [`572e963ea6f1207ab53c533592cb70a8239e221c`](https://github.com/renanfranca/skill-evaluation-theory/blob/572e963ea6f1207ab53c533592cb70a8239e221c/THEORY.md)
 - Branch: `feat/e3-archaeological-regression-corpus`
 - Planning baseline and branch point: `0e8975148041396b634ca7635f8e0ba03ddb728a`
-- Status: approved and in progress
+- Status: complete; hosted PR gates pending
 
 This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mitigations`, and `Lessons Learned` current while work advances.
 
@@ -48,7 +48,7 @@ The historical V1 branch was consulted only for provenance. Its incidents match 
 
 ## Desired End State
 
-`evaluations/refactor-design/archaeological/` contains a canonical structured fixture manifest and versioned JavaScript assertion/scoring files. It contains exactly R1–R6, with at least one known-valid and one discriminating known-invalid or boundary observation for each rule. Fixture prose is descriptive and never drives a result.
+`evaluations/refactor-design/archaeological/` contains a canonical structured fixture manifest and versioned JavaScript assertion, scoring, and deterministic provider files. It contains exactly R1–R6, with at least one known-valid and one discriminating known-invalid or boundary observation for each rule. Fixture prose is descriptive and never drives a result.
 
 `experiments/qualify-archaeological.ts` owns the stable development-report contract and orchestration seam. `experiments/qualify-archaeological-worker.ts` imports Promptfoo only inside `withPromptfooIsolation`, runs the eligible serializable cases with deterministic local execution and grading providers, and returns sanitized facts. The parent never exposes temporary paths, raw prompts, expected labels, process IDs, or evaluator payloads.
 
@@ -81,7 +81,7 @@ Prove R1, R3, and R6 through Promptfoo assertions and scoring rather than a para
 #### Acceptance Criteria
 
 - R1 accepts an absolute executable observation and rejects an external write-target contrast.
-- R3 accepts the valid paraphrase and rejects an incompatible conclusion through a deterministic local grader invoked by Promptfoo.
+- R3 accepts the RFC's canonical conclusion and a genuinely different valid paraphrase, then rejects an incompatible conclusion through a bounded deterministic local grader invoked by Promptfoo.
 - R6 has a favorable semantic component and a failing direct-critical component; Promptfoo's versioned scoring function makes the case fail and exposes both component results.
 
 ### Milestone 2 — Qualify the Skill Evidence control boundary
@@ -164,6 +164,34 @@ Consolidate the green design, reconcile canonical documentation, preserve histor
 - Documentation and this living plan match the implemented responsibility boundary.
 - No model session, external provider, credential access, campaign, freeze, or decision artifact occurs.
 
+### Milestone 5 — Remediate formal-review findings
+
+#### Goal
+
+Remove an incidental literal dependency from R3 and make the Promptfoo configurations demonstrably serializable at the evaluation boundary.
+
+#### Changes
+
+- Add a second, genuinely different valid R3 conclusion while retaining the RFC's canonical conclusion and the incompatible contrast.
+- Move deterministic execution and grader providers to versioned `file://` modules under `evaluations/refactor-design/archaeological/providers/`.
+- Canonically serialize and reconstruct every Promptfoo configuration before evaluation; reject unsupported values instead of silently dropping them.
+- Derive execution and grader call counts from Promptfoo result rows under the one-provider/one-assertion corpus invariant, and make the R4 grader reject forbidden evaluator-visible content itself.
+- Reconcile this plan and its index without changing RFC 0001, ADR 0002, report schema, dependencies, or historical reports.
+
+#### Validation
+
+- Command: `npm test`
+- Expected result: R3 reports `PASS`, `PASS`, `FAIL`; non-serializable configuration is rejected; the complete suite passes.
+- Commands: `npm run typecheck`; `npm run lint`; `npm run prettier:check`; `npm run build`; `npm run experiment:verify`; `npm run experiment:qualify:archaeological`; `git diff --check`.
+- Expected result: every command passes, the provider-free checkpoint remains at zero imports, and the qualifier reports 11 execution calls and 4 grader calls.
+
+#### Acceptance Criteria
+
+- No Promptfoo configuration passed by this corpus contains a function or another non-JSON value.
+- The R3 oracle evaluates only the delimited output and demonstrates bounded acceptance of two prespecified equivalent conclusions.
+- The R4 provider mechanically rejects leaked expected labels in its actual grader prompt.
+- CI and a repeated formal review are green before merge.
+
 ## Progress
 
 - [x] Read THEORY commit `572e963ea6f1207ab53c533592cb70a8239e221c` in full before the initial plan and again before this revision.
@@ -180,6 +208,11 @@ Consolidate the green design, reconcile canonical documentation, preserve histor
 - [x] Milestone 4 started.
 - [x] Complete the post-GREEN design review: return three fail-closed gaps to behavior TDD, consolidate the shared R2/R5 preflight-normalization transformation, and replace mutable completion sentinels with the isolation callback's explicit result.
 - [x] Milestone 4 completed: all repository checks, the new archaeological qualifier, both prior local qualifiers, loopback tracing verification, and all eight historical-report digests passed on 2026-08-09.
+- [x] Milestone 5 started after formal review identified literal R3 calibration and function-bearing Promptfoo configurations.
+- [x] Implement R3 calibration as two valid formulations plus one invalid contrast, with the provider reading only Promptfoo's user `<Output>` segment.
+- [x] Replace all function-bearing configuration values with versioned `file://` providers and strict canonical JSON round-trips.
+- [x] Complete post-GREEN design review with no additional material refactor: providers retain immutable constructor configuration, invocation data stays local, and the serialization boundary is exercised by runtime and tests.
+- [x] Milestone 5 completed: clean install, audit, 62 tests, static checks, all local checkpoints, historical digests, and worktree checks passed; hosted CI and repeated formal review remain merge gates.
 
 ## Decisions
 
@@ -207,17 +240,31 @@ Consolidate the green design, reconcile canonical documentation, preserve histor
   Rationale: a transport or corpus-integrity defect cannot support a conclusion, while an honestly observed failed contrast is valid evidence that Promptfoo conformance remains insufficient.
   Date/Author: 2026-08-09 / implementation agent
 
+- Decision: preserve the completed E3 plan as the living record and add a remediation milestone instead of creating a second plan for the same feature.
+  Rationale: the review findings correct claims and implementation boundaries established by this plan, while historical experiment reports remain untouched.
+  Date/Author: 2026-08-09 / operator and implementation agent
+
+- Decision: use versioned local `file://` providers and canonical JSON round-trips at the Promptfoo boundary.
+  Rationale: Promptfoo 0.122.0 natively loads JavaScript provider modules by file reference, so configuration remains data while Promptfoo retains provider lifecycle ownership.
+  Date/Author: 2026-08-09 / implementation agent
+
+- Decision: derive corpus call counts from Promptfoo result rows after removing mutable closure counters.
+  Rationale: each eligible case has exactly one execution provider and R3/R4 each have exactly one `llm-rubric`; disabled cache and concurrency one make the fixed corpus invariant explicit without hidden process state.
+  Date/Author: 2026-08-09 / implementation agent
+
 ## Risks and Mitigations
 
 - Risk: the qualifier becomes a second evaluator. Mitigation: Promptfoo executes all eligible assertions and scoring; Skill Evidence normalization reads only fixed disposition metadata and cannot inspect raw semantics.
 - Risk: E3 accidentally implements the E6 compiler. Mitigation: use hand-authored serializable development configurations and expose no general Blueprint-to-Promptfoo API.
 - Risk: a custom assertion hides generic framework duplication. Mitigation: add one versioned file only where built-ins cannot preserve the RFC property, and record ownership explicitly in the report.
 - Risk: R3 replaces literal matching with a hard-coded favorable answer. Mitigation: run known-valid and known-invalid semantic contrasts through the same deterministic local grader interface.
+- Risk: a rubric phrase accidentally satisfies the R3 grader. Mitigation: extract and normalize only the Promptfoo `<Output>` segment, use a rubric without fixture literals, and calibrate two valid outputs plus one invalid output.
 - Risk: R4 leaks expectations through IDs or prompts. Mitigation: derive opaque IDs from canonical observable inputs and inspect the complete evaluator-visible packet mechanically.
 - Risk: R2 or R5 starts a call despite known missing evidence. Mitigation: count execution and grader calls and require zero before a favorable qualification.
 - Risk: domain normalization silently reevaluates assertions. Mitigation: accept only enumerated assertion metadata and test that changing prose without metadata cannot change the projected status.
 - Risk: the local qualifier writes persistent Promptfoo state. Mitigation: run inside `withPromptfooIsolation`, disable cache, telemetry, updates, sharing, and latest-result persistence, then remove temporary storage.
 - Risk: historical campaign evidence changes during formatting. Mitigation: keep reports outside formatter write scope and compare all eight SHA-256 digests in final validation.
+- Risk: JSON serialization silently drops a function. Mitigation: use the repository's strict canonical serializer, then parse its output before every `promptfoo.evaluate()` call.
 
 ## Validation Strategy
 
@@ -244,9 +291,13 @@ There is no deployment or live rollout. Land fixtures, versioned assertion/scori
 - The Milestone 2 checkpoint found that an R4 fixture lookup could leave `observable` undefined at the Promptfoo API boundary. The projection now rejects that malformed input before execution instead of relying on a fixture assumption.
 - The post-GREEN review found three consistency gaps that required renewed behavior TDD: malformed IPC evidence could throw, favorable rows could contradict fixed provider-call counts, and absent disposition metadata could fall back to Promptfoo's generic boolean. All now fail closed.
 - R2 and R5 share one preflight-plus-structured-normalization transformation, while their Promptfoo assertion modules remain distinct domain policies. Returning the complete isolation result directly also removes an empty array that previously doubled as hidden completion state.
+- Formal review found that R3's only passing fixture repeated the exact literal recognized by its grader and that the in-memory providers made the claimed Promptfoo configurations non-serializable. Milestone 5 reopens the implementation to correct both findings before merge.
+- Promptfoo 0.122.0 presents an `llm-rubric` prompt as serialized chat messages whose system message contains examples. A deterministic grader must select the final user message before extracting `<Output>` or it can accidentally grade a framework example.
 
 ## Outcomes
 
-E3 now has a deterministic, local Promptfoo conformance corpus for RFC regressions R1–R6. Promptfoo remains the sole generic execution, assertion, scoring, and grader engine. Skill Evidence contributes only capability preflight, expectation-blind input projection, and strict structured disposition normalization. The canonical result is `SUPPORTED_WITH_THIN_CONTROL_PLANE` for Promptfoo `0.122.0`, with 10 execution-provider calls and 3 grader calls.
+E3 now has a deterministic, local Promptfoo conformance corpus for RFC regressions R1–R6. Promptfoo remains the sole generic execution, assertion, scoring, and grader engine. Skill Evidence contributes only capability preflight, expectation-blind input projection, and strict structured disposition normalization. After formal-review remediation, the canonical result is `SUPPORTED_WITH_THIN_CONTROL_PLANE` for Promptfoo `0.122.0`, with 11 execution-provider calls and 4 grader calls. R3 produces `PASS`, `PASS`, `FAIL`, and every Promptfoo configuration crosses a strict canonical JSON boundary before evaluation.
 
-Final validation passed with npm audit reporting zero vulnerabilities; strict typecheck and lint; 60 Vitest tests; Prettier; build; provider-free offline verification; archaeological qualification; Codex OTEL `EXACT_SUPPORTED`; Promptfoo tracing `EXACT_SUPPORTED`; loopback tracing verification; `git diff --check`; and exact preservation of all eight historical report SHA-256 digests. No model session, external provider, campaign, freeze, decision artifact, RFC change, ADR change, or historical report rewrite occurred.
+The original final validation passed with npm audit reporting zero vulnerabilities; strict typecheck and lint; 60 Vitest tests; Prettier; build; provider-free offline verification; archaeological qualification; Codex OTEL `EXACT_SUPPORTED`; Promptfoo tracing `EXACT_SUPPORTED`; loopback tracing verification; `git diff --check`; and exact preservation of all eight historical report SHA-256 digests.
+
+Milestone 5 repeated a clean install and audit with zero vulnerabilities; typecheck; lint; 62 Vitest tests; Prettier; build; provider-free offline verification; archaeological `SUPPORTED_WITH_THIN_CONTROL_PLANE`; Codex OTEL `EXACT_SUPPORTED`; isolated Promptfoo tracing `EXACT_SUPPORTED`; loopback tracing verification; `git diff --check`; and all eight historical digests. One tracing attempt overlapped a second validation process and returned `BLOCKED`; immediate isolated repetition returned the prescribed `EXACT_SUPPORTED`, identifying local process interference rather than a product regression. No model session, external provider, campaign, freeze, decision artifact, RFC change, ADR change, or historical report rewrite occurred.

@@ -48,6 +48,11 @@
           "input": { "message": "No refactor was justified." }
         },
         {
+          "id": "equivalent-restructuring-unwarranted",
+          "expected": "PASS",
+          "input": { "message": "The observed behavior did not warrant restructuring." }
+        },
+        {
           "id": "unsupported-refactor-conclusion",
           "expected": "FAIL",
           "input": { "message": "A refactor is required, but no changes were made." }

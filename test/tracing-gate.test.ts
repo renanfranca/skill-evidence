@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { runArchaeologicalConformance } from '../experiments/archaeological.js';
+import { jsonPromptfooConfiguration, runArchaeologicalConformance } from '../experiments/archaeological.js';
 import { canonicalJson } from '../experiments/canonical.js';
 import {
   codexOtelQualificationConditions,
@@ -55,6 +55,12 @@ describe('exact-condition tracing checkpoint', () => {
 });
 
 describe('archaeological regression qualification', () => {
+  it('rejects function-bearing Promptfoo configurations instead of silently dropping runtime bindings', () => {
+    const configuration = { providers: [{ callApi: () => Promise.resolve({ output: 'hidden runtime binding' }) }] };
+
+    expect(() => jsonPromptfooConfiguration(configuration)).toThrow('Promptfoo configuration is not JSON-serializable');
+  });
+
   it('delegates executable-path and external-write classification to Promptfoo assertions', async () => {
     const report = await qualifyArchaeologicalRegressions(() => runArchaeologicalConformance());
 
@@ -76,6 +82,7 @@ describe('archaeological regression qualification', () => {
       id: 'R3',
       observations: [
         { actual: 'PASS', expected: 'PASS', id: 'equivalent-no-refactor-conclusion' },
+        { actual: 'PASS', expected: 'PASS', id: 'equivalent-restructuring-unwarranted' },
         { actual: 'FAIL', expected: 'FAIL', id: 'unsupported-refactor-conclusion' },
       ],
       owner: 'PROMPTFOO_GRADER',
@@ -120,7 +127,7 @@ describe('archaeological regression qualification', () => {
       ],
       owner: 'SKILL_EVIDENCE_INPUT_PROJECTION',
     });
-    expect(report.graderCalls).toBe(3);
+    expect(report.graderCalls).toBe(4);
   });
 
   it('keeps missing required evidence from invoking a grader or becoming a pass', async () => {
@@ -134,7 +141,7 @@ describe('archaeological regression qualification', () => {
       ],
       owner: ['SKILL_EVIDENCE_PREFLIGHT', 'SKILL_EVIDENCE_NORMALIZATION'],
     });
-    expect(report.graderCalls).toBe(3);
+    expect(report.graderCalls).toBe(4);
   });
 
   it('renders a complete canonical development report without evaluator-private data', async () => {
@@ -142,8 +149,8 @@ describe('archaeological regression qualification', () => {
     const rendered = renderArchaeologicalQualification(report);
 
     expect(report).toMatchObject({
-      executionProviderCalls: 10,
-      graderCalls: 3,
+      executionProviderCalls: 11,
+      graderCalls: 4,
       promptfooVersion: '0.122.0',
       purpose: 'DEVELOPMENT',
       result: 'SUPPORTED_WITH_THIN_CONTROL_PLANE',
@@ -202,8 +209,8 @@ describe('archaeological regression qualification', () => {
 
   it('blocks malformed worker evidence instead of throwing during classification', async () => {
     const malformed = {
-      executionProviderCalls: 9,
-      graderCalls: 3,
+      executionProviderCalls: 10,
+      graderCalls: 4,
       promptfooVersion: '0.122.0',
       rules: [null, null, null, null, null, null],
     } as unknown as ArchaeologicalWorkerEvidence;

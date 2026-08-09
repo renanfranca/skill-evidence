@@ -63,8 +63,8 @@ function ownerMatches(actual: ArchaeologicalRuleResult['owner'], expected: Archa
 function evidenceIsWellFormed(evidence: ArchaeologicalWorkerEvidence): boolean {
   return (
     evidence.promptfooVersion === '0.122.0' &&
-    evidence.executionProviderCalls === 10 &&
-    evidence.graderCalls === 3 &&
+    evidence.executionProviderCalls === 11 &&
+    evidence.graderCalls === 4 &&
     evidence.rules.length === expectedRuleOwners.length &&
     evidence.rules.every((rule, index) => {
       const expectedRule = expectedRuleOwners[index];

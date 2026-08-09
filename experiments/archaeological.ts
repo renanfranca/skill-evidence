@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { sha256 } from './canonical.js';
+import { canonicalJson, sha256 } from './canonical.js';
 import { withPromptfooIsolation } from './isolation.js';
 import type { VarValue } from 'promptfoo';
 import type {
@@ -38,6 +38,9 @@ const fixtureOwners: ArchaeologicalOwner[] = [
   'SKILL_EVIDENCE_NORMALIZATION',
   'SKILL_EVIDENCE_PREFLIGHT',
 ];
+const executionProviderPath = 'file://evaluations/refactor-design/archaeological/providers/execution.cjs';
+const semanticGraderPath = 'file://evaluations/refactor-design/archaeological/providers/semantic-grader.cjs';
+const blindGraderPath = 'file://evaluations/refactor-design/archaeological/providers/blind-grader.cjs';
 
 interface PromptfooResult {
   gradingResult?: {
@@ -57,6 +60,41 @@ interface PromptfooEvaluation {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function assertJsonValue(value: unknown, seen: Set<object>): void {
+  if (value === null || typeof value === 'boolean' || typeof value === 'string') {
+    return;
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return;
+  }
+  if (typeof value !== 'object') {
+    throw new Error('Promptfoo configuration is not JSON-serializable');
+  }
+  if (seen.has(value)) {
+    throw new Error('Promptfoo configuration is not JSON-serializable');
+  }
+  seen.add(value);
+  if (Array.isArray(value)) {
+    value.forEach((item) => assertJsonValue(item, seen));
+  } else {
+    const prototype = Object.getPrototypeOf(value) as unknown;
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw new Error('Promptfoo configuration is not JSON-serializable');
+    }
+    Object.values(value).forEach((item) => assertJsonValue(item, seen));
+  }
+  seen.delete(value);
+}
+
+export function jsonPromptfooConfiguration<T>(configuration: T): T {
+  assertJsonValue(configuration, new Set());
+  return JSON.parse(canonicalJson(configuration)) as T;
+}
+
+function executionProvider(output: 'message' | 'observable' | 'observation' | 'vars', serialization: 'json' | 'plain' = 'json') {
+  return { config: { output, serialization }, id: executionProviderPath };
 }
 
 function loadManifest(value: unknown): FixtureManifest {
@@ -102,19 +140,11 @@ async function packageVersion(root: string): Promise<string> {
 }
 
 async function executeR1(rule: FixtureRule): Promise<{ calls: number; rule: ArchaeologicalRuleResult }> {
-  let calls = 0;
   const { evaluate } = await import('promptfoo');
-  const provider = {
-    callApi: (_prompt: string, context?: { vars?: Record<string, unknown> }) => {
-      calls += 1;
-      return Promise.resolve({ output: JSON.stringify(context?.vars?.observation ?? null) });
-    },
-    id: () => 'local:archaeological-execution',
-  };
   const evaluation = (await evaluate(
-    {
+    jsonPromptfooConfiguration({
       prompts: ['Evaluate structured archaeological evidence.'],
-      providers: [provider],
+      providers: [executionProvider('observation')],
       sharing: false,
       tests: rule.observations.map((observation) => ({
         assert: [
@@ -128,7 +158,7 @@ async function executeR1(rule: FixtureRule): Promise<{ calls: number; rule: Arch
         vars: { observation: observation.input },
       })),
       writeLatestResults: false,
-    },
+    }),
     { cache: false, maxConcurrency: 1 },
   )) as PromptfooEvaluation;
   const summary = await evaluation.toEvaluateSummary();
@@ -136,7 +166,7 @@ async function executeR1(rule: FixtureRule): Promise<{ calls: number; rule: Arch
     summary.results.map((result) => [result.testCase.metadata?.observationId, result.success ? ('PASS' as const) : ('FAIL' as const)]),
   );
   return {
-    calls,
+    calls: summary.results.length,
     rule: {
       id: rule.id,
       observations: rule.observations.map((observation) => ({
@@ -164,19 +194,11 @@ async function executePreflightNormalizedRule(
   assertionPath: string,
 ): Promise<{ calls: number; rule: ArchaeologicalRuleResult }> {
   const eligible = rule.observations.filter((observation) => observation.input.capabilityEligible === true);
-  let calls = 0;
   const { evaluate } = await import('promptfoo');
-  const provider = {
-    callApi: (_prompt: string, context?: { vars?: Record<string, unknown> }) => {
-      calls += 1;
-      return Promise.resolve({ output: JSON.stringify(context?.vars ?? null) });
-    },
-    id: () => 'local:archaeological-execution',
-  };
   const evaluation = (await evaluate(
-    {
+    jsonPromptfooConfiguration({
       prompts: [prompt],
-      providers: [provider],
+      providers: [executionProvider('vars')],
       sharing: false,
       tests: eligible.map((observation) => ({
         assert: [
@@ -190,13 +212,13 @@ async function executePreflightNormalizedRule(
         vars: observation.input,
       })),
       writeLatestResults: false,
-    },
+    }),
     { cache: false, maxConcurrency: 1 },
   )) as PromptfooEvaluation;
   const summary = await evaluation.toEvaluateSummary();
   const actual = new Map(summary.results.map((result) => [result.testCase.metadata?.observationId, structuredDisposition(result)]));
   return {
-    calls,
+    calls: summary.results.length,
     rule: {
       id: rule.id,
       observations: rule.observations.map((observation) => ({
@@ -210,49 +232,25 @@ async function executePreflightNormalizedRule(
 }
 
 async function executeR3(rule: FixtureRule): Promise<{ executionCalls: number; graderCalls: number; rule: ArchaeologicalRuleResult }> {
-  let executionCalls = 0;
-  let graderCalls = 0;
   const { evaluate } = await import('promptfoo');
-  const executionProvider = {
-    callApi: (_prompt: string, context?: { vars?: Record<string, unknown> }) => {
-      executionCalls += 1;
-      const message = context?.vars?.message;
-      return Promise.resolve({ output: typeof message === 'string' ? message : '' });
-    },
-    id: () => 'local:archaeological-execution',
-  };
-  const graderProvider = {
-    callApi: (prompt: string) => {
-      graderCalls += 1;
-      const pass = prompt.includes('No refactor was justified.');
-      return Promise.resolve({
-        output: JSON.stringify({
-          pass,
-          reason: pass ? 'The conclusion is semantically equivalent.' : 'The conclusion contradicts the rubric.',
-          score: pass ? 1 : 0,
-        }),
-      });
-    },
-    id: () => 'local:archaeological-semantic-grader',
-  };
   const evaluation = (await evaluate(
-    {
+    jsonPromptfooConfiguration({
       prompts: ['Report the supplied conclusion.'],
-      providers: [executionProvider],
+      providers: [executionProvider('message', 'plain')],
       sharing: false,
       tests: rule.observations.map((observation) => ({
         assert: [
           {
-            provider: graderProvider,
+            provider: semanticGraderPath,
             type: 'llm-rubric',
-            value: 'Accept a conclusion that no refactor was justified; reject a conclusion that says a required refactor was skipped.',
+            value: 'Accept a conclusion whose meaning is that restructuring was unwarranted by the observed behavior; reject the opposite.',
           },
         ],
         metadata: { observationId: observation.id },
         vars: observation.input,
       })),
       writeLatestResults: false,
-    },
+    }),
     { cache: false, maxConcurrency: 1 },
   )) as PromptfooEvaluation;
   const summary = await evaluation.toEvaluateSummary();
@@ -260,8 +258,8 @@ async function executeR3(rule: FixtureRule): Promise<{ executionCalls: number; g
     summary.results.map((result) => [result.testCase.metadata?.observationId, result.success ? ('PASS' as const) : ('FAIL' as const)]),
   );
   return {
-    executionCalls,
-    graderCalls,
+    executionCalls: summary.results.length,
+    graderCalls: summary.results.length,
     rule: {
       id: rule.id,
       observations: rule.observations.map((observation) => ({
@@ -276,31 +274,11 @@ async function executeR3(rule: FixtureRule): Promise<{ executionCalls: number; g
 
 async function executeR4(rule: FixtureRule): Promise<{ executionCalls: number; graderCalls: number; rule: ArchaeologicalRuleResult }> {
   const eligible = rule.observations.filter((observation) => observation.input.idSource === 'observable');
-  let executionCalls = 0;
-  let graderCalls = 0;
-  const capturedPrompts: string[] = [];
   const { evaluate } = await import('promptfoo');
-  const executionProvider = {
-    callApi: (_prompt: string, context?: { vars?: Record<string, unknown> }) => {
-      executionCalls += 1;
-      return Promise.resolve({ output: JSON.stringify(context?.vars?.observable ?? null) });
-    },
-    id: () => 'local:archaeological-execution',
-  };
-  const graderProvider = {
-    callApi: (prompt: string) => {
-      graderCalls += 1;
-      capturedPrompts.push(prompt);
-      return Promise.resolve({
-        output: JSON.stringify({ pass: true, reason: 'Observable evidence satisfies the supplied rubric.', score: 1 }),
-      });
-    },
-    id: () => 'local:archaeological-blind-grader',
-  };
   const evaluation = (await evaluate(
-    {
+    jsonPromptfooConfiguration({
       prompts: ['Project the observable qualification packet.'],
-      providers: [executionProvider],
+      providers: [executionProvider('observable')],
       sharing: false,
       tests: eligible.map((observation) => {
         const observable = observation.input.observable;
@@ -310,7 +288,7 @@ async function executeR4(rule: FixtureRule): Promise<{ executionCalls: number; g
         return {
           assert: [
             {
-              provider: graderProvider,
+              provider: blindGraderPath,
               type: 'llm-rubric',
               value: 'Classify the observable packet against the supplied evidence rule.',
             },
@@ -320,21 +298,16 @@ async function executeR4(rule: FixtureRule): Promise<{ executionCalls: number; g
         };
       }),
       writeLatestResults: false,
-    },
+    }),
     { cache: false, maxConcurrency: 1 },
   )) as PromptfooEvaluation;
   const summary = await evaluation.toEvaluateSummary();
-  const forbidden = ['expectedstatus', 'known-valid', 'known-invalid', 'label-derived-identifier'];
-  const payloadIsBlind = capturedPrompts.every((prompt) => forbidden.every((value) => !prompt.toLowerCase().includes(value)));
   const actual = new Map(
-    summary.results.map((result) => [
-      result.testCase.metadata?.observationId,
-      result.success && payloadIsBlind ? ('PASS' as const) : ('FAIL' as const),
-    ]),
+    summary.results.map((result) => [result.testCase.metadata?.observationId, result.success ? ('PASS' as const) : ('FAIL' as const)]),
   );
   return {
-    executionCalls,
-    graderCalls,
+    executionCalls: summary.results.length,
+    graderCalls: summary.results.length,
     rule: {
       id: rule.id,
       observations: rule.observations.map((observation) => ({
@@ -348,19 +321,11 @@ async function executeR4(rule: FixtureRule): Promise<{ executionCalls: number; g
 }
 
 async function executeR6(rule: FixtureRule): Promise<{ calls: number; rule: ArchaeologicalRuleResult }> {
-  let calls = 0;
   const { evaluate } = await import('promptfoo');
-  const provider = {
-    callApi: (_prompt: string, context?: { vars?: Record<string, unknown> }) => {
-      calls += 1;
-      return Promise.resolve({ output: JSON.stringify(context?.vars ?? null) });
-    },
-    id: () => 'local:archaeological-execution',
-  };
   const evaluation = (await evaluate(
-    {
+    jsonPromptfooConfiguration({
       prompts: ['Evaluate structured direct and semantic evidence.'],
-      providers: [provider],
+      providers: [executionProvider('vars')],
       sharing: false,
       tests: rule.observations.map((observation) => ({
         assert: [
@@ -380,7 +345,7 @@ async function executeR6(rule: FixtureRule): Promise<{ calls: number; rule: Arch
         vars: observation.input,
       })),
       writeLatestResults: false,
-    },
+    }),
     { cache: false, maxConcurrency: 1 },
   )) as PromptfooEvaluation;
   const summary = await evaluation.toEvaluateSummary();
@@ -388,7 +353,7 @@ async function executeR6(rule: FixtureRule): Promise<{ calls: number; rule: Arch
     summary.results.map((result) => [result.testCase.metadata?.observationId, result.success ? ('PASS' as const) : ('FAIL' as const)]),
   );
   return {
-    calls,
+    calls: summary.results.length,
     rule: {
       id: rule.id,
       observations: rule.observations.map((observation) => ({
