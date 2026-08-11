@@ -6,13 +6,14 @@ Safety boundary: E5 Milestones 1 through 3 and provider-free preparation of the 
 
 The intended implementation executor is `gpt-5.6-terra` with `xhigh` reasoning. The E4 baseline is commit `916f8bbcc438d1b5aa30868fad4e4379fdf2ea43` on `feat/e4-evaluation-author-v0`. Authorized Milestone 1 implementation began on `feat/e5-blind-author-benchmark` from planning commit `973efba2e0b1d02afc1de550053cf6df914408a9`, which contains that E4 baseline. The normative THEORY was read in full at commit `572e963ea6f1207ab53c533592cb70a8239e221c`.
 
-Status: `MILESTONE 4 RUNNER PREPARED — REAL RESERVATION AND SIXTEEN PROVIDER CALLS NOT AUTHORIZED`.
+Status: `MILESTONE 4 RUNNER HARDENED OFFLINE — REAL RESERVATION AND SIXTEEN PROVIDER CALLS NOT AUTHORIZED`.
 
 Milestone 1 implementation is recorded at commit `46d83a9`.
 Milestone 2 implementation is recorded at commit `8a154f2`.
 Milestone 3 preparation is recorded at commit `f8dfe28`.
 Milestone 3 commit-freeze hardening is recorded at commit `0ed7c3d`.
 Milestone 4 provider-free runner preparation is recorded at commit `1b157d8`.
+Milestone 4 terminal hardening is recorded at commit `94a9652`.
 
 ## Purpose / Big Picture
 
@@ -324,6 +325,10 @@ git status --short
 - [x] Require the clean campaign `HEAD` to equal an explicitly expected commit before requesting authorization.
 - [x] Receive explicit authorization to implement and qualify the final runner offline without touching the real campaign.
 - [x] Complete the live-capable runner with temporary deterministic qualification and a new clean preflight.
+- [x] Receive explicit authorization to harden global rate-limit handling and terminal persistence before collection.
+- [x] Classify every ambiguous rate limit as a global `INSUFFICIENT` stop.
+- [x] Persist one canonical terminal receipt after every catchable post-reservation outcome.
+- [x] Requalify the hardened runner and freeze a new clean commit and campaign fingerprint.
 - [ ] Receive explicit authorization for exactly sixteen provider calls.
 - [ ] Complete Milestone 4 exactly once.
 - [ ] Complete Milestone 5.
@@ -336,6 +341,8 @@ Milestone 3 closed with 110 green tests and campaign fingerprint `d4fa2011bcb04d
 Post-milestone review found that `EXACT_CLEAN_COMMIT` originally proved only a clean worktree and a syntactically valid observed SHA. Commit `0ed7c3d` hardened the contract so a distinct literal expected SHA is mandatory and must equal the clean observed `HEAD`. The focused suite, full 111-test suite, public provider-free checkpoint, and offline benchmark qualification passed; the clean preflight returned `READY_FOR_AUTHORIZATION` with both SHAs equal, zero provider calls, and no reservation. The final exact SHA remains an external authorization fact recorded by the ignored preflight report rather than a self-referential field in the versioned preparation.
 
 Milestone 4 runner preparation closed with 122 green tests. The deterministic runner qualifier traversed the final Promptfoo/Codex SDK path with sixteen local successful samples and a separate one-call authentication stop, reported `SUPPORTED_FOR_DEVELOPMENT`, and recorded seventeen local processes, zero external provider calls, and zero workspace campaign artifacts. Post-GREEN design review replaced a fragile inferred Blueprint type with the explicit product type and removed an absolute path from the reservation-collision diagnostic; focused tests and the provider-free public checkpoint remained green. A clean literal-SHA preflight on implementation commit `1b157d8` passed all ten checks with zero calls and no reservation. The final documentation commit is rechecked separately and its exact SHA remains only in the ignored preflight report and later authorization.
+
+Pre-authorization hardening superseded that freeze after review showed that ambiguous rate limits could contaminate later samples and catchable post-reservation failures could leave no terminal summary. The hardened runner closed with 135 green tests, campaign fingerprint `283dcb224800d5d41812078771126798aaf4dcbac0ce82c439c12007ba356b05`, and a deterministic qualifier covering sixteen successes, one global authentication stop, and one global rate-limit stop across eighteen local processes with zero external calls or workspace campaign artifacts. Every supported catchable output, snapshot, reservation, persistence, workspace, cleanup, and adapter-construction failure now produces a bounded receipt beside the immutable reservation. Post-GREEN review centralized receipt construction to prevent divergent canonical projections. Commit `bb5ea2a` and the prior campaign fingerprint are obsolete for authorization; the final hardened SHA is established only after the documentation commit and clean literal-SHA preflight.
 
 ## Decisions
 
@@ -398,12 +405,20 @@ Milestone 4 runner preparation closed with 122 green tests. The deterministic ru
   Rationale: the former can produce a terminal observation for one prespecified sample without implying that later samples cannot run; the latter invalidate the shared execution capability or environment.
   Date/Author: 2026-08-11 / implementation agent.
 
+- Decision: supersede the sample-local rate-limit policy before real collection and treat every `RATE_LIMIT` diagnostic as global.
+  Rationale: the current text-only provider boundary cannot prove that an HTTP 429 is transient rather than account-wide quota exhaustion. A conservative `INSUFFICIENT` stop preserves missing operational evidence without misclassifying later failures as Author quality.
+  Date/Author: 2026-08-11 / user and implementation agent.
+
+- Decision: preserve the immutable global reservation and write one adjacent canonical terminal receipt for every catchable post-reservation outcome.
+  Rationale: an output or infrastructure failure must not leave the only durable campaign fact as an unexplained reservation, while the receipt remains a terminal record rather than a second reservation.
+  Date/Author: 2026-08-11 / user and implementation agent.
+
 - Decision: preserve only normalized numeric token fields and bounded latency values, with unavailable telemetry represented as `null`.
   Rationale: collection evidence should retain useful operational facts without inferring missing measurements or allowing provider-specific payloads to enter canonical artifacts.
   Date/Author: 2026-08-11 / implementation agent.
 
 - Decision: treat the deterministic runner qualification as evidence about orchestration and terminal policy only.
-  Rationale: seventeen local executable processes exercise the final adapter without network access, but cannot establish provider availability or either Author condition's quality.
+  Rationale: eighteen local executable processes exercise the final adapter, including global authentication and rate-limit stops, without network access, but cannot establish provider availability or either Author condition's quality.
   Date/Author: 2026-08-11 / implementation agent.
 
 ## Risks and Mitigations
@@ -426,6 +441,9 @@ Milestone 4 runner preparation closed with 122 green tests. The deterministic ru
 - Risk: campaign provenance requirements leak into normal product use. Mitigation: keep `expectedCommit` out of skill snapshots, `authorEvaluationBlueprint`, condition fingerprints, and the campaign fingerprint; normal Author operation does not require Git.
 - Risk: local integration success is mistaken for provider availability or Author quality. Mitigation: the runner qualifier uses an executable that cannot reach the network, reports `DEVELOPMENT`, and explicitly qualifies only orchestration, persistence, telemetry projection, and terminal policy.
 - Risk: test reservations consume the real campaign. Mitigation: every runner-qualification campaign uses a fresh temporary repository root and verifies that the workspace reservation and output paths remain absent.
+- Risk: a global quota failure is repeated across later samples and mistaken for poor Author quality. Mitigation: every `RATE_LIMIT` stops the remaining schedule as `INSUFFICIENT`; no transience is inferred from an ambiguous provider message.
+- Risk: a catchable output or infrastructure failure after the global reservation leaves no terminal campaign record. Mitigation: write a bounded canonical receipt beside the immutable reservation, independent of the normal output directory.
+- Risk: `SIGKILL`, power loss, or total filesystem failure prevents terminalization. Mitigation: the durable `RESERVED` artifact remains evidence that the campaign was consumed and still forbids rerun; recovery requires human classification, never reuse.
 
 ## Validation Strategy
 
@@ -452,6 +470,7 @@ No lower rung substitutes for a higher rung, and no real call substitutes for qu
 - Milestone 3 adds a frozen campaign manifest and a provider-free, non-reserving preflight command; it adds no benchmark result or model-backed evidence.
 - Commit-freeze hardening adds only a campaign-specific preflight input and report field; it does not change snapshot or Author interfaces.
 - Provider-free runner preparation adds the final internal collection command, deterministic local qualifier, CI coverage, and temporary fixtures; no real campaign artifact or model-backed evidence is produced.
+- Pre-authorization hardening adds a global rate-limit stop, an adjacent terminal receipt, an eleventh preflight absence check, and deterministic failure qualification without changing the blind bundle or either Author condition.
 - AGENTS.md documents both offline commands while preserving model-backed collection as a separately authorized local operation.
 - RFC 0001 and ADR 0002 remain unchanged unless implementation discovers a normative contradiction.
 - Historical E0–E4 plans and reports remain byte-for-byte preserved.
@@ -481,3 +500,5 @@ A qualified condition becomes `STALE` when any model/reasoning request, instruct
 - Commit freezing is proportional for irreversible qualification evidence but would be an inappropriate dependency for ordinary skill authoring.
 - A live-capable runner can be frozen safely before cost authorization when its complete provider boundary is exercised with a deterministic local executable and all reservations are redirected to temporary roots.
 - Normalizing optional telemetry at the provider boundary preserves operational evidence without letting provider-specific shapes or missing values alter campaign identity.
+- A generic HTTP 429 cannot support a transient-failure claim when the provider boundary exposes no structured reset or quota semantics.
+- Reservation exclusivity and terminal persistence are separate obligations: claiming a campaign safely does not by itself explain how it ended.
