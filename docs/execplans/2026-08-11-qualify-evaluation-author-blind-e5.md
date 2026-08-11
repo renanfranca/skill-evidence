@@ -2,11 +2,11 @@
 
 This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mitigations`, and `Lessons Learned` current throughout execution.
 
-Safety boundary: E5 Milestones 1 through 3 and provider-free preparation of the final Milestone 4 runner were explicitly authorized on 2026-08-11. The runner may be implemented and qualified only with temporary reservations and a deterministic local executable; the real campaign reservation, external provider calls, output review, Author-condition qualification, and normal-path promotion remain unauthorized. Offline instrument or runner qualification does not itself satisfy Gate G5.
+Safety boundary: E5 Milestones 1 through 3, provider-free preparation of the final Milestone 4 runner, and the exact sixteen-call campaign were explicitly authorized on 2026-08-11. Campaign `e5-author-benchmark-20260811-r1` has been consumed and must never be repeated. Output adjudication, Author-condition qualification, and normal-path promotion remain separately gated. Offline instrument or runner qualification does not itself satisfy Gate G5.
 
 The intended implementation executor is `gpt-5.6-terra` with `xhigh` reasoning. The E4 baseline is commit `916f8bbcc438d1b5aa30868fad4e4379fdf2ea43` on `feat/e4-evaluation-author-v0`. Authorized Milestone 1 implementation began on `feat/e5-blind-author-benchmark` from planning commit `973efba2e0b1d02afc1de550053cf6df914408a9`, which contains that E4 baseline. The normative THEORY was read in full at commit `572e963ea6f1207ab53c533592cb70a8239e221c`.
 
-Status: `MILESTONE 4 RUNNER HARDENED OFFLINE — REAL RESERVATION AND SIXTEEN PROVIDER CALLS NOT AUTHORIZED`.
+Status: `MILESTONE 4 COLLECTION COMPLETE — BLIND ADJUDICATION NOT YET PERFORMED`.
 
 Milestone 1 implementation is recorded at commit `46d83a9`.
 Milestone 2 implementation is recorded at commit `8a154f2`.
@@ -329,8 +329,8 @@ git status --short
 - [x] Classify every ambiguous rate limit as a global `INSUFFICIENT` stop.
 - [x] Persist one canonical terminal receipt after every catchable post-reservation outcome.
 - [x] Requalify the hardened runner and freeze a new clean commit and campaign fingerprint.
-- [ ] Receive explicit authorization for exactly sixteen provider calls.
-- [ ] Complete Milestone 4 exactly once.
+- [x] Receive explicit authorization for campaign `e5-author-benchmark-20260811-r1`, fingerprint `283dcb224800d5d41812078771126798aaf4dcbac0ce82c439c12007ba356b05`, commit `a2bf82c12e1dfcc641dd146d21ab93c97963642e`, and exactly sixteen provider calls.
+- [x] Complete Milestone 4 exactly once.
 - [ ] Complete Milestone 5.
 - [ ] Complete Milestone 6.
 
@@ -344,10 +344,12 @@ Milestone 4 runner preparation closed with 122 green tests. The deterministic ru
 
 Pre-authorization hardening superseded that freeze after review showed that ambiguous rate limits could contaminate later samples and catchable post-reservation failures could leave no terminal summary. The hardened runner closed with 135 green tests, campaign fingerprint `283dcb224800d5d41812078771126798aaf4dcbac0ce82c439c12007ba356b05`, and a deterministic qualifier covering sixteen successes, one global authentication stop, and one global rate-limit stop across eighteen local processes with zero external calls or workspace campaign artifacts. Every supported catchable output, snapshot, reservation, persistence, workspace, cleanup, and adapter-construction failure now produces a bounded receipt beside the immutable reservation. Post-GREEN review centralized receipt construction to prevent divergent canonical projections. Commit `bb5ea2a` and the prior campaign fingerprint are obsolete for authorization; the final hardened SHA is established only after the documentation commit and clean literal-SHA preflight.
 
+Milestone 4 collection ran exactly once from clean authorized commit `a2bf82c12e1dfcc641dd146d21ab93c97963642e` using `/home/renanfranca/.codex`. The terminal receipt records `COMPLETE`, `stopReason: null`, sixteen provider invocations, sixteen consumed and persisted sample IDs, zero `NOT_RUN` samples, and a persisted canonical collection. Eight samples completed with valid candidates and eight ended terminally as `TIMEOUT`; operationally, all eight Terra/xhigh samples completed and all eight Luna/max samples timed out under the frozen five-minute limit. Every sample has exactly one prior reservation, orders cover 1 through 16 once, no retry occurred, and the collection contains no raw response, raw reasoning, reference, or expected-lifecycle field. These are collection facts only: no Blueprint has been scored, no reviewer judgment has been collected, and neither condition is qualified.
+
 ## Decisions
 
-- Decision: planning is the only currently authorized E5 action.
-  Rationale: blind material, implementation, qualification, and provider cost are materially distinct actions that require later authorization.
+- Decision: authorize E5 in distinct planning, material, implementation, collection, adjudication, and promotion stages.
+  Rationale: each stage exposes different information or incurs different cost; completing the authorized sixteen-call collection does not implicitly authorize adjudication or production promotion.
   Date/Author: 2026-08-11 / user and planning agent.
 - Decision: compare Terra/xhigh with Luna/max rather than Sol.
   Rationale: Terra preserves the successful E4 development baseline, while Luna/max tests a materially cheaper condition without making Sol's higher cost necessary for the first qualification attempt.
@@ -421,6 +423,10 @@ Pre-authorization hardening superseded that freeze after review showed that ambi
   Rationale: eighteen local executable processes exercise the final adapter, including global authentication and rate-limit stops, without network access, but cannot establish provider availability or either Author condition's quality.
   Date/Author: 2026-08-11 / implementation agent.
 
+- Decision: preserve all eight Luna/max timeouts as terminal missing evidence and proceed only through the prespecified Milestone 5 rules.
+  Rationale: the campaign prohibited retries and replacement. A timeout does not establish poor Blueprint quality, while the asymmetric completion pattern is material operational evidence that must remain distinct from semantic scoring.
+  Date/Author: 2026-08-11 / user and implementation agent.
+
 ## Risks and Mitigations
 
 - Risk: the benchmark is called blind while references leak through packets, workspaces, IDs, or condition order. Mitigation: empty workspace, explicit packet allowlist, opaque IDs, counterbalanced frozen order, and structural leakage checks before reservation.
@@ -444,6 +450,7 @@ Pre-authorization hardening superseded that freeze after review showed that ambi
 - Risk: a global quota failure is repeated across later samples and mistaken for poor Author quality. Mitigation: every `RATE_LIMIT` stops the remaining schedule as `INSUFFICIENT`; no transience is inferred from an ambiguous provider message.
 - Risk: a catchable output or infrastructure failure after the global reservation leaves no terminal campaign record. Mitigation: write a bounded canonical receipt beside the immutable reservation, independent of the normal output directory.
 - Risk: `SIGKILL`, power loss, or total filesystem failure prevents terminalization. Mitigation: the durable `RESERVED` artifact remains evidence that the campaign was consumed and still forbids rerun; recovery requires human classification, never reuse.
+- Risk: the eight Luna/max timeouts are misreported as eight semantic quality failures or are hidden by scoring only completed outputs. Mitigation: preserve timeout as missing operational evidence, keep completion and semantic metrics separate, and apply the frozen `INSUFFICIENT`/qualification precedence mechanically during Milestone 5 without retry.
 
 ## Validation Strategy
 
@@ -502,3 +509,4 @@ A qualified condition becomes `STALE` when any model/reasoning request, instruct
 - Normalizing optional telemetry at the provider boundary preserves operational evidence without letting provider-specific shapes or missing values alter campaign identity.
 - A generic HTTP 429 cannot support a transient-failure claim when the provider boundary exposes no structured reset or quota semantics.
 - Reservation exclusivity and terminal persistence are separate obligations: claiming a campaign safely does not by itself explain how it ended.
+- A formally complete schedule can still contain condition-asymmetric missing evidence: collection completeness, operational viability, and semantic quality are separate claims and must be reported separately.
