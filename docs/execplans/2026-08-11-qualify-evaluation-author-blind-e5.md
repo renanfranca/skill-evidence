@@ -6,10 +6,11 @@ Safety boundary: E5 Milestones 1 through 3 were explicitly authorized on 2026-08
 
 The intended implementation executor is `gpt-5.6-terra` with `xhigh` reasoning. The E4 baseline is commit `916f8bbcc438d1b5aa30868fad4e4379fdf2ea43` on `feat/e4-evaluation-author-v0`. Authorized Milestone 1 implementation began on `feat/e5-blind-author-benchmark` from planning commit `973efba2e0b1d02afc1de550053cf6df914408a9`, which contains that E4 baseline. The normative THEORY was read in full at commit `572e963ea6f1207ab53c533592cb70a8239e221c`.
 
-Status: `MILESTONE 3 IN PROGRESS — RESERVATIONS AND PROVIDER EXECUTION NOT AUTHORIZED`.
+Status: `MILESTONE 3 COMPLETE — SIXTEEN PROVIDER CALLS NOT AUTHORIZED`.
 
 Milestone 1 implementation is recorded at commit `46d83a9`.
 Milestone 2 implementation is recorded at commit `8a154f2`.
+Milestone 3 preparation is recorded at commit `f8dfe28`.
 
 ## Purpose / Big Picture
 
@@ -311,13 +312,16 @@ git status --short
 - [x] Complete Milestone 2 with eight dual-curated cases, sixteen reviewer probes, a counterbalanced schedule, and provider-free qualification.
 - [x] Receive explicit authorization to prepare E5 Milestone 3 without reservation or provider access.
 - [x] Complete the post-green `refactor-design` review with no behavior-changing finding.
-- [ ] Freeze the campaign manifest and pass the provider-free preflight from a clean preparation commit.
-- [ ] Complete Milestone 3 and obtain explicit sixteen-call authorization.
+- [x] Freeze the campaign manifest and pass the provider-free preflight from clean preparation commit `f8dfe28`.
+- [x] Complete Milestone 3 preparation with zero reservations and zero provider calls.
+- [ ] Receive explicit authorization for exactly sixteen provider calls.
 - [ ] Complete Milestone 4 exactly once.
 - [ ] Complete Milestone 5.
 - [ ] Complete Milestone 6.
 
 Milestone 2 closed with 107 green tests, zero provider imports at the public checkpoint, zero external calls in every local qualifier, and canonical report `docs/experiments/e5-author-benchmark-offline-qualification-20260811.json`. The offline result is `SUPPORTED_FOR_DEVELOPMENT`; it qualifies only the frozen instrument and reviewers.
+
+Milestone 3 closed with 110 green tests and campaign fingerprint `d4fa2011bcb04d9dfb4840ce5b5954c5bad630e8407f21223dca6834f343a860`. The clean-commit preflight returned `READY_FOR_AUTHORIZATION` with all ten checks passing, `providerInvocations: 0`, and `reservationCreated: false`. This state permits requesting authorization; it does not authorize collection.
 
 ## Decisions
 
@@ -360,6 +364,12 @@ Milestone 2 closed with 107 green tests, zero provider imports at the public che
 - Decision: freeze API-equivalent prices captured from the official model pages on 2026-08-11 while keeping actual ChatGPT-account cost `UNKNOWN`.
   Rationale: the preparation records Terra at USD 2.00 input, USD 0.20 cached input, and USD 12.00 output per million tokens, and Luna at USD 0.20, USD 0.02, and USD 1.20 respectively. These rates support a later analytical estimate only; ChatGPT authentication does not establish API billing.
   Date/Author: 2026-08-11 / implementation agent.
+- Decision: make preflight a read-only authorization gate rather than the point of reservation.
+  Rationale: environment, authentication presence, frozen identities, exact clean commit, and path availability can be checked without consuming any of the sixteen calls or creating an irreversible campaign artifact. Reservation remains part of the separately authorized collection step.
+  Date/Author: 2026-08-11 / implementation agent.
+- Decision: retain the post-green structure after `refactor-design` review.
+  Rationale: no concrete temporal coupling, hidden state, fragile representation, or architecture leak justified a behavior-preserving refactor; splitting the preflight solely by file size would add topology without reducing a demonstrated risk.
+  Date/Author: 2026-08-11 / implementation agent.
 
 ## Risks and Mitigations
 
@@ -376,6 +386,7 @@ Milestone 2 closed with 107 green tests, zero provider imports at the public che
 - Risk: schema-2 accidentally changes the implicit E4 path. Mitigation: preserve schema-1 unchanged, select schema-2 only for explicit conditions, and assert the historical E4 condition fingerprint exactly.
 - Risk: reference or visible skill material drifts after bundle creation. Mitigation: the offline command recomputes every skill snapshot, compares every reference and reviewer artifact, and reruns packet-blindness checks against the frozen bundle.
 - Risk: the independence of dual curation is interpreted as symmetrically artifact-verifiable. Mitigation: preserve Curator A's original with its digest, record that Curator B's original is unavailable, and characterize independence as execution provenance rather than two-original documentary proof.
+- Risk: readable local authentication is mistaken for live model availability. Mitigation: the preflight limitation states that it proves only session presence; model availability remains an observation of the authorized terminal collection, with no retry.
 
 ## Validation Strategy
 
@@ -399,7 +410,8 @@ No lower rung substitutes for a higher rung, and no real call substitutes for qu
 ## Documentation Impact
 
 - Milestone 2 adds only blind development fixtures, internal qualification contracts, a provider-free command, deterministic CI coverage, and a sanitized offline report.
-- AGENTS.md documents the offline command while preserving model-backed collection as a separately authorized local operation.
+- Milestone 3 adds a frozen campaign manifest and a provider-free, non-reserving preflight command; it adds no benchmark result or model-backed evidence.
+- AGENTS.md documents both offline commands while preserving model-backed collection as a separately authorized local operation.
 - RFC 0001 and ADR 0002 remain unchanged unless implementation discovers a normative contradiction.
 - Historical E0–E4 plans and reports remain byte-for-byte preserved.
 - Official model guidance is a dated operational source, not normative evidence about Author quality.
@@ -423,3 +435,4 @@ A qualified condition becomes `STALE` when any model/reasoning request, instruct
 - A complete `BLOCKED` Blueprint is a success case for honest authorship, not an incomplete `DRAFT`.
 - Blindness is an enforceable data-flow property, not merely an instruction to the model or reviewer.
 - A new reasoning condition cannot be represented honestly by broadening a fingerprinted historical schema in place; versioned schema evolution preserves both provenance and compatibility.
+- A clean preflight can establish readiness to request authorization without consuming a reservation; authentication presence and model availability must remain separate facts.
