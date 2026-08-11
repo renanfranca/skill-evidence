@@ -101,8 +101,8 @@ Acceptance requires every command green, zero external provider calls in the new
 - [x] Create this ExecPlan and its index entry.
 - [x] Complete Milestone 1 through behavior TDD: 27 focused tests, typecheck, and provider-free checkpoint green.
 - [x] Complete Milestone 2 through behavior TDD: real Promptfoo/SDK traversal, six local process calls, and zero external calls.
-- [ ] Pass the post-GREEN design review.
-- [ ] Reconcile documentation and CI.
+- [x] Pass the post-GREEN design review with no behavior-preserving refactor required.
+- [x] Reconcile documentation and CI.
 - [ ] Complete final deterministic validation.
 
 ## Decisions
@@ -136,6 +136,7 @@ Acceptance requires every command green, zero external provider calls in the new
 - Risk: the fake executable diverges from SDK 0.147.0. Mitigation: model only its documented/pinned argument and JSONL event contract and pin the qualifier report to SDK/Promptfoo versions.
 - Risk: the qualifier accidentally uses the real Codex binary. Mitigation: require an absolute temporary override, assert a fake-call ledger, clear credential variables, and fail unless external calls remain zero.
 - Risk: diagnostic support is mistaken for live readiness. Mitigation: `DEVELOPMENT` purpose, explicit limitations, unchanged E4/R1/R2 status, and no R3 authorization.
+- Risk: a syntactically valid-looking Promptfoo suite can fail before provider construction. Mitigation: use the version-valid `{vars:{}}` case and traverse the real local adapter in CI.
 
 ## Validation Strategy
 
@@ -160,3 +161,4 @@ There is no deployment or live collection. Commits can be reverted normally. If 
 - Promptfoo failures can be projected at `EVALUATION`, `RESULT`, and `OUTPUT` without retaining their message. Known signals map to bounded categories, while ambiguous HTTP 403 and unknown prose remain explicit `UNKNOWN`.
 - The local adapter qualifier reproduced the pre-provider failure from R1/R2: Promptfoo rejected `tests:[{}]` as structurally invalid, so those campaigns did not establish model difficulty or provider rejection.
 - After changing the test case to `{vars:{}}`, all six local scenarios traversed Promptfoo and Codex SDK exactly once; the success scenario produced `READY` and each failure reached the bounded diagnostic projection.
+- The post-GREEN design review found the qualifier cohesive and invocation-local: temporary paths, scenario state, and process ledgers do not escape a run. No refactor was justified beyond the existing typed adapter boundary.
