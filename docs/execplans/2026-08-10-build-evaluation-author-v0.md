@@ -118,6 +118,7 @@ git status --short
 - [x] Complete Milestone 2.
 - [x] Complete Milestone 3.
 - [x] Create a clean preparation commit.
+- [ ] Pass the real-canary preflight. Blocked before reservation because `SKILL_EVIDENCE_AUTHOR_CODEX_HOME` is unset; both known Codex homes appear usable and require an explicit selection.
 - [ ] Execute and record Milestone 4.
 - [ ] Complete design review and final validation.
 
@@ -155,6 +156,7 @@ git status --short
 - Risk: product code duplicates Promptfoo. Mitigation: Promptfoo owns invocation/provider lifecycle; Skill Evidence owns intake, schema, semantics, eligibility, reservation, and provenance.
 - Risk: a poor canary tempts retry. Mitigation: exclusive atomic reservation and terminal `INSUFFICIENT` classification.
 - Risk: concurrent writes can be observed between filesystem operations. Mitigation: compare file identity, size, nanosecond modification time, and bytes read across an explicit consistency window, aborting on any mismatch.
+- Risk: selecting an ambient Codex home could use an unintended ChatGPT identity. Mitigation: require the caller to set `SKILL_EVIDENCE_AUTHOR_CODEX_HOME` explicitly; the blocked 2026-08-10 preflight created no reservation and made no provider call.
 
 ## Validation Strategy
 
@@ -183,3 +185,4 @@ There is no deployment. E4 is delivered on `feat/e4-evaluation-author-v0`; push 
 - E4 development must preserve genuinely blind E5 material.
 - Candidate structure and semantic completeness are separate: malformed or system-controlled fields produce `ERROR`, while structurally complete sections with unresolved evidence gaps can validly produce `DRAFT` or `BLOCKED`.
 - The eight-case local Promptfoo qualifier is `SUPPORTED_FOR_DEVELOPMENT` with zero external calls; this verifies packet blindness and lifecycle ownership without supporting model reliability claims.
+- The first real-canary preflight stopped safely with both API-key variables and the campaign reservation absent. Two authenticated writable homes exist (`/home/renanfranca/.codex` and `/mnt/c/Users/renan/.codex`), so choosing one is an identity decision rather than a mechanical default.
