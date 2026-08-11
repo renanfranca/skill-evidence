@@ -35,6 +35,12 @@ async function exists(path: string): Promise<boolean> {
 }
 
 export async function qualifyAuthorBenchmarkRunner(root = process.cwd()): Promise<AuthorBenchmarkRunnerQualificationReport> {
+  const workspaceArtifactPaths = [
+    join(root, '.skill-evidence', 'author-benchmark-reservations', 'e5-author-benchmark-20260811-r1.json'),
+    join(root, '.skill-evidence', 'author-benchmark-reservations', 'e5-author-benchmark-20260811-r1.terminal.json'),
+    join(root, '.skill-evidence', 'author-benchmark', 'e5-author-benchmark-20260811-r1'),
+  ];
+  const workspaceArtifactsBefore = await Promise.all(workspaceArtifactPaths.map(exists));
   const temporaryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-e5-runner-'));
   const fakeExecutable = join(temporaryRoot, 'codex');
   const ledger = join(temporaryRoot, 'calls.log');
@@ -120,13 +126,8 @@ export async function qualifyAuthorBenchmarkRunner(root = process.cwd()): Promis
   } finally {
     await rm(temporaryRoot, { force: true, recursive: true });
   }
-  const workspaceCampaignArtifacts = (
-    await Promise.all([
-      exists(join(root, '.skill-evidence', 'author-benchmark-reservations', 'e5-author-benchmark-20260811-r1.json')),
-      exists(join(root, '.skill-evidence', 'author-benchmark-reservations', 'e5-author-benchmark-20260811-r1.terminal.json')),
-      exists(join(root, '.skill-evidence', 'author-benchmark', 'e5-author-benchmark-20260811-r1')),
-    ])
-  ).filter(Boolean).length;
+  const workspaceArtifactsAfter = await Promise.all(workspaceArtifactPaths.map(exists));
+  const workspaceCampaignArtifacts = workspaceArtifactsAfter.filter((present, index) => present && !workspaceArtifactsBefore[index]).length;
   const supported =
     campaigns.length === 3 &&
     campaigns[0]?.status === 'COMPLETE' &&
@@ -146,7 +147,7 @@ export async function qualifyAuthorBenchmarkRunner(root = process.cwd()): Promis
     limitations: [
       'The deterministic local executable opens no network connection and does not prove live provider availability.',
       'Runner qualification proves orchestration and terminal policy, not either Author condition quality.',
-      'No real campaign reservation or benchmark output is created.',
+      'No real campaign reservation or benchmark output is created or changed.',
     ],
     localProcessCalls,
     purpose: 'DEVELOPMENT',

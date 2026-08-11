@@ -15,7 +15,17 @@ import {
   type AuthorBenchmarkPreflightEvidence,
 } from '../src/qualification/author-benchmark-preflight.js';
 import { runAuthorBenchmarkCampaignPreflight } from '../src/qualification/preflight-author-benchmark.js';
-import { runAuthorBenchmarkCampaign } from '../src/qualification/author-benchmark-runner.js';
+import {
+  createBlindReviewerSubmission,
+  createBlindReviewResolution,
+  createBlindReviewPackets,
+  fingerprintBlindReviewPacket,
+  reserveBlindReviewWorkspace,
+  scoreAuthorBenchmark,
+  validateBlindReviewerSubmission,
+  type BlindReviewPacket,
+} from '../src/qualification/author-benchmark-adjudication.js';
+import { runAuthorBenchmarkCampaign, type AuthorBenchmarkCollection } from '../src/qualification/author-benchmark-runner.js';
 import { runAuthorBenchmarkCommand } from '../src/qualification/run-author-benchmark.js';
 import { qualifyAuthorBenchmarkRunner } from '../src/qualification/qualify-author-benchmark-runner.js';
 
@@ -234,6 +244,292 @@ describe('blind Evaluation Author benchmark', () => {
 
     expect(verifyAuthorBenchmarkPacketBlindness(bundle, bundle.cases[0]!, cleanPacket)).toEqual({ findings: [], valid: true });
     expect(verifyAuthorBenchmarkPacketBlindness(bundle, bundle.cases[0]!, leakedPacket)).toMatchObject({ valid: false });
+  });
+
+  it('creates deterministic review packets only for completed samples without revealing their condition or expected lifecycle', async () => {
+    const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
+    const candidate = JSON.parse(await readFile(resolve('evaluations/refactor-design/e5-author-runner/candidate.json'), 'utf8')) as Record<
+      string,
+      unknown
+    >;
+    const completed = bundle.schedule[0]!;
+    const timedOut = bundle.schedule[1]!;
+    const blueprint = {
+      ...candidate,
+      authorProvenance: {
+        campaignId: 'secret-campaign',
+        conditionFingerprint: campaign.conditions[0]!.conditionFingerprint,
+        instructionDigest: 'a'.repeat(64),
+        observedModel: null,
+        protocolDigest: 'b'.repeat(64),
+        reasoningEffort: 'xhigh',
+        requestedModel: 'gpt-5.6-terra',
+        schemaDigest: 'c'.repeat(64),
+        status: 'NOT_QUALIFIED',
+        theoryDigest: 'd'.repeat(64),
+      },
+      blueprintId: 'ebp-secret',
+      lifecycle: { decisionEligible: false, scope: 'DEVELOPMENT_AUTHORING', state: 'READY' },
+      schemaVersion: 2,
+      snapshotFingerprint: bundle.cases.find((entry) => entry.id === completed.caseId)!.snapshotFingerprint,
+    };
+    const collection: AuthorBenchmarkCollection = {
+      bundleFingerprint: campaign.bundleFingerprint,
+      campaignFingerprint: 'e'.repeat(64),
+      campaignId: campaign.campaignId,
+      currentCommit: 'f'.repeat(40),
+      expectedCommit: 'f'.repeat(40),
+      providerInvocations: 2,
+      purpose: 'AUTHOR_QUALIFICATION_COLLECTION',
+      samples: [
+        {
+          blueprint: blueprint as never,
+          caseId: completed.caseId,
+          condition: completed.condition,
+          conditionFingerprint: campaign.conditions[0]!.conditionFingerprint,
+          elapsedMs: 10,
+          order: completed.order,
+          packetFingerprint: '1'.repeat(64),
+          providerLatencyMs: 9,
+          sampleId: completed.sampleId,
+          snapshotFingerprint: bundle.cases.find((entry) => entry.id === completed.caseId)!.snapshotFingerprint,
+          status: 'COMPLETED',
+          tokenUsage: null,
+        },
+        {
+          caseId: timedOut.caseId,
+          condition: timedOut.condition,
+          conditionFingerprint: campaign.conditions[1]!.conditionFingerprint,
+          elapsedMs: 300_000,
+          error: { code: 'PROVIDER_ERROR', diagnostic: { category: 'TIMEOUT' } },
+          order: timedOut.order,
+          packetFingerprint: '2'.repeat(64),
+          providerLatencyMs: null,
+          sampleId: timedOut.sampleId,
+          snapshotFingerprint: bundle.cases.find((entry) => entry.id === timedOut.caseId)!.snapshotFingerprint,
+          status: 'ERROR',
+          tokenUsage: null,
+        },
+      ],
+      schemaVersion: 1,
+      status: 'COMPLETE',
+      stopReason: null,
+    };
+
+    const first = await createBlindReviewPackets({ bundle, bundleDirectory, collection });
+    const second = await createBlindReviewPackets({ bundle, bundleDirectory, collection });
+
+    expect(first).toEqual(second);
+    expect(first).toHaveLength(1);
+    expect(first[0]).toMatchObject({ purpose: 'AUTHOR_BENCHMARK_BLIND_REVIEW', sampleId: completed.sampleId, schemaVersion: 1 });
+    expect((first[0] as BlindReviewPacket).fingerprint).toMatch(/^[a-f0-9]{64}$/);
+    expect(JSON.stringify(first)).not.toMatch(
+      /TERRA_XHIGH|LUNA_MAX|gpt-5\.6|xhigh|expectedLifecycle|authorProvenance|blueprintId|snapshotFingerprint|conditionFingerprint|elapsedMs|tokenUsage|secret-campaign/,
+    );
+    expect(first[0]!.skillFiles.map((entry) => entry.path)).toEqual(['SKILL.md', 'context.md']);
+  });
+
+  it('keeps a timed-out condition insufficient while selecting a fully observed condition that passes every frozen gate', () => {
+    const bundle = balancedBundle();
+    const terraFingerprint = 'a'.repeat(64);
+    const lunaFingerprint = 'b'.repeat(64);
+    const packets: BlindReviewPacket[] = bundle.schedule
+      .filter((entry) => entry.condition === 'TERRA_XHIGH')
+      .map((entry) => {
+        const benchmarkCase = bundle.cases.find((candidate) => candidate.id === entry.caseId)!;
+        const body: Omit<BlindReviewPacket, 'fingerprint'> = {
+          candidate: {
+            stressFamilies: [{ contractIds: ['contract'], description: 'Stress boundary.', id: 'stress' }],
+            usageFamilies: [{ contractIds: ['contract'], description: 'Ordinary use.', id: 'usage' }],
+          },
+          candidateAssertions: [],
+          instructionsDigest: bundle.reviewProtocol.instructionsDigest,
+          purpose: 'AUTHOR_BENCHMARK_BLIND_REVIEW',
+          referenceItems: benchmarkCase.referenceItems,
+          resolutionPolicyDigest: bundle.reviewProtocol.resolutionPolicyDigest,
+          sampleId: entry.sampleId,
+          schemaVersion: 1,
+          skillFiles: [{ content: '# Skill\n', path: 'SKILL.md' }],
+        };
+        return { ...body, fingerprint: fingerprintBlindReviewPacket(body) };
+      });
+    const judgments = packets.flatMap((packet) =>
+      packet.referenceItems.map((item) => ({
+        evidencePaths: item.sourcePaths,
+        rationale: 'The candidate preserves the referenced observable behavior.',
+        sampleId: packet.sampleId,
+        targetId: item.id,
+        targetType: 'REFERENCE' as const,
+        verdict: 'ACCEPT' as const,
+      })),
+    );
+    const reviewerA = createBlindReviewerSubmission({ judgments, packets, reviewerId: 'reviewer-a' });
+    const reviewerB = createBlindReviewerSubmission({ judgments, packets, reviewerId: 'reviewer-b' });
+    const collection: AuthorBenchmarkCollection = {
+      bundleFingerprint: validateAuthorBenchmarkBundle(bundle).fingerprint!,
+      campaignFingerprint: 'c'.repeat(64),
+      campaignId: 'campaign',
+      currentCommit: 'd'.repeat(40),
+      expectedCommit: 'd'.repeat(40),
+      providerInvocations: 16,
+      purpose: 'AUTHOR_QUALIFICATION_COLLECTION',
+      samples: bundle.schedule.map((entry) => {
+        const benchmarkCase = bundle.cases.find((candidate) => candidate.id === entry.caseId)!;
+        return entry.condition === 'TERRA_XHIGH'
+          ? ({
+              blueprint: {
+                lifecycle: { decisionEligible: false, scope: 'DEVELOPMENT_AUTHORING', state: benchmarkCase.expectedLifecycle },
+              },
+              caseId: entry.caseId,
+              condition: entry.condition,
+              conditionFingerprint: terraFingerprint,
+              elapsedMs: 1,
+              order: entry.order,
+              packetFingerprint: 'e'.repeat(64),
+              providerLatencyMs: 1,
+              sampleId: entry.sampleId,
+              snapshotFingerprint: benchmarkCase.snapshotFingerprint,
+              status: 'COMPLETED',
+              tokenUsage: null,
+            } as never)
+          : {
+              caseId: entry.caseId,
+              condition: entry.condition,
+              conditionFingerprint: lunaFingerprint,
+              elapsedMs: 300_000,
+              error: { code: 'PROVIDER_ERROR', diagnostic: { category: 'TIMEOUT' } },
+              order: entry.order,
+              packetFingerprint: 'f'.repeat(64),
+              providerLatencyMs: null,
+              sampleId: entry.sampleId,
+              snapshotFingerprint: benchmarkCase.snapshotFingerprint,
+              status: 'ERROR',
+              tokenUsage: null,
+            };
+      }),
+      schemaVersion: 1,
+      status: 'COMPLETE',
+      stopReason: null,
+    };
+
+    const report = scoreAuthorBenchmark({
+      bundle,
+      collection,
+      conditionFingerprints: { LUNA_MAX: lunaFingerprint, TERRA_XHIGH: terraFingerprint },
+      packets,
+      resolutions: [],
+      submissions: [reviewerA, reviewerB],
+    });
+
+    expect(report).toMatchObject({
+      campaignResult: 'QUALIFIED',
+      conditionResults: [
+        { condition: 'LUNA_MAX', status: 'INSUFFICIENT' },
+        { condition: 'TERRA_XHIGH', status: 'QUALIFIED' },
+      ],
+      selectedCondition: 'TERRA_XHIGH',
+      schemaVersion: 2,
+    });
+  });
+
+  it('claims one immutable adjudication workspace before persisting reviewer packets', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-adjudication-lock-'));
+    const packetBody: Omit<BlindReviewPacket, 'fingerprint'> = {
+      candidate: {},
+      candidateAssertions: [],
+      instructionsDigest: 'b'.repeat(64),
+      purpose: 'AUTHOR_BENCHMARK_BLIND_REVIEW',
+      referenceItems: [],
+      resolutionPolicyDigest: 'c'.repeat(64),
+      sampleId: 'sample-opaque',
+      schemaVersion: 1,
+      skillFiles: [{ content: '# Skill\n', path: 'SKILL.md' }],
+    };
+    const packet: BlindReviewPacket = { ...packetBody, fingerprint: fingerprintBlindReviewPacket(packetBody) };
+
+    await reserveBlindReviewWorkspace({
+      campaignId: 'campaign',
+      collectionFingerprint: 'd'.repeat(64),
+      instructions: 'Frozen reviewer instructions.',
+      outputDirectory: join(root, 'review'),
+      packets: [packet],
+      qualificationPacket: { fingerprint: 'e'.repeat(64), probes: [] },
+      reservationPath: join(root, 'reservation.json'),
+      resolutionPolicy: 'Frozen resolution policy.',
+    });
+
+    await expect(
+      reserveBlindReviewWorkspace({
+        campaignId: 'campaign',
+        collectionFingerprint: 'd'.repeat(64),
+        instructions: 'Frozen reviewer instructions.',
+        outputDirectory: join(root, 'review-duplicate'),
+        packets: [packet],
+        qualificationPacket: { fingerprint: 'e'.repeat(64), probes: [] },
+        reservationPath: join(root, 'reservation.json'),
+        resolutionPolicy: 'Frozen resolution policy.',
+      }),
+    ).rejects.toMatchObject({ code: 'ADJUDICATION_ALREADY_RESERVED' });
+    expect(JSON.parse(await readFile(join(root, 'reservation.json'), 'utf8'))).toMatchObject({
+      campaignId: 'campaign',
+      collectionFingerprint: 'd'.repeat(64),
+      packetFingerprints: [packet.fingerprint],
+      status: 'RESERVED',
+    });
+    expect(JSON.parse(await readFile(join(root, 'review', 'packets', 'sample-opaque.json'), 'utf8'))).toEqual(packet);
+  });
+
+  it('fingerprints locked reviewer judgments and rejects any later verdict mutation', () => {
+    const packetBody: Omit<BlindReviewPacket, 'fingerprint'> = {
+      candidate: {},
+      candidateAssertions: [],
+      instructionsDigest: 'b'.repeat(64),
+      purpose: 'AUTHOR_BENCHMARK_BLIND_REVIEW',
+      referenceItems: [
+        {
+          acceptedAlternatives: [],
+          category: 'CLAIM',
+          critical: true,
+          id: 'reference-item',
+          sourcePaths: ['SKILL.md'],
+          statement: 'Observable claim.',
+        },
+      ],
+      resolutionPolicyDigest: 'c'.repeat(64),
+      sampleId: 'sample-opaque',
+      schemaVersion: 1,
+      skillFiles: [{ content: '# Skill\n', path: 'SKILL.md' }],
+    };
+    const packet: BlindReviewPacket = { ...packetBody, fingerprint: fingerprintBlindReviewPacket(packetBody) };
+    const submission = createBlindReviewerSubmission({
+      judgments: [
+        {
+          evidencePaths: ['SKILL.md'],
+          rationale: 'The candidate preserves the observable claim.',
+          sampleId: packet.sampleId,
+          targetId: 'reference-item',
+          targetType: 'REFERENCE',
+          verdict: 'ACCEPT',
+        },
+      ],
+      packets: [packet],
+      reviewerId: 'reviewer-a',
+    });
+
+    expect(validateBlindReviewerSubmission([packet], submission)).toBe(true);
+    expect(
+      validateBlindReviewerSubmission([packet], {
+        ...submission,
+        judgments: submission.judgments.map((judgment) => ({ ...judgment, verdict: 'REJECT' })),
+      }),
+    ).toBe(false);
+    expect(
+      validateBlindReviewerSubmission([{ ...packet, candidate: { skill: { name: 'Mutated', summary: 'Changed.' } } }], submission),
+    ).toBe(false);
+    expect(createBlindReviewResolution([], [submission, { ...submission, reviewerId: 'reviewer-b' }])).toMatchObject({
+      resolutions: [],
+      schemaVersion: 1,
+    });
   });
 
   it('scores atomic semantic judgments without averaging away critical misses', () => {

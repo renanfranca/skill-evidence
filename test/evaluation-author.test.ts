@@ -467,6 +467,36 @@ describe('Evaluation Author v0', () => {
     ).toMatchObject({ valid: false });
   });
 
+  it('validates schema-2 reports that distinguish condition insufficiency from semantic non-qualification', () => {
+    const digest = 'a'.repeat(64);
+    const report = {
+      bundleFingerprint: digest,
+      campaignId: 'e5-campaign',
+      campaignResult: 'INSUFFICIENT',
+      collectionFingerprint: digest,
+      packetFingerprints: [],
+      conditionResults: [
+        {
+          condition: 'LUNA_MAX',
+          conditionFingerprint: digest,
+          criticalViolations: 0,
+          limitations: ['All scheduled samples timed out.'],
+          metrics: null,
+          status: 'INSUFFICIENT',
+        },
+      ],
+      limitations: ['Effective model identity is unavailable.'],
+      purpose: 'AUTHOR_QUALIFICATION',
+      reviewerSubmissionFingerprints: [digest, digest],
+      samples: [],
+      schemaVersion: 2,
+      selectedCondition: null,
+      selectionRationale: 'AUTOMATIC_AUTHOR_NOT_DEFENSIBLE',
+    };
+
+    expect(validateAuthorQualificationReport(report)).toEqual({ diagnostics: [], valid: true });
+  });
+
   it('fingerprints every material dependency of an Author qualification condition', () => {
     const digest = 'a'.repeat(64);
     const base = {

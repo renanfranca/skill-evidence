@@ -1,6 +1,7 @@
 import { Ajv2020, type ErrorObject } from 'ajv/dist/2020.js';
 
 import reportSchema from '../../schemas/author-qualification-report.schema.json' with { type: 'json' };
+import reportSchema2 from '../../schemas/author-qualification-report.schema-2.json' with { type: 'json' };
 import { canonicalJson, sha256 } from '../canonical-json.js';
 
 export interface AuthorQualificationConditionEvidence {
@@ -47,13 +48,20 @@ export interface AuthorQualificationReportValidation {
 }
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
-const validate = ajv.compile(reportSchema);
+const validateV1 = ajv.compile(reportSchema);
+const validateV2 = ajv.compile(reportSchema2);
 
 function diagnostics(errors: ErrorObject[] | null | undefined): AuthorQualificationReportValidation['diagnostics'] {
   return (errors ?? []).map((error) => ({ code: `SCHEMA_${error.keyword.toUpperCase()}`, path: error.instancePath || '/' }));
 }
 
 export function validateAuthorQualificationReport(value: unknown): AuthorQualificationReportValidation {
+  const schemaVersion =
+    value !== null && typeof value === 'object' && 'schemaVersion' in value
+      ? (value as { schemaVersion?: unknown }).schemaVersion
+      : undefined;
+  const validate = schemaVersion === 1 ? validateV1 : schemaVersion === 2 ? validateV2 : undefined;
+  if (validate === undefined) return { diagnostics: [{ code: 'SCHEMA_VERSION', path: '/schemaVersion' }], valid: false };
   const valid = validate(value);
   return { diagnostics: valid ? [] : diagnostics(validate.errors), valid };
 }
