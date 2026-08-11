@@ -1,4 +1,4 @@
-import { access, appendFile, cp, mkdtemp, readFile } from 'node:fs/promises';
+import { access, appendFile, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -96,7 +96,7 @@ async function frozenCampaignFixture(): Promise<{
 
 function readyCampaignPreflight(campaign: AuthorBenchmarkCampaignPreparation, commit: string): AuthorBenchmarkCampaignPreflightReport {
   return {
-    campaignFingerprint: 'd4fa2011bcb04d9dfb4840ce5b5954c5bad630e8407f21223dca6834f343a860',
+    campaignFingerprint: '283dcb224800d5d41812078771126798aaf4dcbac0ce82c439c12007ba356b05',
     campaignId: campaign.campaignId,
     checks: [],
     currentCommit: commit,
@@ -345,11 +345,13 @@ describe('blind Evaluation Author benchmark', () => {
       reviewerQualificationFingerprint: campaign.reviewerQualificationFingerprint,
       reviewerQualificationResult: 'QUALIFIED',
       scheduleCount: 16,
+      terminalReceiptExists: false,
       worktreeClean: true,
     };
 
     const ready = evaluateAuthorBenchmarkCampaignPreflight(campaign, evidence);
     const blocked = evaluateAuthorBenchmarkCampaignPreflight(campaign, { ...evidence, reservationExists: true });
+    const terminalized = evaluateAuthorBenchmarkCampaignPreflight(campaign, { ...evidence, terminalReceiptExists: true });
     const changedCondition = evaluateAuthorBenchmarkCampaignPreflight(campaign, {
       ...evidence,
       conditionFingerprints: { ...evidence.conditionFingerprints, LUNA_MAX: 'f'.repeat(64) },
@@ -367,6 +369,8 @@ describe('blind Evaluation Author benchmark', () => {
     expect(ready.checks.every((check) => check.status === 'PASS')).toBe(true);
     expect(blocked).toMatchObject({ result: 'BLOCKED' });
     expect(blocked.checks).toContainEqual({ id: 'RESERVATION_ABSENT', status: 'FAIL' });
+    expect(terminalized).toMatchObject({ result: 'BLOCKED' });
+    expect(terminalized.checks).toContainEqual({ id: 'TERMINAL_RECEIPT_ABSENT', status: 'FAIL' });
     expect(changedCondition.checks).toContainEqual({ id: 'AUTHOR_CONDITIONS_FROZEN', status: 'FAIL' });
     expect(changedCommit).toMatchObject({ result: 'BLOCKED' });
     expect(changedCommit.checks).toContainEqual({ id: 'EXACT_CLEAN_COMMIT', status: 'FAIL' });
@@ -496,6 +500,41 @@ describe('blind Evaluation Author benchmark', () => {
     await expect(access(join(repositoryRoot, campaign.reservationPath))).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
+  it('rejects a terminalized campaign before creating a new reservation or invocation', async () => {
+    const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-terminalized-'));
+    const terminalPath = join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json'));
+    await mkdir(join(repositoryRoot, '.skill-evidence', 'author-benchmark-reservations'), { recursive: true });
+    await writeFile(terminalPath, '{"status":"INSUFFICIENT"}\n');
+    let invocations = 0;
+
+    await expect(
+      runAuthorBenchmarkCampaign(
+        {
+          approval: '16',
+          bundle,
+          bundleDirectory,
+          campaign,
+          codexHome: '/unused',
+          expectedCommit: 'e'.repeat(40),
+          preflight: readyCampaignPreflight(campaign, 'e'.repeat(40)),
+          repositoryRoot,
+        },
+        {
+          createInvoker: () => {
+            invocations += 1;
+            return () => Promise.reject(new Error('must not invoke'));
+          },
+          currentCommit: () => Promise.resolve('e'.repeat(40)),
+          workingTreeClean: () => Promise.resolve(true),
+        },
+      ),
+    ).rejects.toMatchObject({ code: 'BENCHMARK_ALREADY_RESERVED' });
+
+    expect(invocations).toBe(0);
+    await expect(access(join(repositoryRoot, campaign.reservationPath))).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
   it('reserves and collects every sample once in the frozen sequential schedule', async () => {
     const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
     const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-complete-'));
@@ -549,7 +588,23 @@ describe('blind Evaluation Author benchmark', () => {
       invocationBudget: 16,
       status: 'RESERVED',
     });
+    const terminalReceipt = JSON.parse(
+      await readFile(join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json')), 'utf8'),
+    ) as Record<string, unknown>;
+    expect(terminalReceipt).toMatchObject({
+      campaignFingerprint: readyCampaignPreflight(campaign, 'e'.repeat(40)).campaignFingerprint,
+      collectionPersisted: true,
+      consumedSampleIds: bundle.schedule.map((sample) => sample.sampleId),
+      currentCommit: 'e'.repeat(40),
+      expectedCommit: 'e'.repeat(40),
+      notRunSampleIds: [],
+      persistedSampleIds: bundle.schedule.map((sample) => sample.sampleId),
+      providerInvocations: 16,
+      status: 'COMPLETE',
+      stopReason: null,
+    });
     expect(JSON.stringify(collection)).not.toMatch(/expectedLifecycle|referenceItems|acceptedAlternatives/);
+    expect(JSON.stringify(terminalReceipt)).not.toMatch(/expectedLifecycle|referenceItems|acceptedAlternatives|\/tmp\//);
   });
 
   it('stops on a global provider failure and marks the untouched schedule as not run', async () => {
@@ -586,6 +641,52 @@ describe('blind Evaluation Author benchmark', () => {
     expect(collection.samples.slice(0, 2).every((sample) => sample.status === 'COMPLETED')).toBe(true);
     expect(collection.samples[2]).toMatchObject({ error: { code: 'PROVIDER_ERROR' }, status: 'ERROR' });
     expect(collection.samples.slice(3).every((sample) => sample.status === 'NOT_RUN')).toBe(true);
+    await expect(
+      readFile(join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json')), 'utf8').then(
+        (text) => JSON.parse(text) as unknown,
+      ),
+    ).resolves.toMatchObject({ status: 'INSUFFICIENT', stopReason: 'GLOBAL_AUTHENTICATION' });
+  });
+
+  it.each([
+    { code: 'HTTP_429' as const, label: 'HTTP 429 rate limit exceeded' },
+    { code: 'UNCLASSIFIED' as const, label: 'account quota exhausted' },
+    { code: 'UNCLASSIFIED' as const, label: 'usage limit reached' },
+  ])('stops globally when the provider reports $label', async ({ code }) => {
+    const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-rate-limit-'));
+    let invocations = 0;
+
+    const collection = await runAuthorBenchmarkCampaign(
+      {
+        approval: '16',
+        bundle,
+        bundleDirectory,
+        campaign,
+        codexHome: '/unused',
+        expectedCommit: 'e'.repeat(40),
+        preflight: readyCampaignPreflight(campaign, 'e'.repeat(40)),
+        repositoryRoot,
+      },
+      {
+        createInvoker: () => () => {
+          invocations += 1;
+          return Promise.reject(new AuthorProviderError({ category: 'RATE_LIMIT', code, stage: 'RESULT' }));
+        },
+        currentCommit: () => Promise.resolve('e'.repeat(40)),
+        workingTreeClean: () => Promise.resolve(true),
+      },
+    );
+
+    expect(collection).toMatchObject({ providerInvocations: 1, status: 'INSUFFICIENT', stopReason: 'GLOBAL_RATE_LIMIT' });
+    expect(collection.samples[0]).toMatchObject({ error: { code: 'PROVIDER_ERROR' }, status: 'ERROR' });
+    expect(collection.samples.slice(1).every((sample) => sample.status === 'NOT_RUN')).toBe(true);
+    expect(invocations).toBe(1);
+    await expect(
+      readFile(join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json')), 'utf8').then(
+        (text) => JSON.parse(text) as unknown,
+      ),
+    ).resolves.toMatchObject({ status: 'INSUFFICIENT', stopReason: 'GLOBAL_RATE_LIMIT' });
   });
 
   it('preserves sample-local invalid output and timeout errors without adapting the schedule', async () => {
@@ -660,6 +761,11 @@ describe('blind Evaluation Author benchmark', () => {
       reason: { code: 'BENCHMARK_ALREADY_RESERVED' },
     });
     expect(invocations).toBe(16);
+    expect(
+      (await readdir(join(repositoryRoot, '.skill-evidence', 'author-benchmark-reservations'))).filter((name) =>
+        name.endsWith('.terminal.json'),
+      ),
+    ).toEqual(['e5-author-benchmark-20260811-r1.terminal.json']);
   });
 
   it('invalidates collection without a call when frozen skill material drifts after preflight', async () => {
@@ -697,6 +803,363 @@ describe('blind Evaluation Author benchmark', () => {
     expect(invocations).toBe(0);
   });
 
+  it('persists an invalidated terminal receipt when a frozen snapshot becomes unavailable', async () => {
+    const fixture = await frozenCampaignFixture();
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-snapshot-unavailable-'));
+    const bundleDirectory = join(repositoryRoot, 'bundle-copy');
+    await cp(fixture.bundleDirectory, bundleDirectory, { recursive: true });
+    const firstCase = fixture.bundle.cases.find((entry) => entry.id === fixture.bundle.schedule[0]!.caseId)!;
+    await rm(join(bundleDirectory, firstCase.skillPath), { recursive: true });
+    let invocations = 0;
+
+    const collection = await runAuthorBenchmarkCampaign(
+      {
+        approval: '16',
+        bundle: fixture.bundle,
+        bundleDirectory,
+        campaign: fixture.campaign,
+        codexHome: '/unused',
+        expectedCommit: 'e'.repeat(40),
+        preflight: readyCampaignPreflight(fixture.campaign, 'e'.repeat(40)),
+        repositoryRoot,
+      },
+      {
+        createInvoker: () => {
+          invocations += 1;
+          return () => Promise.reject(new Error('must not invoke'));
+        },
+        currentCommit: () => Promise.resolve('e'.repeat(40)),
+        workingTreeClean: () => Promise.resolve(true),
+      },
+    );
+
+    expect(collection).toMatchObject({ providerInvocations: 0, status: 'INVALIDATED', stopReason: 'SNAPSHOT_UNAVAILABLE' });
+    expect(collection.samples.every((sample) => sample.status === 'NOT_RUN')).toBe(true);
+    expect(invocations).toBe(0);
+    const terminalReceipt = JSON.parse(
+      await readFile(join(repositoryRoot, fixture.campaign.reservationPath.replace(/\.json$/u, '.terminal.json')), 'utf8'),
+    ) as Record<string, unknown>;
+    expect(terminalReceipt).toMatchObject({
+      collectionPersisted: true,
+      consumedSampleIds: [],
+      providerInvocations: 0,
+      status: 'INVALIDATED',
+      stopReason: 'SNAPSHOT_UNAVAILABLE',
+    });
+  });
+
+  it('invalidates on a sample reservation collision without overwriting the existing artifact', async () => {
+    const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-sample-collision-'));
+    const first = bundle.schedule[0]!;
+    const collisionContents = '{"owner":"other"}\n';
+    let invocations = 0;
+
+    const collection = await runAuthorBenchmarkCampaign(
+      {
+        approval: '16',
+        bundle,
+        bundleDirectory,
+        campaign,
+        codexHome: '/unused',
+        expectedCommit: 'e'.repeat(40),
+        preflight: readyCampaignPreflight(campaign, 'e'.repeat(40)),
+        repositoryRoot,
+      },
+      {
+        createInvoker: () => {
+          invocations += 1;
+          return () => Promise.reject(new Error('must not invoke'));
+        },
+        createWorkspace: async () => {
+          const path = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-workspace-'));
+          await writeFile(
+            join(
+              repositoryRoot,
+              campaign.outputDirectory,
+              'reservations',
+              `${String(first.order).padStart(2, '0')}-${first.sampleId}.json`,
+            ),
+            collisionContents,
+          );
+          return { cleanup: async () => await rm(path, { recursive: true }), path };
+        },
+        currentCommit: () => Promise.resolve('e'.repeat(40)),
+        workingTreeClean: () => Promise.resolve(true),
+      },
+    );
+
+    expect(collection).toMatchObject({ providerInvocations: 0, status: 'INVALIDATED', stopReason: 'SAMPLE_RESERVATION_COLLISION' });
+    expect(collection.samples.every((sample) => sample.status === 'NOT_RUN')).toBe(true);
+    expect(invocations).toBe(0);
+    await expect(
+      readFile(
+        join(repositoryRoot, campaign.outputDirectory, 'reservations', `${String(first.order).padStart(2, '0')}-${first.sampleId}.json`),
+        'utf8',
+      ),
+    ).resolves.toBe(collisionContents);
+    const terminalReceipt = JSON.parse(
+      await readFile(join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json')), 'utf8'),
+    ) as Record<string, unknown>;
+    expect(terminalReceipt).toMatchObject({ status: 'INVALIDATED', stopReason: 'SAMPLE_RESERVATION_COLLISION' });
+  });
+
+  it('stops insufficiently without a Blueprint when consumed sample evidence cannot be persisted', async () => {
+    const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-evidence-failure-'));
+    const candidate = await readFile(resolve('evaluations/refactor-design/e5-author-runner/candidate.json'), 'utf8');
+    const first = bundle.schedule[0]!;
+
+    const collection = await runAuthorBenchmarkCampaign(
+      {
+        approval: '16',
+        bundle,
+        bundleDirectory,
+        campaign,
+        codexHome: '/unused',
+        expectedCommit: 'e'.repeat(40),
+        preflight: readyCampaignPreflight(campaign, 'e'.repeat(40)),
+        repositoryRoot,
+      },
+      {
+        createInvoker: () => async () => {
+          await mkdir(
+            join(repositoryRoot, campaign.outputDirectory, 'samples', `${String(first.order).padStart(2, '0')}-${first.sampleId}.json`),
+          );
+          return { observedModel: null, output: candidate };
+        },
+        currentCommit: () => Promise.resolve('e'.repeat(40)),
+        workingTreeClean: () => Promise.resolve(true),
+      },
+    );
+
+    expect(collection).toMatchObject({ providerInvocations: 1, status: 'INSUFFICIENT', stopReason: 'EVIDENCE_PERSISTENCE' });
+    expect(collection.samples[0]).toMatchObject({ error: { code: 'EVIDENCE_NOT_PERSISTED' }, status: 'ERROR' });
+    expect(collection.samples[0]).not.toHaveProperty('blueprint');
+    expect(collection.samples.slice(1).every((sample) => sample.status === 'NOT_RUN')).toBe(true);
+    const terminalReceipt = JSON.parse(
+      await readFile(join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json')), 'utf8'),
+    ) as Record<string, unknown>;
+    expect(terminalReceipt).toMatchObject({
+      collectionPersisted: true,
+      consumedSampleIds: [first.sampleId],
+      persistedSampleIds: [],
+      providerInvocations: 1,
+      status: 'INSUFFICIENT',
+      stopReason: 'EVIDENCE_PERSISTENCE',
+    });
+    expect(JSON.stringify(terminalReceipt)).not.toContain(candidate.slice(0, 30));
+  });
+
+  it('preserves persisted evidence and terminalizes insufficiently when workspace cleanup fails', async () => {
+    const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-cleanup-failure-'));
+    const candidate = await readFile(resolve('evaluations/refactor-design/e5-author-runner/candidate.json'), 'utf8');
+    const first = bundle.schedule[0]!;
+
+    const collection = await runAuthorBenchmarkCampaign(
+      {
+        approval: '16',
+        bundle,
+        bundleDirectory,
+        campaign,
+        codexHome: '/unused',
+        expectedCommit: 'e'.repeat(40),
+        preflight: readyCampaignPreflight(campaign, 'e'.repeat(40)),
+        repositoryRoot,
+      },
+      {
+        createInvoker: () => () => Promise.resolve({ observedModel: null, output: candidate }),
+        createWorkspace: async () => {
+          const path = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-cleanup-workspace-'));
+          return { cleanup: () => Promise.reject(new Error('synthetic cleanup failure')), path };
+        },
+        currentCommit: () => Promise.resolve('e'.repeat(40)),
+        workingTreeClean: () => Promise.resolve(true),
+      },
+    );
+
+    expect(collection).toMatchObject({ providerInvocations: 1, status: 'INSUFFICIENT', stopReason: 'INFRASTRUCTURE_CLEANUP' });
+    expect(collection.samples[0]).toMatchObject({ status: 'COMPLETED' });
+    expect(collection.samples.slice(1).every((sample) => sample.status === 'NOT_RUN')).toBe(true);
+    const terminalReceipt = JSON.parse(
+      await readFile(join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json')), 'utf8'),
+    ) as Record<string, unknown>;
+    expect(terminalReceipt).toMatchObject({
+      consumedSampleIds: [first.sampleId],
+      persistedSampleIds: [first.sampleId],
+      providerInvocations: 1,
+      status: 'INSUFFICIENT',
+      stopReason: 'INFRASTRUCTURE_CLEANUP',
+    });
+  });
+
+  it('terminalizes a catchable unexpected infrastructure failure after sample reservation', async () => {
+    const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-unexpected-failure-'));
+    const first = bundle.schedule[0]!;
+
+    const collection = await runAuthorBenchmarkCampaign(
+      {
+        approval: '16',
+        bundle,
+        bundleDirectory,
+        campaign,
+        codexHome: '/unused',
+        expectedCommit: 'e'.repeat(40),
+        preflight: readyCampaignPreflight(campaign, 'e'.repeat(40)),
+        repositoryRoot,
+      },
+      {
+        createInvoker: () => {
+          throw new Error('unexpected local adapter construction failure with /tmp/private-path');
+        },
+        currentCommit: () => Promise.resolve('e'.repeat(40)),
+        workingTreeClean: () => Promise.resolve(true),
+      },
+    );
+
+    expect(collection).toMatchObject({ providerInvocations: 0, status: 'INSUFFICIENT', stopReason: 'INFRASTRUCTURE_UNEXPECTED' });
+    expect(collection.samples[0]).toMatchObject({ error: { code: 'INFRASTRUCTURE_ERROR' }, status: 'ERROR' });
+    expect(collection.samples.slice(1).every((sample) => sample.status === 'NOT_RUN')).toBe(true);
+    const terminalReceiptText = await readFile(
+      join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json')),
+      'utf8',
+    );
+    expect(JSON.parse(terminalReceiptText)).toMatchObject({
+      consumedSampleIds: [first.sampleId],
+      providerInvocations: 0,
+      status: 'INSUFFICIENT',
+      stopReason: 'INFRASTRUCTURE_UNEXPECTED',
+    });
+    expect(terminalReceiptText).not.toContain('/tmp/private-path');
+  });
+
+  it('still terminalizes when an infrastructure diagnostic cannot be persisted per sample', async () => {
+    const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-diagnostic-persistence-failure-'));
+    const first = bundle.schedule[0]!;
+
+    const collection = await runAuthorBenchmarkCampaign(
+      {
+        approval: '16',
+        bundle,
+        bundleDirectory,
+        campaign,
+        codexHome: '/unused',
+        expectedCommit: 'e'.repeat(40),
+        preflight: readyCampaignPreflight(campaign, 'e'.repeat(40)),
+        repositoryRoot,
+      },
+      {
+        createInvoker: () => {
+          throw new Error('synthetic adapter construction failure');
+        },
+        createWorkspace: async () => {
+          const path = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-diagnostic-workspace-'));
+          await mkdir(
+            join(repositoryRoot, campaign.outputDirectory, 'samples', `${String(first.order).padStart(2, '0')}-${first.sampleId}.json`),
+          );
+          return { cleanup: async () => await rm(path, { recursive: true }), path };
+        },
+        currentCommit: () => Promise.resolve('e'.repeat(40)),
+        workingTreeClean: () => Promise.resolve(true),
+      },
+    );
+
+    expect(collection).toMatchObject({ providerInvocations: 0, status: 'INSUFFICIENT', stopReason: 'EVIDENCE_PERSISTENCE' });
+    expect(collection.samples[0]).toMatchObject({ error: { code: 'EVIDENCE_NOT_PERSISTED' }, status: 'ERROR' });
+    await expect(
+      readFile(join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json')), 'utf8').then(
+        (text) => JSON.parse(text) as unknown,
+      ),
+    ).resolves.toMatchObject({
+      collectionPersisted: true,
+      consumedSampleIds: [first.sampleId],
+      persistedSampleIds: [],
+      status: 'INSUFFICIENT',
+      stopReason: 'EVIDENCE_PERSISTENCE',
+    });
+  });
+
+  it('persists a terminal receipt when the canonical collection cannot be written', async () => {
+    const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-collection-failure-'));
+
+    const collection = await runAuthorBenchmarkCampaign(
+      {
+        approval: '16',
+        bundle,
+        bundleDirectory,
+        campaign,
+        codexHome: '/unused',
+        expectedCommit: 'e'.repeat(40),
+        preflight: readyCampaignPreflight(campaign, 'e'.repeat(40)),
+        repositoryRoot,
+      },
+      {
+        createInvoker: () => async () => {
+          await mkdir(join(repositoryRoot, campaign.outputDirectory, 'collection.json'));
+          throw new AuthorProviderError({ category: 'AUTHENTICATION', code: 'HTTP_401', stage: 'RESULT' });
+        },
+        currentCommit: () => Promise.resolve('e'.repeat(40)),
+        workingTreeClean: () => Promise.resolve(true),
+      },
+    );
+
+    expect(collection).toMatchObject({ providerInvocations: 1, status: 'INSUFFICIENT', stopReason: 'COLLECTION_PERSISTENCE' });
+    const terminalReceipt = JSON.parse(
+      await readFile(join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json')), 'utf8'),
+    ) as Record<string, unknown>;
+    expect(terminalReceipt).toMatchObject({
+      collectionPersisted: false,
+      providerInvocations: 1,
+      status: 'INSUFFICIENT',
+      stopReason: 'COLLECTION_PERSISTENCE',
+    });
+  });
+
+  it('terminalizes insufficiently when a remaining NOT_RUN record cannot be persisted', async () => {
+    const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-not-run-failure-'));
+    const second = bundle.schedule[1]!;
+
+    const collection = await runAuthorBenchmarkCampaign(
+      {
+        approval: '16',
+        bundle,
+        bundleDirectory,
+        campaign,
+        codexHome: '/unused',
+        expectedCommit: 'e'.repeat(40),
+        preflight: readyCampaignPreflight(campaign, 'e'.repeat(40)),
+        repositoryRoot,
+      },
+      {
+        createInvoker: () => async () => {
+          await mkdir(
+            join(repositoryRoot, campaign.outputDirectory, 'samples', `${String(second.order).padStart(2, '0')}-${second.sampleId}.json`),
+          );
+          throw new AuthorProviderError({ category: 'AUTHENTICATION', code: 'HTTP_401', stage: 'RESULT' });
+        },
+        currentCommit: () => Promise.resolve('e'.repeat(40)),
+        workingTreeClean: () => Promise.resolve(true),
+      },
+    );
+
+    expect(collection).toMatchObject({ providerInvocations: 1, status: 'INSUFFICIENT', stopReason: 'NOT_RUN_PERSISTENCE' });
+    expect(collection.samples).toHaveLength(16);
+    const terminalReceipt = JSON.parse(
+      await readFile(join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json')), 'utf8'),
+    ) as Record<string, unknown>;
+    expect(terminalReceipt).toMatchObject({
+      collectionPersisted: true,
+      providerInvocations: 1,
+      status: 'INSUFFICIENT',
+      stopReason: 'NOT_RUN_PERSISTENCE',
+    });
+  });
+
   it('stops as insufficient without a call when isolated workspace creation fails', async () => {
     const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
     const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-infrastructure-'));
@@ -723,6 +1186,52 @@ describe('blind Evaluation Author benchmark', () => {
     expect(collection.samples.every((sample) => sample.status === 'NOT_RUN')).toBe(true);
   });
 
+  it('persists an insufficient terminal receipt when campaign output cannot be prepared after reservation', async () => {
+    const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-output-failure-'));
+    const outputDirectory = join(repositoryRoot, campaign.outputDirectory);
+    await mkdir(join(repositoryRoot, '.skill-evidence', 'author-benchmark'), { recursive: true });
+    await writeFile(outputDirectory, 'occupied by a non-directory');
+    let invocations = 0;
+
+    const collection = await runAuthorBenchmarkCampaign(
+      {
+        approval: '16',
+        bundle,
+        bundleDirectory,
+        campaign,
+        codexHome: '/unused',
+        expectedCommit: 'e'.repeat(40),
+        preflight: readyCampaignPreflight(campaign, 'e'.repeat(40)),
+        repositoryRoot,
+      },
+      {
+        createInvoker: () => {
+          invocations += 1;
+          return () => Promise.reject(new Error('must not invoke'));
+        },
+        currentCommit: () => Promise.resolve('e'.repeat(40)),
+        workingTreeClean: () => Promise.resolve(true),
+      },
+    );
+
+    expect(collection).toMatchObject({ providerInvocations: 0, status: 'INSUFFICIENT', stopReason: 'INFRASTRUCTURE_OUTPUT' });
+    expect(collection.samples.every((sample) => sample.status === 'NOT_RUN')).toBe(true);
+    expect(invocations).toBe(0);
+    const terminalReceipt = JSON.parse(
+      await readFile(join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json')), 'utf8'),
+    ) as Record<string, unknown>;
+    expect(terminalReceipt).toMatchObject({
+      collectionPersisted: false,
+      consumedSampleIds: [],
+      notRunSampleIds: bundle.schedule.map((sample) => sample.sampleId),
+      persistedSampleIds: [],
+      providerInvocations: 0,
+      status: 'INSUFFICIENT',
+      stopReason: 'INFRASTRUCTURE_OUTPUT',
+    });
+  });
+
   it('requires every explicit campaign argument at the internal command boundary', async () => {
     await expect(runAuthorBenchmarkCommand(['--bundle', 'evaluations/refactor-design/e5-author-benchmark'])).rejects.toMatchObject({
       code: 'BENCHMARK_ARGUMENT_INVALID',
@@ -734,9 +1243,10 @@ describe('blind Evaluation Author benchmark', () => {
       campaigns: [
         { providerInvocations: 16, status: 'COMPLETE' },
         { providerInvocations: 1, status: 'INSUFFICIENT', stopReason: 'GLOBAL_AUTHENTICATION' },
+        { providerInvocations: 1, status: 'INSUFFICIENT', stopReason: 'GLOBAL_RATE_LIMIT' },
       ],
       externalProviderCalls: 0,
-      localProcessCalls: 17,
+      localProcessCalls: 18,
       purpose: 'DEVELOPMENT',
       result: 'SUPPORTED_FOR_DEVELOPMENT',
       schemaVersion: 1,

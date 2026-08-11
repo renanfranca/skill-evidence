@@ -53,8 +53,9 @@
   "stopRules": [
     "Never retry, repeat, replace, or reorder a consumed sample.",
     "Continue the frozen schedule after a per-sample error or timeout unless a prespecified global stop applies.",
-    "Stop remaining calls on global authentication failure, global model unavailability, security-boundary failure, or infrastructure corruption; classify the campaign INSUFFICIENT.",
+    "Stop remaining calls on any rate limit, global authentication failure, global model unavailability, security-boundary failure, or infrastructure corruption; classify the campaign INSUFFICIENT.",
     "Invalidate the campaign on blindness, freeze, reservation, or schedule violation.",
+    "After the immutable global reservation, persist one bounded terminal receipt beside it for every catchable terminal outcome.",
     "Do not inspect aggregate condition performance or adapt the instrument during collection.",
     "Do not persist credentials, authentication contents, raw model reasoning, or unsanitized provider artifacts."
   ]

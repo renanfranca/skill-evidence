@@ -116,19 +116,31 @@ export async function runAuthorBenchmarkCampaignPreflight(
   const pathReadable = dependencies.pathReadable ?? (async (path) => await canAccess(path, constants.R_OK));
   const pathWritable = dependencies.pathWritable ?? (async (path) => await canAccess(path, constants.W_OK));
 
-  const [offline, bundleValue, commit, clean, npm, promptfoo, codexSdk, codexCli, reservationExists, outputDirectoryExists] =
-    await Promise.all([
-      qualifyAuthorBenchmarkDirectory(bundleDirectory),
-      readFile(join(bundleDirectory, 'bundle.json'), 'utf8').then((text) => JSON.parse(text) as unknown),
-      currentCommit(),
-      workingTreeClean(),
-      npmVersion(),
-      packageVersion('promptfoo'),
-      packageVersion('@openai/codex-sdk'),
-      codexCliVersion(),
-      pathExists(resolve(repositoryRoot, campaign.reservationPath)),
-      pathExists(resolve(repositoryRoot, campaign.outputDirectory)),
-    ]);
+  const [
+    offline,
+    bundleValue,
+    commit,
+    clean,
+    npm,
+    promptfoo,
+    codexSdk,
+    codexCli,
+    reservationExists,
+    terminalReceiptExists,
+    outputDirectoryExists,
+  ] = await Promise.all([
+    qualifyAuthorBenchmarkDirectory(bundleDirectory),
+    readFile(join(bundleDirectory, 'bundle.json'), 'utf8').then((text) => JSON.parse(text) as unknown),
+    currentCommit(),
+    workingTreeClean(),
+    npmVersion(),
+    packageVersion('promptfoo'),
+    packageVersion('@openai/codex-sdk'),
+    codexCliVersion(),
+    pathExists(resolve(repositoryRoot, campaign.reservationPath)),
+    pathExists(resolve(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json'))),
+    pathExists(resolve(repositoryRoot, campaign.outputDirectory)),
+  ]);
   const scheduleCount =
     typeof bundleValue === 'object' && bundleValue !== null && 'schedule' in bundleValue && Array.isArray(bundleValue.schedule)
       ? bundleValue.schedule.length
@@ -163,6 +175,7 @@ export async function runAuthorBenchmarkCampaignPreflight(
     reviewerQualificationFingerprint: offline.reviewerQualificationFingerprint,
     reviewerQualificationResult: offline.reviewerQualification.result,
     scheduleCount,
+    terminalReceiptExists,
     worktreeClean: clean,
   } as const;
   return evaluateAuthorBenchmarkCampaignPreflight(campaign, evidence);

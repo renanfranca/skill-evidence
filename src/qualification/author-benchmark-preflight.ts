@@ -59,6 +59,7 @@ export interface AuthorBenchmarkPreflightEvidence {
   reviewerQualificationFingerprint: string;
   reviewerQualificationResult: 'BLOCKED' | 'QUALIFIED';
   scheduleCount: number;
+  terminalReceiptExists: boolean;
   worktreeClean: boolean;
 }
 
@@ -256,6 +257,7 @@ export function evaluateAuthorBenchmarkCampaignPreflight(
     },
     { id: 'API_KEY_VARIABLES_ABSENT', status: evidence.credentialVariablesAbsent ? 'PASS' : 'FAIL' },
     { id: 'RESERVATION_ABSENT', status: evidence.reservationExists ? 'FAIL' : 'PASS' },
+    { id: 'TERMINAL_RECEIPT_ABSENT', status: evidence.terminalReceiptExists ? 'FAIL' : 'PASS' },
     { id: 'OUTPUT_DIRECTORY_ABSENT', status: evidence.outputDirectoryExists ? 'FAIL' : 'PASS' },
     { id: 'OUTPUT_PARENT_WRITABLE', status: evidence.outputParentWritable ? 'PASS' : 'FAIL' },
   ];

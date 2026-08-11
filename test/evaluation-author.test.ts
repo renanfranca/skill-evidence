@@ -567,6 +567,8 @@ describe('Evaluation Author v0', () => {
         message: 'Request timed out while model gpt-private was unavailable with HTTP 404',
       },
       { diagnostic: { category: 'RATE_LIMIT', code: 'HTTP_429', stage: 'RESULT' }, message: 'HTTP 429 rate limit exceeded' },
+      { diagnostic: { category: 'RATE_LIMIT', code: 'UNCLASSIFIED', stage: 'RESULT' }, message: 'Account quota exhausted' },
+      { diagnostic: { category: 'RATE_LIMIT', code: 'UNCLASSIFIED', stage: 'RESULT' }, message: 'Usage limit reached' },
       { diagnostic: { category: 'AUTHENTICATION', code: 'HTTP_401', stage: 'RESULT' }, message: 'HTTP 401 login required' },
       { diagnostic: { category: 'MODEL_ACCESS', code: 'UNCLASSIFIED', stage: 'RESULT' }, message: 'Requested model is unavailable' },
       { diagnostic: { category: 'CONFIGURATION', code: 'UNCLASSIFIED', stage: 'RESULT' }, message: 'Invalid configuration value' },

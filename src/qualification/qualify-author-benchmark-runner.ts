@@ -49,7 +49,7 @@ export async function qualifyAuthorBenchmarkRunner(root = process.cwd()): Promis
     await Promise.all([mkdir(codexHome), copyFile(join(runnerFixture, 'fake-codex-cli.cjs'), fakeExecutable), writeFile(ledger, '')]);
     await chmod(fakeExecutable, 0o700);
     const candidate = await readFile(join(runnerFixture, 'candidate.json'), 'utf8');
-    for (const mode of ['complete', 'global-stop'] as const) {
+    for (const mode of ['complete', 'authentication-stop', 'rate-limit-stop'] as const) {
       const repositoryRoot = join(temporaryRoot, mode);
       await mkdir(repositoryRoot);
       let sampleIndex = 0;
@@ -89,7 +89,14 @@ export async function qualifyAuthorBenchmarkRunner(root = process.cwd()): Promis
                   environment: {
                     SKILL_EVIDENCE_E5_RUNNER_LEDGER: ledger,
                     SKILL_EVIDENCE_E5_RUNNER_OUTPUT: candidate,
-                    SKILL_EVIDENCE_E5_RUNNER_SCENARIO: mode === 'global-stop' && sampleIndex === 1 ? 'authentication' : 'success',
+                    SKILL_EVIDENCE_E5_RUNNER_SCENARIO:
+                      sampleIndex !== 1
+                        ? 'success'
+                        : mode === 'authentication-stop'
+                          ? 'authentication'
+                          : mode === 'rate-limit-stop'
+                            ? 'rate-limit'
+                            : 'success',
                   },
                 },
                 workingDirectory,
@@ -116,17 +123,21 @@ export async function qualifyAuthorBenchmarkRunner(root = process.cwd()): Promis
   const workspaceCampaignArtifacts = (
     await Promise.all([
       exists(join(root, '.skill-evidence', 'author-benchmark-reservations', 'e5-author-benchmark-20260811-r1.json')),
+      exists(join(root, '.skill-evidence', 'author-benchmark-reservations', 'e5-author-benchmark-20260811-r1.terminal.json')),
       exists(join(root, '.skill-evidence', 'author-benchmark', 'e5-author-benchmark-20260811-r1')),
     ])
   ).filter(Boolean).length;
   const supported =
-    campaigns.length === 2 &&
+    campaigns.length === 3 &&
     campaigns[0]?.status === 'COMPLETE' &&
     campaigns[0].providerInvocations === 16 &&
     campaigns[1]?.status === 'INSUFFICIENT' &&
     campaigns[1].providerInvocations === 1 &&
     campaigns[1].stopReason === 'GLOBAL_AUTHENTICATION' &&
-    localProcessCalls === 17 &&
+    campaigns[2]?.status === 'INSUFFICIENT' &&
+    campaigns[2].providerInvocations === 1 &&
+    campaigns[2].stopReason === 'GLOBAL_RATE_LIMIT' &&
+    localProcessCalls === 18 &&
     workspaceCampaignArtifacts === 0;
   return {
     campaigns,

@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, open, rm } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, open, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -31,8 +31,7 @@ export type AuthorBenchmarkRunnerErrorCode =
   | 'BENCHMARK_ALREADY_RESERVED'
   | 'BENCHMARK_ARGUMENT_INVALID'
   | 'BENCHMARK_COMMIT_MISMATCH'
-  | 'BENCHMARK_PREFLIGHT_BLOCKED'
-  | 'BENCHMARK_RESERVATION_FAILED';
+  | 'BENCHMARK_PREFLIGHT_BLOCKED';
 
 export class AuthorBenchmarkRunnerError extends Error {
   readonly code: AuthorBenchmarkRunnerErrorCode;
@@ -93,6 +92,37 @@ export interface AuthorBenchmarkCollection {
   stopReason: string | null;
 }
 
+export interface AuthorBenchmarkTerminalReceipt {
+  bundleFingerprint: string;
+  campaignFingerprint: string;
+  campaignId: string;
+  collectionPersisted: boolean;
+  consumedSampleIds: string[];
+  currentCommit: string;
+  expectedCommit: string;
+  notRunSampleIds: string[];
+  persistedSampleIds: string[];
+  providerInvocations: number;
+  schemaVersion: 1;
+  status: AuthorBenchmarkCollection['status'];
+  stopReason: string | null;
+}
+
+interface TerminalReceiptInput {
+  bundleFingerprint: string;
+  campaignFingerprint: string;
+  campaignId: string;
+  collectionPersisted: boolean;
+  consumedSampleIds: string[];
+  currentCommit: string;
+  expectedCommit: string;
+  persistedSampleIds: string[];
+  providerInvocations: number;
+  samples: AuthorBenchmarkCollectedSample[];
+  status: AuthorBenchmarkCollection['status'];
+  stopReason: string | null;
+}
+
 async function writeExclusive(path: string, value: unknown): Promise<void> {
   let handle;
   try {
@@ -107,6 +137,15 @@ async function writeExclusive(path: string, value: unknown): Promise<void> {
     await handle.writeFile(`${canonicalJson(value)}\n`, 'utf8');
   } finally {
     await handle.close();
+  }
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -127,8 +166,53 @@ function globalStopReason(category: AuthorProviderFailureCategory): string | nul
     CONFIGURATION: 'GLOBAL_CONFIGURATION',
     MODEL_ACCESS: 'GLOBAL_MODEL_ACCESS',
     PROCESS: 'GLOBAL_PROCESS',
+    RATE_LIMIT: 'GLOBAL_RATE_LIMIT',
   };
   return stops[category] ?? null;
+}
+
+function statusAfterCleanupFailure(status: AuthorBenchmarkCollection['status']): 'INSUFFICIENT' | 'INVALIDATED' {
+  return status === 'INVALIDATED' ? 'INVALIDATED' : 'INSUFFICIENT';
+}
+
+function notRunSample(
+  scheduled: AuthorBenchmarkScheduleEntry,
+  bundle: AuthorBenchmarkBundleCandidate,
+  campaign: AuthorBenchmarkCampaignPreparation,
+): AuthorBenchmarkCollectedSample {
+  const benchmarkCase = bundle.cases.find((entry) => entry.id === scheduled.caseId)!;
+  const conditionFingerprint = campaign.conditions.find((entry) => entry.id === scheduled.condition)!.conditionFingerprint;
+  return {
+    caseId: scheduled.caseId,
+    condition: scheduled.condition,
+    conditionFingerprint,
+    elapsedMs: 0,
+    order: scheduled.order,
+    packetFingerprint: null,
+    providerLatencyMs: null,
+    sampleId: scheduled.sampleId,
+    snapshotFingerprint: benchmarkCase.snapshotFingerprint,
+    status: 'NOT_RUN',
+    tokenUsage: null,
+  };
+}
+
+function terminalReceipt(input: TerminalReceiptInput): AuthorBenchmarkTerminalReceipt {
+  return {
+    bundleFingerprint: input.bundleFingerprint,
+    campaignFingerprint: input.campaignFingerprint,
+    campaignId: input.campaignId,
+    collectionPersisted: input.collectionPersisted,
+    consumedSampleIds: input.consumedSampleIds,
+    currentCommit: input.currentCommit,
+    expectedCommit: input.expectedCommit,
+    notRunSampleIds: input.samples.filter((sample) => sample.status === 'NOT_RUN').map((sample) => sample.sampleId),
+    persistedSampleIds: input.persistedSampleIds,
+    providerInvocations: input.providerInvocations,
+    schemaVersion: 1,
+    status: input.status,
+    stopReason: input.stopReason,
+  };
 }
 
 export async function runAuthorBenchmarkCampaign(
@@ -167,7 +251,11 @@ export async function runAuthorBenchmarkCampaign(
   }
   const campaignFingerprint = sha256(input.campaign);
   const reservationPath = resolve(input.repositoryRoot, input.campaign.reservationPath);
+  const terminalReceiptPath = reservationPath.replace(/\.json$/u, '.terminal.json');
   const outputDirectory = resolve(input.repositoryRoot, input.campaign.outputDirectory);
+  if (await pathExists(terminalReceiptPath)) {
+    throw new AuthorBenchmarkRunnerError('BENCHMARK_ALREADY_RESERVED', 'campaign already has a terminal receipt');
+  }
   await mkdir(dirname(reservationPath), { recursive: true });
   await writeExclusive(reservationPath, {
     bundleFingerprint: validation.fingerprint,
@@ -180,15 +268,44 @@ export async function runAuthorBenchmarkCampaign(
     schemaVersion: 1,
     status: 'RESERVED',
   });
+  const schedule = [...input.bundle.schedule].sort((left, right) => left.order - right.order);
   try {
     await mkdir(dirname(outputDirectory), { recursive: true });
     await mkdir(outputDirectory);
     await Promise.all([mkdir(join(outputDirectory, 'reservations')), mkdir(join(outputDirectory, 'samples'))]);
-  } catch (error) {
-    throw new AuthorBenchmarkRunnerError(
-      'BENCHMARK_RESERVATION_FAILED',
-      `campaign output could not be claimed after reservation: ${error instanceof Error ? error.message : 'unknown error'}`,
+  } catch {
+    const samples = schedule.map((scheduled) => notRunSample(scheduled, input.bundle, input.campaign));
+    const collection: AuthorBenchmarkCollection = {
+      bundleFingerprint: validation.fingerprint,
+      campaignFingerprint,
+      campaignId: input.campaign.campaignId,
+      currentCommit: commit,
+      expectedCommit: input.expectedCommit,
+      providerInvocations: 0,
+      purpose: 'AUTHOR_QUALIFICATION_COLLECTION',
+      samples,
+      schemaVersion: 1,
+      status: 'INSUFFICIENT',
+      stopReason: 'INFRASTRUCTURE_OUTPUT',
+    };
+    await writeExclusive(
+      terminalReceiptPath,
+      terminalReceipt({
+        bundleFingerprint: validation.fingerprint,
+        campaignFingerprint,
+        campaignId: input.campaign.campaignId,
+        collectionPersisted: false,
+        consumedSampleIds: [],
+        currentCommit: commit,
+        expectedCommit: input.expectedCommit,
+        persistedSampleIds: [],
+        providerInvocations: 0,
+        samples,
+        status: 'INSUFFICIENT',
+        stopReason: 'INFRASTRUCTURE_OUTPUT',
+      }),
     );
+    return collection;
   }
   const createWorkspace = dependencies.createWorkspace ?? defaultWorkspace;
   const createInvoker =
@@ -196,10 +313,11 @@ export async function runAuthorBenchmarkCampaign(
     ((workingDirectory: string) => createPromptfooAuthorInvoker({ codexHome: input.codexHome, workingDirectory }));
   const now = dependencies.now ?? Date.now;
   const samples: AuthorBenchmarkCollectedSample[] = [];
+  const consumedSampleIds: string[] = [];
+  const persistedSampleIds: string[] = [];
   let providerInvocations = 0;
   let status: AuthorBenchmarkCollection['status'] = 'COMPLETE';
   let stopReason: string | null = null;
-  const schedule = [...input.bundle.schedule].sort((left, right) => left.order - right.order);
   for (const scheduled of schedule) {
     const benchmarkCase = input.bundle.cases.find((entry) => entry.id === scheduled.caseId);
     if (benchmarkCase === undefined) {
@@ -207,7 +325,14 @@ export async function runAuthorBenchmarkCampaign(
       stopReason = 'SCHEDULE_DRIFT';
       break;
     }
-    const snapshot = await createSkillSnapshot({ rootDirectory: join(input.bundleDirectory, benchmarkCase.skillPath) });
+    let snapshot: Awaited<ReturnType<typeof createSkillSnapshot>>;
+    try {
+      snapshot = await createSkillSnapshot({ rootDirectory: join(input.bundleDirectory, benchmarkCase.skillPath) });
+    } catch {
+      status = 'INVALIDATED';
+      stopReason = 'SNAPSHOT_UNAVAILABLE';
+      break;
+    }
     const condition = conditionFor(scheduled);
     const prepared = prepareAuthorInvocation(snapshot, condition);
     const expectedConditionFingerprint = input.campaign.conditions.find((entry) => entry.id === scheduled.condition)?.conditionFingerprint;
@@ -235,29 +360,72 @@ export async function runAuthorBenchmarkCampaign(
       break;
     }
     try {
-      await writeExclusive(
-        join(outputDirectory, 'reservations', `${String(scheduled.order).padStart(2, '0')}-${scheduled.sampleId}.json`),
-        {
-          campaignFingerprint,
+      try {
+        await writeExclusive(
+          join(outputDirectory, 'reservations', `${String(scheduled.order).padStart(2, '0')}-${scheduled.sampleId}.json`),
+          {
+            campaignFingerprint,
+            caseId: scheduled.caseId,
+            condition: scheduled.condition,
+            conditionFingerprint: prepared.conditionFingerprint,
+            currentCommit: commit,
+            expectedCommit: input.expectedCommit,
+            order: scheduled.order,
+            packetFingerprint: prepared.packetFingerprint,
+            sampleId: scheduled.sampleId,
+            schemaVersion: 1,
+            snapshotFingerprint: snapshot.fingerprint,
+            status: 'RESERVED',
+          },
+        );
+      } catch (error) {
+        if (error instanceof AuthorBenchmarkRunnerError && error.code === 'BENCHMARK_ALREADY_RESERVED') {
+          status = 'INVALIDATED';
+          stopReason = 'SAMPLE_RESERVATION_COLLISION';
+          break;
+        }
+        throw error;
+      }
+      consumedSampleIds.push(scheduled.sampleId);
+      let invoker: AuthorInvoker;
+      try {
+        invoker = createInvoker(workspace.path);
+      } catch {
+        let record: AuthorBenchmarkCollectedSample = {
           caseId: scheduled.caseId,
           condition: scheduled.condition,
           conditionFingerprint: prepared.conditionFingerprint,
-          currentCommit: commit,
-          expectedCommit: input.expectedCommit,
+          elapsedMs: 0,
+          error: { code: 'INFRASTRUCTURE_ERROR' },
           order: scheduled.order,
           packetFingerprint: prepared.packetFingerprint,
+          providerLatencyMs: null,
           sampleId: scheduled.sampleId,
-          schemaVersion: 1,
           snapshotFingerprint: snapshot.fingerprint,
-          status: 'RESERVED',
-        },
-      );
+          status: 'ERROR',
+          tokenUsage: null,
+        };
+        try {
+          await writeExclusive(
+            join(outputDirectory, 'samples', `${String(scheduled.order).padStart(2, '0')}-${scheduled.sampleId}.json`),
+            record,
+          );
+          persistedSampleIds.push(scheduled.sampleId);
+        } catch {
+          record = { ...record, error: { code: 'EVIDENCE_NOT_PERSISTED' } };
+          stopReason = 'EVIDENCE_PERSISTENCE';
+        }
+        samples.push(record);
+        status = 'INSUFFICIENT';
+        stopReason ??= 'INFRASTRUCTURE_UNEXPECTED';
+        break;
+      }
       const startedAt = now();
       providerInvocations += 1;
       const run = await authorEvaluationBlueprint({
         campaignId: `${input.campaign.campaignId}:${scheduled.sampleId}`,
         condition,
-        invoke: createInvoker(workspace.path),
+        invoke: invoker,
         snapshot,
       });
       const elapsedMs = Math.max(0, now() - startedAt);
@@ -291,10 +459,31 @@ export async function runAuthorBenchmarkCampaign(
               status: 'ERROR',
               tokenUsage: run.tokenUsage,
             };
-      await writeExclusive(
-        join(outputDirectory, 'samples', `${String(scheduled.order).padStart(2, '0')}-${scheduled.sampleId}.json`),
-        record,
-      );
+      try {
+        await writeExclusive(
+          join(outputDirectory, 'samples', `${String(scheduled.order).padStart(2, '0')}-${scheduled.sampleId}.json`),
+          record,
+        );
+      } catch {
+        samples.push({
+          caseId: scheduled.caseId,
+          condition: scheduled.condition,
+          conditionFingerprint: prepared.conditionFingerprint,
+          elapsedMs,
+          error: { code: 'EVIDENCE_NOT_PERSISTED' },
+          order: scheduled.order,
+          packetFingerprint: prepared.packetFingerprint,
+          providerLatencyMs: null,
+          sampleId: scheduled.sampleId,
+          snapshotFingerprint: snapshot.fingerprint,
+          status: 'ERROR',
+          tokenUsage: null,
+        });
+        status = 'INSUFFICIENT';
+        stopReason = 'EVIDENCE_PERSISTENCE';
+        break;
+      }
+      persistedSampleIds.push(scheduled.sampleId);
       samples.push(record);
       if (run.status === 'ERROR' && run.error.code === 'PROVIDER_ERROR') {
         const globalStop = globalStopReason(run.error.diagnostic.category);
@@ -305,32 +494,33 @@ export async function runAuthorBenchmarkCampaign(
         }
       }
     } finally {
-      await workspace.cleanup();
+      try {
+        await workspace.cleanup();
+      } catch {
+        status = statusAfterCleanupFailure(status);
+        if (status === 'INSUFFICIENT') {
+          stopReason = 'INFRASTRUCTURE_CLEANUP';
+        }
+      }
     }
+    if (stopReason === 'INFRASTRUCTURE_CLEANUP') break;
   }
   for (const scheduled of schedule.slice(samples.length)) {
-    const benchmarkCase = input.bundle.cases.find((entry) => entry.id === scheduled.caseId)!;
-    const conditionFingerprint = input.campaign.conditions.find((entry) => entry.id === scheduled.condition)!.conditionFingerprint;
-    const record: AuthorBenchmarkCollectedSample = {
-      caseId: scheduled.caseId,
-      condition: scheduled.condition,
-      conditionFingerprint,
-      elapsedMs: 0,
-      order: scheduled.order,
-      packetFingerprint: null,
-      providerLatencyMs: null,
-      sampleId: scheduled.sampleId,
-      snapshotFingerprint: benchmarkCase.snapshotFingerprint,
-      status: 'NOT_RUN',
-      tokenUsage: null,
-    };
-    await writeExclusive(
-      join(outputDirectory, 'samples', `${String(scheduled.order).padStart(2, '0')}-${scheduled.sampleId}.json`),
-      record,
-    );
+    const record = notRunSample(scheduled, input.bundle, input.campaign);
+    try {
+      await writeExclusive(
+        join(outputDirectory, 'samples', `${String(scheduled.order).padStart(2, '0')}-${scheduled.sampleId}.json`),
+        record,
+      );
+    } catch {
+      if (status !== 'INVALIDATED') {
+        status = 'INSUFFICIENT';
+        stopReason = 'NOT_RUN_PERSISTENCE';
+      }
+    }
     samples.push(record);
   }
-  const collection: AuthorBenchmarkCollection = {
+  let collection: AuthorBenchmarkCollection = {
     bundleFingerprint: validation.fingerprint,
     campaignFingerprint,
     campaignId: input.campaign.campaignId,
@@ -343,6 +533,31 @@ export async function runAuthorBenchmarkCampaign(
     status,
     stopReason,
   };
-  await writeExclusive(join(outputDirectory, 'collection.json'), collection);
+  let collectionPersisted = true;
+  try {
+    await writeExclusive(join(outputDirectory, 'collection.json'), collection);
+  } catch {
+    collectionPersisted = false;
+    status = 'INSUFFICIENT';
+    stopReason = 'COLLECTION_PERSISTENCE';
+    collection = { ...collection, status, stopReason };
+  }
+  await writeExclusive(
+    terminalReceiptPath,
+    terminalReceipt({
+      bundleFingerprint: validation.fingerprint,
+      campaignFingerprint,
+      campaignId: input.campaign.campaignId,
+      collectionPersisted,
+      consumedSampleIds,
+      currentCommit: commit,
+      expectedCommit: input.expectedCommit,
+      persistedSampleIds,
+      providerInvocations,
+      samples,
+      status,
+      stopReason,
+    }),
+  );
   return collection;
 }

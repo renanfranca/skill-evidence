@@ -31,8 +31,10 @@ if (!ledger || !output || !scenario || process.argv[2] !== 'exec' || process.arg
       );
       return;
     }
-    process.stdout.write(
-      `${JSON.stringify({ error: { message: 'HTTP 401 authentication failed in the deterministic E5 runner' }, type: 'turn.failed' })}\n`,
-    );
+    const message =
+      scenario === 'rate-limit'
+        ? 'HTTP 429 rate limit exceeded in the deterministic E5 runner'
+        : 'HTTP 401 authentication failed in the deterministic E5 runner';
+    process.stdout.write(`${JSON.stringify({ error: { message }, type: 'turn.failed' })}\n`);
   });
 }
