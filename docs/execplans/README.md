@@ -12,7 +12,7 @@
 | [ExecPlan 8 — Run fresh Gate 2 campaign after OTEL hardening](2026-08-09-run-fresh-gate-2-campaign-r3.md)           | Complete: all live gates passed        | Authorized live E0–E2 campaign   |
 | [ExecPlan 9 — Qualify E3 regressions through Promptfoo](2026-08-09-protect-e3-archaeological-regressions.md)        | Complete: 62 tests; `SUPPORTED`        | Offline RFC 0001 R1–R6 corpus    |
 | [ExecPlan 10 — Add pull request CI](2026-08-09-add-pull-request-ci.md)                                              | Complete: hosted validation passed     | Deterministic PR validation      |
-| [ExecPlan 11 — Build Evaluation Author v0 — E4](2026-08-10-build-evaluation-author-v0.md)                           | Canary preflight blocked: home unset   | Product Author development core  |
+| [ExecPlan 11 — Build Evaluation Author v0 — E4](2026-08-10-build-evaluation-author-v0.md)                           | Complete; canary `INSUFFICIENT`        | Product Author development core  |
 | [Historical record — Pre-live instrument hardening](2026-08-08-pre-live-instrument-hardening-record.md)             | Closed and blocked at `60c0240`        | Preserved hardening provenance   |
 
 Live experiments are separate from offline validation. Their sanitized curated reports may be committed only after the corresponding provider invocation has completed.

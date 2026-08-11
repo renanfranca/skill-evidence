@@ -118,9 +118,10 @@ git status --short
 - [x] Complete Milestone 2.
 - [x] Complete Milestone 3.
 - [x] Create a clean preparation commit.
-- [ ] Pass the real-canary preflight. Blocked before reservation because `SKILL_EVIDENCE_AUTHOR_CODEX_HOME` is unset; both known Codex homes appear usable and require an explicit selection.
-- [ ] Execute and record Milestone 4.
-- [ ] Complete design review and final validation.
+- [x] Pass the real-canary preflight after the user explicitly selected `/home/renanfranca/.codex`.
+- [x] Execute and record Milestone 4. The single reserved attempt ended in terminal `PROVIDER_ERROR`; the sanitized result is `INSUFFICIENT` and no retry is authorized.
+- [x] Complete the scoped `refactor-design` review after restoring all behavior gates.
+- [x] Complete final validation without repeating the real canary.
 
 ## Decisions
 
@@ -145,6 +146,15 @@ git status --short
 - Decision: treat a documented blocking gap as semantically complete authorship while keeping the resulting lifecycle `BLOCKED`.
   Rationale: an Author must preserve absent context explicitly; turning honest absence into `DRAFT` would conflate incomplete authorship with a complete description of a blocked design.
   Date/Author: 2026-08-10 / implementation agent.
+- Decision: classify the single real canary as `INSUFFICIENT` after `PROVIDER_ERROR` and leave semantic checks unobserved.
+  Rationale: the prespecified protocol makes provider failure terminal; absence of a candidate cannot support contract discovery, lifecycle, non-fabrication, or E5-readiness claims.
+  Date/Author: 2026-08-10 / implementation agent.
+- Decision: atomically claim the Blueprint output path before reserving or invoking the Author.
+  Rationale: discovering an existing or unavailable output only after provider work could consume the unique reservation without any possible artifact; the preflight now fails before both reservation and invocation.
+  Date/Author: 2026-08-10 / implementation agent after `refactor-design` exception gate.
+- Decision: use `src/canonical-json.ts` as the single canonical JSON and SHA-256 implementation while preserving the experiments reexport.
+  Rationale: snapshot, condition, packet, report, and historical experiment identities must not diverge through duplicated transformations.
+  Date/Author: 2026-08-10 / implementation agent during `refactor-design`.
 
 ## Risks and Mitigations
 
@@ -186,3 +196,7 @@ There is no deployment. E4 is delivered on `feat/e4-evaluation-author-v0`; push 
 - Candidate structure and semantic completeness are separate: malformed or system-controlled fields produce `ERROR`, while structurally complete sections with unresolved evidence gaps can validly produce `DRAFT` or `BLOCKED`.
 - The eight-case local Promptfoo qualifier is `SUPPORTED_FOR_DEVELOPMENT` with zero external calls; this verifies packet blindness and lifecycle ownership without supporting model reliability claims.
 - The first real-canary preflight stopped safely with both API-key variables and the campaign reservation absent. Two authenticated writable homes exist (`/home/renanfranca/.codex` and `/mnt/c/Users/renan/.codex`), so choosing one is an identity decision rather than a mechanical default.
+- After explicit home selection, the repeated preflight passed at `0eb5395`; the unique reservation was consumed by one attempt, which ended in `PROVIDER_ERROR` without a model identity or candidate. The public report therefore records `INSUFFICIENT`, zero retries, and all candidate-dependent checks as `NOT_OBSERVED`.
+- The design review first found missing output-preflight behavior and correctly returned to behavior TDD before refactoring. Its subsequent behavior-preserving pass made Author outcomes a discriminated union and consolidated canonicalization without changing fingerprints or historical qualification results.
+- Normalizing provider failures to a safe code protects public artifacts but leaves the canary root cause unknown; future instrument evolution needs an explicitly designed sanitized diagnostic contract rather than retrospective inspection or retry.
+- Final validation passed after one formatting-only restart: audit reported zero vulnerabilities; 85 tests passed; provider-free verification reported zero imports; archaeological and Author qualifiers remained supported; Codex OTEL and Promptfoo tracing remained `EXACT_SUPPORTED`; loopback tracing integration passed; and `git diff --check` was clean.
