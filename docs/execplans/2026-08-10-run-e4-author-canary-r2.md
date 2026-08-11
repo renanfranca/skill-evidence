@@ -6,6 +6,8 @@ Safety boundary: this work is authorized, defensive maintenance in this reposito
 
 The intended executor is `gpt-5.6-terra` with `xhigh` reasoning. The baseline is `feat/e4-evaluation-author-v0` at `2089a3d54970d09e790d514e468168e21cc15304`. The normative THEORY was read in full at commit `572e963ea6f1207ab53c533592cb70a8239e221c` on 2026-08-10. Official OpenAI model guidance was checked on 2026-08-10 and identifies `gpt-5.6-terra` as the GPT-5.6 balance of intelligence and cost and `xhigh` as a supported reasoning effort.
 
+Closure status: `CLOSED — INSUFFICIENT`. The sole R2 invocation ended in `PROVIDER_ERROR` before producing a candidate or observed model. Milestone 4 experimental success was not satisfied, no retry is authorized, and E5 remains unauthorized.
+
 ## Purpose / Big Picture
 
 Run one fresh E4 development canary after the original campaign closed `INSUFFICIENT` on `PROVIDER_ERROR`. This collection uses a novel skill fixture, campaign, reservation, snapshot, and packet so it cannot overwrite or retrospectively adapt the first result. A successful candidate may satisfy the missing E4 development acceptance checks and support planning E5; it does not qualify the Author or erase the prior provider failure.
@@ -106,11 +108,11 @@ Acceptance requires every deterministic command green, no second provider call, 
 - [x] Complete bounded read-only diagnosis without a model invocation.
 - [x] Create the R2 ExecPlan and index entry.
 - [x] Prepare the novel R2 fixture and hidden oracle.
-- [ ] Validate and commit the clean R2 preparation.
-- [ ] Pass every mandatory preflight from the exact preparation commit.
-- [ ] Reserve and execute exactly one R2 invocation.
-- [ ] Publish and commit the sanitized R2 report.
-- [ ] Reconcile E4 status and complete deterministic final validation.
+- [x] Validate and commit the clean R2 preparation at `a11382265196cd67fece29934d716f1a2f36a839`.
+- [x] Pass every mandatory preflight from the exact preparation commit.
+- [x] Reserve and execute exactly one R2 invocation. It ended in terminal `PROVIDER_ERROR` before producing a candidate.
+- [x] Publish and commit the sanitized R2 report as `INSUFFICIENT` with one attempt and zero retries.
+- [x] Reconcile E4 status and complete deterministic final validation without another real call.
 
 ## Decisions
 
@@ -126,12 +128,19 @@ Acceptance requires every deterministic command green, no second provider call, 
 - Decision: do not change product code or add artificial TDD work before R2.
   Rationale: bounded diagnostics found no evidenced product defect; speculative changes would confound the new collection. Existing behavior tests and provider-free checkpoints validate the unchanged instrument.
   Date/Author: 2026-08-10 / implementation agent.
+- Decision: classify R2 as `INSUFFICIENT` and leave all candidate-dependent checks `NOT_OBSERVED`.
+  Rationale: the sole invocation ended in `PROVIDER_ERROR` with no Blueprint output or observed model. Authentication and connectivity preflight success cannot manufacture the missing candidate evidence or establish a root cause.
+  Date/Author: 2026-08-10 / implementation agent.
+- Decision: keep E5 unauthorized after R2.
+  Rationale: two provider failures provide no observation of Author semantics, so the missing E4 acceptance evidence remains missing even though the offline product core is green.
+  Date/Author: 2026-08-10 / implementation agent.
 
 ## Risks and Mitigations
 
 - Risk: R2 becomes an unauthorized retry of R1. Mitigation: immutable R1 artifacts and distinct fixture, campaign, reservation, output, fingerprints, and report.
 - Risk: a positive R2 result hides the prior failure. Mitigation: report both campaigns separately and retain R1 as `INSUFFICIENT` evidence.
 - Risk: unknown account-specific Terra access causes another provider error. Mitigation: verify documented model validity, ChatGPT auth and connectivity before cost, retain availability as explicit uncertainty, and classify failure terminally without retry.
+- Risk realized: R2 also ended in `PROVIDER_ERROR`. Mitigation applied: preserve the exclusive reservation, make no retry, publish only sanitized bounded evidence, and keep E4 acceptance unsatisfied.
 - Risk: diagnostic output leaks credentials or local state. Mitigation: inspect only redacted/bounded statuses, never read `auth.json`, and commit no doctor output or raw provider diagnostics.
 - Risk: the hidden oracle leaks into the Author packet. Mitigation: snapshot only the nested `skill/` directory and inspect its manifest/fingerprint before reservation.
 - Risk: post-result adaptation biases classification. Mitigation: commit plan, fixture, oracle, and checks before reservation; after invocation only mechanical classification and sanitization are allowed.
@@ -146,7 +155,7 @@ Validation progresses from formatting and the existing E4 behavior suite to the 
 - `docs/execplans/2026-08-10-run-e4-author-canary-r2.md` is the canonical R2 authorization, progress record, and handoff.
 - `docs/execplans/README.md` indexes R2 separately from the closed R1-backed E4 plan.
 - `docs/execplans/2026-08-10-build-evaluation-author-v0.md` remains the canonical R1 history and changes only after R2 if its statement about E4 acceptance or E5 support changes.
-- `docs/experiments/e4-evaluation-author-canary-r2-20260810.json` will be the sanitized R2 result and is created only after the invocation terminates.
+- `docs/experiments/e4-evaluation-author-canary-r2-20260810.json` is the canonical sanitized R2 result and was created only after the invocation terminated.
 - `AGENTS.md`, RFC 0001, ADR 0002, package configuration, CI, product code, deterministic fixtures, and historical reports remain accurate because R2 changes no software contract or normal automation.
 
 ## Rollout and Recovery
@@ -158,3 +167,6 @@ There is no deployment. Before reservation, the preparation commit can be revert
 - A generic sanitized `PROVIDER_ERROR` protects secrets but cannot establish root cause after the fact.
 - Codex doctor can validate authentication mode, configuration parsing, runtime health, and connectivity without a model-backed Author invocation, but it does not prove account-specific model availability or candidate production.
 - A new development collection must preserve the failed campaign and use independent identities so that it adds evidence instead of rewriting history.
+- R2 passed authentication, configuration, runtime, websocket, reachability, snapshot-blindness, and fingerprint preflights, yet its sole invocation failed before a model or candidate was observed. The evidence narrows neither account-specific model availability nor provider integration as the cause; attributing either would exceed observation.
+- Two independent development canaries now show terminal provider failure under the same Author condition. This is evidence against declaring the E4 instrument operationally demonstrated, not evidence about the Author's semantic quality.
+- Final deterministic validation passed: npm audit reported zero vulnerabilities; 85 tests passed; provider-free verification reported zero imports; archaeological and Author qualifiers remained supported; Codex OTEL and Promptfoo tracing remained `EXACT_SUPPORTED`; loopback tracing integration passed; formatting and `git diff --check` were clean. No second Author invocation occurred.
