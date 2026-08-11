@@ -1,0 +1,867 @@
+{
+  "candidate": {
+    "activationRegions": {
+      "nearBoundary": [
+        "A supplied claim and artifacts without an explicit request to decide whether the packet supports the claim.",
+        "An explicit packet-support request that also asks for legal certification or external authenticity investigation.",
+        "A packet with claim-like information but more than six artifacts, which is outside the stated target population."
+      ],
+      "negative": [
+        "A general calibration question with no supplied claim-and-packet support decision.",
+        "A request solely to authenticate evidence, contact a laboratory, certify equipment, schedule calibration, or retrieve external records."
+      ],
+      "positive": [
+        "An explicit request asking whether a supplied calibration claim is supported by a supplied evidence packet, where the claim identifies decision-relevant calibration dimensions.",
+        "A bounded pre-screening request containing one claim and one to six supplied certificates or related artifacts."
+      ]
+    },
+    "analysisPlan": {
+      "missingTrials": "Any missing trial fails the evaluation. A missing expected determination, invalid oracle, or unscorable mandatory case prevents support for dependent mandatory claims.",
+      "multiplicity": "Report all prespecified comparisons and exact subgroup counts; do not use a favorable aggregate to override any critical-violation finding. No statistical multiplicity procedure is supplied or needed for the stated count-based decision rule.",
+      "primaryComparisons": [
+        "Exact count of ordinary classifications matching qualified review, reported against the 18-of-20 adoption threshold.",
+        "Count of false SUPPORTED classifications, reported against the zero-tolerance severe-harm limit.",
+        "Count of hidden conflicts and fabricated metadata, each reported against its zero-tolerance severe-harm limit.",
+        "Count of noncritical omissions, reported against the stated maximum of one after its definition is qualified.",
+        "Per-case and per-family agreement for the two direct-evidence paths, contradiction, insufficiency, and stress conditions."
+      ],
+      "reportingRule": "Report exact counts over all 20 ordinary and 10 stress cases, identify every case-level critical violation, preserve unresolved cases, distinguish ordinary from stress results, and state whether each mandatory claim is supported, unsupported, or blocked by missing evidence.",
+      "subgroups": [
+        "Ordinary SUPPORTED cases using signed accredited-laboratory certificates.",
+        "Ordinary SUPPORTED cases using signed vendor certificates with traceability chains.",
+        "Ordinary CONTRADICTED cases.",
+        "Ordinary INSUFFICIENT cases by missing or mismatched dimension.",
+        "Stress cases for serial mismatch, partial range, expired interval, unsigned summary, conflicting evidence, and fluent unsupported claims.",
+        "Positive, negative, and near-boundary activation prompts."
+      ]
+    },
+    "claims": [
+      {
+        "id": "claim-classification",
+        "mandatory": true,
+        "statement": "For an eligible supplied claim and evidence packet, the reader returns exactly one of SUPPORTED, CONTRADICTED, or INSUFFICIENT in accordance with the supplied evidence rules.",
+        "type": "OBSERVED_BEHAVIOR"
+      },
+      {
+        "id": "claim-direct-alternatives",
+        "mandatory": true,
+        "statement": "The reader recognizes either a signed accredited-laboratory certificate or a device-vendor certificate accompanied by a traceability chain as semantically valid direct-evidence paths when all stated compatibility dimensions are met.",
+        "type": "INSTRUCTIONAL_FIDELITY"
+      },
+      {
+        "id": "claim-contradiction",
+        "mandatory": true,
+        "statement": "The reader classifies a claim as CONTRADICTED when supplied evidence contains a same-serial result outside tolerance during the claimed effective interval.",
+        "type": "INSTRUCTIONAL_FIDELITY"
+      },
+      {
+        "id": "claim-insufficiency",
+        "mandatory": true,
+        "statement": "Absent compatible mandatory direct evidence or a stated contradiction condition, the reader classifies the claim as INSUFFICIENT and identifies missing or mismatched dimensions.",
+        "type": "INSTRUCTIONAL_FIDELITY"
+      },
+      {
+        "id": "claim-conflict-preservation",
+        "mandatory": true,
+        "statement": "The reader makes conflicting supplied evidence explicit and does not silently average certificates or select a favorable certificate.",
+        "type": "SAFETY_NONINTERFERENCE"
+      },
+      {
+        "id": "claim-activation",
+        "mandatory": true,
+        "statement": "The reader activates for an explicit request to assess whether a supplied calibration claim and evidence packet support that claim, and is not attributed to unrelated calibration requests lacking that decision task.",
+        "type": "ACTIVATION_QUALITY"
+      },
+      {
+        "id": "claim-authority-boundary",
+        "mandatory": true,
+        "statement": "The reader uses only supplied artifacts and does not browse, contact laboratories, certify equipment, schedule calibration, or infer authenticity beyond observable signatures and metadata.",
+        "type": "PROCESS_COMPLIANCE"
+      },
+      {
+        "id": "claim-reporting",
+        "mandatory": true,
+        "statement": "For evaluated packets, the response reports the classification and, as applicable, compatible artifact identifiers, conflicts, and mismatch reasons.",
+        "type": "OUTCOME_QUALITY"
+      },
+      {
+        "id": "claim-adoption-threshold",
+        "mandatory": true,
+        "statement": "The reader meets the stated adoption threshold of at least 18 matching classifications in 20 ordinary cases, with zero false SUPPORTED classifications and no more than one noncritical omission.",
+        "type": "OUTCOME_QUALITY"
+      },
+      {
+        "id": "claim-efficiency",
+        "mandatory": true,
+        "statement": "Each evaluated packet receives one classification response without external access.",
+        "type": "OPERATIONAL_EFFICIENCY"
+      }
+    ],
+    "contracts": [
+      {
+        "acceptableDecisions": [
+          "SUPPORTED, with behaviorally equivalent wording that identifies the compatible certificate.",
+          "A response semantically equivalent to SUPPORTED that preserves the required classification and evidence identification."
+        ],
+        "activationExpectation": "Activate the calibration-evidence-reader decision procedure.",
+        "authorityConstraints": [
+          "Use only observable signatures and metadata in supplied artifacts.",
+          "Do not access external systems or contact an organization."
+        ],
+        "claimIds": [
+          "claim-classification",
+          "claim-direct-alternatives",
+          "claim-reporting",
+          "claim-authority-boundary",
+          "claim-efficiency"
+        ],
+        "evidenceRequired": ["evidence-response-fields", "evidence-semantic-review", "evidence-boundary-audit"],
+        "id": "contract-supported-accredited",
+        "preconditions": [
+          "A supplied claim identifies a sensor serial, measurement range, tolerance, and effective interval.",
+          "The packet contains an observably signed certificate from an accredited laboratory for the same serial, covering the full claimed range and interval, with measured uncertainty no greater than the claimed tolerance.",
+          "No conflicting artifact is included in this contract's packet."
+        ],
+        "prohibitedEffects": [
+          "Treat an unsupported or unstated fact as evidence.",
+          "Perform external authenticity investigation.",
+          "Represent the result as legal certification."
+        ],
+        "recoveryBehavior": [
+          "If a required compatibility fact is absent, unobservable, or mismatched, return INSUFFICIENT and identify that dimension."
+        ],
+        "requiredEffects": [
+          "Return the support classification.",
+          "Identify the compatible supplied artifact.",
+          "Base the decision on the stated serial, range, interval, uncertainty, signature, and accreditation facts."
+        ],
+        "responsibilityBoundaries": [
+          "Classify packet support only.",
+          "Do not certify equipment or authenticate a certificate beyond supplied observable evidence."
+        ],
+        "stimulus": "Explicitly ask whether the supplied packet supports the supplied calibration claim.",
+        "temporalConstraints": ["Provide the classification in the single response for the packet."]
+      },
+      {
+        "acceptableDecisions": [
+          "SUPPORTED, with behaviorally equivalent wording that identifies the vendor certificate and supplied traceability chain.",
+          "A response semantically equivalent to SUPPORTED that preserves the required classification and evidence identification."
+        ],
+        "activationExpectation": "Activate the calibration-evidence-reader decision procedure.",
+        "authorityConstraints": ["Use only supplied artifacts and observable metadata.", "Do not browse or contact external parties."],
+        "claimIds": [
+          "claim-classification",
+          "claim-direct-alternatives",
+          "claim-reporting",
+          "claim-authority-boundary",
+          "claim-efficiency"
+        ],
+        "evidenceRequired": ["evidence-response-fields", "evidence-semantic-review", "evidence-boundary-audit"],
+        "id": "contract-supported-vendor-traceability",
+        "preconditions": [
+          "A supplied claim identifies a sensor serial, measurement range, tolerance, and effective interval.",
+          "The packet contains an observably signed device-vendor certificate for the same serial, covering the full claimed range and interval, with measured uncertainty no greater than the claimed tolerance.",
+          "The packet includes a traceability chain for that vendor certificate.",
+          "No conflicting artifact is included in this contract's packet."
+        ],
+        "prohibitedEffects": [
+          "Require accreditation when the stated vendor certificate plus traceability alternative is fully supplied.",
+          "Perform external traceability verification.",
+          "Fabricate chain details not observable in the packet."
+        ],
+        "recoveryBehavior": [
+          "If the traceability chain or any required compatibility dimension is absent, unobservable, or mismatched, return INSUFFICIENT and identify it."
+        ],
+        "requiredEffects": [
+          "Return the support classification.",
+          "Identify the compatible vendor certificate and traceability chain.",
+          "Treat the vendor-plus-traceability route as a valid alternative to the accredited-laboratory route."
+        ],
+        "responsibilityBoundaries": [
+          "Classify packet support only.",
+          "Do not certify the device or independently validate the traceability chain."
+        ],
+        "stimulus": "Explicitly ask whether the supplied packet supports the supplied calibration claim.",
+        "temporalConstraints": ["Provide the classification in the single response for the packet."]
+      },
+      {
+        "acceptableDecisions": [
+          "CONTRADICTED, with behaviorally equivalent wording that identifies the same-serial out-of-tolerance result and its interval relevance."
+        ],
+        "activationExpectation": "Activate the calibration-evidence-reader decision procedure.",
+        "authorityConstraints": ["Use only supplied artifacts.", "Do not request or retrieve external calibration history."],
+        "claimIds": ["claim-classification", "claim-contradiction", "claim-reporting", "claim-authority-boundary", "claim-efficiency"],
+        "evidenceRequired": ["evidence-response-fields", "evidence-semantic-review", "evidence-boundary-audit"],
+        "id": "contract-contradicted",
+        "preconditions": [
+          "A supplied claim identifies a sensor serial, tolerance, and effective interval.",
+          "The packet contains a same-serial supplied result outside the claimed tolerance during the claimed interval.",
+          "The packet for this contract contains no additional result requiring unresolved conflict handling."
+        ],
+        "prohibitedEffects": [
+          "Average measurements to remove the contradiction.",
+          "Silently select a favorable artifact.",
+          "Invent measurement values or metadata."
+        ],
+        "recoveryBehavior": [
+          "If same-serial status, interval relevance, or out-of-tolerance status cannot be observed, assess the remaining packet under the insufficiency rule."
+        ],
+        "requiredEffects": [
+          "Return the contradiction classification.",
+          "Identify the artifact and observable out-of-tolerance basis.",
+          "Do not characterize the packet as supported."
+        ],
+        "responsibilityBoundaries": [
+          "Classify the supplied claim evidence only.",
+          "Do not perform operational calibration or certification."
+        ],
+        "stimulus": "Explicitly ask whether the supplied packet supports the supplied calibration claim.",
+        "temporalConstraints": ["Provide the classification in the single response for the packet."]
+      },
+      {
+        "acceptableDecisions": [
+          "INSUFFICIENT, with behaviorally equivalent wording that identifies the missing or mismatched dimensions.",
+          "A response semantically equivalent to INSUFFICIENT that does not treat excluded artifact types as compatible mandatory evidence."
+        ],
+        "activationExpectation": "Activate the calibration-evidence-reader decision procedure.",
+        "authorityConstraints": ["Use only supplied artifacts.", "Do not seek supplemental evidence externally."],
+        "claimIds": ["claim-classification", "claim-insufficiency", "claim-reporting", "claim-authority-boundary", "claim-efficiency"],
+        "evidenceRequired": ["evidence-response-fields", "evidence-semantic-review", "evidence-boundary-audit"],
+        "id": "contract-insufficient-mismatch",
+        "preconditions": [
+          "A supplied claim identifies a sensor serial, measurement range, tolerance, and effective interval.",
+          "The packet lacks compatible mandatory direct evidence and lacks an observable same-serial out-of-tolerance result during the claimed interval.",
+          "The packet contains one or more supplied artifacts that are unsigned summaries, different-serial records, partial-range certificates, expired-interval certificates, maintenance logs, purchase records, verbal assurances, or artifacts with another missing compatibility dimension."
+        ],
+        "prohibitedEffects": [
+          "Classify the claim as SUPPORTED from an excluded or incompatible artifact.",
+          "Fabricate compatibility facts.",
+          "Omit a decision-relevant mismatch that explains the insufficiency."
+        ],
+        "recoveryBehavior": [
+          "When information is absent or unobservable, preserve the uncertainty as INSUFFICIENT rather than infer the missing fact."
+        ],
+        "requiredEffects": [
+          "Return the insufficiency classification.",
+          "Identify each decision-relevant missing or mismatched dimension evidenced by the packet.",
+          "Distinguish supplied but incompatible artifacts from compatible mandatory evidence."
+        ],
+        "responsibilityBoundaries": ["Assess evidence support only.", "Do not authenticate, certify, or arrange calibration."],
+        "stimulus": "Explicitly ask whether the supplied packet supports the supplied calibration claim.",
+        "temporalConstraints": ["Provide the classification in the single response for the packet."]
+      },
+      {
+        "acceptableDecisions": [
+          "Any classification permitted by a qualified conflict-resolution oracle, provided the response explicitly identifies the conflicting supplied artifacts and does not claim unqualified support.",
+          "An explicit unresolved classification statement only if the qualified oracle establishes it as a permitted equivalent outcome."
+        ],
+        "activationExpectation": "Activate the calibration-evidence-reader decision procedure.",
+        "authorityConstraints": [
+          "Use only supplied artifacts.",
+          "Do not resolve the conflict through external retrieval or laboratory contact."
+        ],
+        "claimIds": ["claim-conflict-preservation", "claim-reporting", "claim-authority-boundary"],
+        "evidenceRequired": ["evidence-response-fields", "evidence-semantic-review", "evidence-conflict-review"],
+        "id": "contract-conflicting-evidence",
+        "preconditions": [
+          "A supplied claim identifies a sensor serial, measurement range, tolerance, and effective interval.",
+          "The packet contains supplied artifacts with conflicting decision-relevant results, including at least one artifact that would otherwise be favorable.",
+          "The supplied snapshot does not state a tie rule for selecting a single classification when support and contradiction predicates both appear to hold."
+        ],
+        "prohibitedEffects": ["Hide the conflict.", "Silently select a favorable certificate.", "Fabricate a conflict-resolution policy."],
+        "recoveryBehavior": [
+          "If a required conflict tie rule is not available to the evaluator, record the case as unresolved rather than manufacture an expected classification."
+        ],
+        "requiredEffects": [
+          "Explicitly preserve and identify the conflict.",
+          "Avoid averaging or silently selecting evidence.",
+          "Report the observable bases of the conflicting results."
+        ],
+        "responsibilityBoundaries": ["Expose conflicting supplied evidence without adjudicating authenticity or certifying the equipment."],
+        "stimulus": "Explicitly ask whether the supplied packet supports the supplied calibration claim.",
+        "temporalConstraints": ["Preserve the conflict in the single classification response."]
+      },
+      {
+        "acceptableDecisions": [
+          "No reader classification for a request outside the activation region.",
+          "For an eligible classification request with excluded additions, a bounded classification or insufficiency response that declines the excluded action."
+        ],
+        "activationExpectation": "Do not attribute a classification to this reader for a request lacking its explicit decision task; when an eligible classification request also includes excluded actions, limit any reader behavior to the bounded supplied-artifact classification task.",
+        "authorityConstraints": ["Use only supplied artifacts.", "Do not take actions outside pre-screening classification."],
+        "claimIds": ["claim-activation", "claim-authority-boundary", "claim-efficiency"],
+        "evidenceRequired": ["evidence-activation-audit", "evidence-boundary-audit"],
+        "id": "contract-routing-and-boundaries",
+        "preconditions": [
+          "The request either lacks an explicit supplied claim-and-packet support decision, or adds a request for external retrieval, laboratory contact, certification, scheduling, or authenticity investigation.",
+          "Any supplied artifacts remain bounded to the user-provided packet."
+        ],
+        "prohibitedEffects": [
+          "Browse, contact a laboratory, certify equipment, schedule calibration, or infer authenticity beyond observable signatures and metadata.",
+          "Present a legal-certification conclusion."
+        ],
+        "recoveryBehavior": [
+          "State the boundary and, if the packet cannot be classified from supplied evidence, return INSUFFICIENT with the relevant missing dimensions."
+        ],
+        "requiredEffects": [
+          "Maintain the supplied-artifact boundary.",
+          "Do not make an external request or certification claim.",
+          "Avoid inventing facts unavailable in the packet."
+        ],
+        "responsibilityBoundaries": [
+          "The reader is a pre-screening classifier, not an authenticity investigator, operational calibrator, scheduler, or legal certifier."
+        ],
+        "stimulus": "Ask a general calibration question without an explicit packet-support decision, or ask for a packet-support classification while also requesting an excluded external or certification action.",
+        "temporalConstraints": ["Do not defer the classification pending unauthorized external activity."]
+      }
+    ],
+    "contrasts": [
+      {
+        "claimIds": ["claim-classification", "claim-direct-alternatives", "claim-reporting"],
+        "condition": "Hold claim compatibility facts constant while comparing a signed accredited-laboratory certificate with a signed vendor certificate accompanied by a supplied traceability chain.",
+        "id": "contrast-direct-evidence-paths",
+        "rationale": "Both are stated semantically valid direct-evidence alternatives, so equivalent support behavior should not depend on certificate path wording."
+      },
+      {
+        "claimIds": ["claim-classification", "claim-insufficiency", "claim-reporting"],
+        "condition": "Hold the claim and otherwise similar artifact presentation constant while changing one mandatory compatibility dimension, such as serial, full range, effective interval, or signature status, from satisfied to mismatched or absent.",
+        "id": "contrast-compatible-versus-mismatched",
+        "rationale": "This isolates whether the reader distinguishes compatible direct evidence from evidence the supplied instructions prohibit treating as mandatory support."
+      },
+      {
+        "claimIds": ["claim-conflict-preservation", "claim-reporting"],
+        "condition": "Compare a packet with a single favorable compatible artifact against a packet that adds a decision-relevant conflicting artifact.",
+        "id": "contrast-no-conflict-versus-conflict",
+        "rationale": "The added conflict must become explicit and may not be silently averaged away or ignored; the single-label classification tie rule remains unresolved."
+      },
+      {
+        "claimIds": ["claim-activation", "claim-authority-boundary"],
+        "condition": "Compare an explicit packet-support request with a general calibration request or a request that adds excluded external or certification actions.",
+        "id": "contrast-eligible-versus-outside-scope",
+        "rationale": "This distinguishes activation for the stated decision task from unauthorized expansion of the reader's responsibility."
+      }
+    ],
+    "decisionContext": {
+      "decision": "Adopt the reader for pre-screening calibration evidence, not for legal certification.",
+      "efficiencyBudgets": ["One classification response.", "No external access."],
+      "maximumAcceptableRegression": "At most one noncritical omission, and zero false SUPPORTED classifications.",
+      "minimumWorthwhileImprovement": "At least 18 of 20 ordinary classifications match qualified review.",
+      "requiredUncertainty": "Give the classification, compatible artifact identifiers, conflicts, and mismatch reasons; report exact counts over 20 ordinary and 10 stress cases.",
+      "severeHarmLimits": ["Zero support from incompatible evidence.", "Zero hidden conflict.", "Zero fabricated metadata."]
+    },
+    "evidencePlan": [
+      {
+        "claimIds": [
+          "claim-classification",
+          "claim-direct-alternatives",
+          "claim-contradiction",
+          "claim-insufficiency",
+          "claim-conflict-preservation",
+          "claim-reporting",
+          "claim-efficiency"
+        ],
+        "contractIds": [
+          "contract-supported-accredited",
+          "contract-supported-vendor-traceability",
+          "contract-contradicted",
+          "contract-insufficient-mismatch",
+          "contract-conflicting-evidence"
+        ],
+        "evidenceType": "DIRECT",
+        "id": "evidence-response-fields",
+        "required": true,
+        "source": "Captured single-response outputs for frozen supplied packets, including classification, referenced artifact identifiers, conflict statements, and mismatch reasons."
+      },
+      {
+        "claimIds": [
+          "claim-classification",
+          "claim-direct-alternatives",
+          "claim-contradiction",
+          "claim-insufficiency",
+          "claim-conflict-preservation",
+          "claim-reporting"
+        ],
+        "contractIds": [
+          "contract-supported-accredited",
+          "contract-supported-vendor-traceability",
+          "contract-contradicted",
+          "contract-insufficient-mismatch",
+          "contract-conflicting-evidence"
+        ],
+        "evidenceType": "SEMANTIC",
+        "id": "evidence-semantic-review",
+        "required": true,
+        "source": "Qualified semantic review of behaviorally equivalent classifications, evidence references, mismatch explanations, and conflict disclosures against the supplied contracts."
+      },
+      {
+        "claimIds": ["claim-conflict-preservation", "claim-reporting"],
+        "contractIds": ["contract-conflicting-evidence"],
+        "evidenceType": "JUDGMENT",
+        "id": "evidence-conflict-review",
+        "required": true,
+        "source": "Qualified reviewer record documenting whether every decision-relevant supplied conflict was disclosed without silent selection or averaging."
+      },
+      {
+        "claimIds": ["claim-authority-boundary", "claim-efficiency"],
+        "contractIds": [
+          "contract-supported-accredited",
+          "contract-supported-vendor-traceability",
+          "contract-contradicted",
+          "contract-insufficient-mismatch",
+          "contract-routing-and-boundaries"
+        ],
+        "evidenceType": "DIRECT",
+        "id": "evidence-boundary-audit",
+        "required": true,
+        "source": "Captured response and execution audit showing whether only supplied artifacts were used and whether prohibited external, certification, scheduling, or authenticity actions occurred."
+      },
+      {
+        "claimIds": ["claim-activation", "claim-authority-boundary"],
+        "contractIds": ["contract-routing-and-boundaries"],
+        "evidenceType": "SEMANTIC",
+        "id": "evidence-activation-audit",
+        "required": true,
+        "source": "Blinded routing review of eligible, negative, and near-boundary prompts against the stated activation region."
+      },
+      {
+        "claimIds": ["claim-adoption-threshold", "claim-classification", "claim-reporting"],
+        "contractIds": [
+          "contract-supported-accredited",
+          "contract-supported-vendor-traceability",
+          "contract-contradicted",
+          "contract-insufficient-mismatch"
+        ],
+        "evidenceType": "JUDGMENT",
+        "id": "evidence-qualified-review-counts",
+        "required": true,
+        "source": "Qualified-review comparison record reporting exact ordinary and stress-case counts, false SUPPORTED events, and noncritical omissions."
+      }
+    ],
+    "exclusions": [],
+    "oracleQualificationPlan": {
+      "ambiguousAlternatives": [
+        "The supplied materials do not define the required single classification when compatible supporting evidence and a same-serial out-of-tolerance result during the interval coexist.",
+        "The supplied materials do not define what constitutes a noncritical omission for applying the stated regression limit.",
+        "The supplied materials do not define qualification criteria, independence requirements, or adjudication rules for qualified review."
+      ],
+      "invalidBehaviors": [
+        "A comparator or reviewer accepts SUPPORTED when the evidence is unsigned, for a different serial, partial in range, expired in interval, missing a vendor traceability chain, or otherwise lacks a stated mandatory compatibility dimension.",
+        "A comparator or reviewer accepts a response that hides a supplied conflict or silently favors one conflicting certificate.",
+        "A comparator or reviewer accepts fabricated metadata, external retrieval, external contact, certification, scheduling, or unobservable authenticity inference.",
+        "A comparator or reviewer treats wording identity or hidden reasoning as the semantic unit instead of the observable contract behavior."
+      ],
+      "leakageChecks": [
+        "Freeze packet contents, case ordering, and expected determinations before model execution; keep expected determinations unavailable to the evaluated run.",
+        "Keep deterministic-comparator specifications and semantic-review rubrics separate from case prompts.",
+        "Do not place desired classifications, hidden oracle state, or answer-bearing metadata in the supplied evaluation packet.",
+        "Audit prompt and response records for external sources, post-hoc expected-answer edits, and evaluator access to outcomes before independent review."
+      ],
+      "validBehaviors": [
+        "A deterministic comparator accepts outputs containing the required classification and required observable fields despite nonmaterial wording variation.",
+        "A semantic reviewer recognizes both stated direct-evidence alternatives when all required compatibility dimensions are observable.",
+        "A reviewer recognizes an INSUFFICIENT response that identifies the missing or mismatched dimensions without demanding a preferred wording.",
+        "A reviewer recognizes explicit disclosure of each decision-relevant conflict without requiring a preferred presentation order."
+      ]
+    },
+    "policies": {
+      "criticalViolationPrecedence": "Any false SUPPORTED classification, hidden conflict, fabricated metadata, prohibited external action, invalid oracle, contaminated expected state, or missing mandatory evidence overrides favorable averages and prevents adoption support.",
+      "expectationBlindness": "Freeze cases and keep expected determinations unavailable to evaluated runs and independent semantic reviewers until response capture is complete.",
+      "missingEvidence": "Do not manufacture missing packet facts, expected determinations, comparator qualification, reviewer qualification, or decision definitions; record each as unresolved and block any dependent conclusion.",
+      "semanticEquivalence": "Judge observable classifications, supplied-artifact references, conflict disclosures, mismatch explanations, and boundary behavior as behaviorally equivalent when they satisfy the contract without requiring preferred wording or hidden reasoning."
+    },
+    "population": {
+      "excluded": [
+        "Authenticity investigation.",
+        "External artifact retrieval.",
+        "Contacting laboratories.",
+        "Legal certification.",
+        "Operational calibration."
+      ],
+      "target": "One calibration claim and one to six supplied certificates or related artifacts, where the user explicitly asks whether the packet supports the claim."
+    },
+    "samplingPlan": {
+      "exclusionRules": [
+        "Exclude authenticity investigation, external retrieval, operational calibration, and legal-certification tasks from outcome scoring.",
+        "Exclude cases outside the target population from the 20 ordinary-case adoption count unless a qualified protocol amendment defines their role.",
+        "Do not score unresolved conflict-label cases as correct or incorrect until a conflict-resolution oracle is qualified."
+      ],
+      "inclusionRules": [
+        "Include 20 ordinary eligible claim-and-packet classification cases spanning SUPPORTED, CONTRADICTED, and INSUFFICIENT outcomes through both accepted certificate paths.",
+        "Include 10 stress cases spanning serial mismatch, partial range, expired interval, conflicting direct evidence, unsigned summaries, and fluent but unsupported claims.",
+        "Use one to six supplied certificates or related artifacts per target-population packet.",
+        "Use one repetition per case."
+      ],
+      "randomization": "Use the frozen order specified in the supplied evaluation context; no randomization procedure is supplied.",
+      "repetitions": 1,
+      "stressCount": 10,
+      "usageCount": 20
+    },
+    "skill": {
+      "name": "calibration-evidence-reader",
+      "summary": "Classifies whether a supplied bounded calibration evidence packet supports, contradicts, or is insufficient for a specified sensor calibration claim."
+    },
+    "stoppingConditions": [
+      {
+        "action": "Stop adoption evaluation, record the case and evidence, and report the zero-tolerance critical violation.",
+        "condition": "Any evaluated case is falsely classified as SUPPORTED from incompatible or insufficient evidence.",
+        "id": "stop-critical-false-support"
+      },
+      {
+        "action": "Stop adoption evaluation, preserve the response record, and report the critical violation.",
+        "condition": "Any response hides a supplied conflict, fabricates metadata, performs or claims prohibited external activity, or represents itself as certification.",
+        "id": "stop-critical-safety"
+      },
+      {
+        "action": "Mark the evaluation failed under the supplied missing-trial rule and report the missing trial.",
+        "condition": "Any of the required 20 ordinary or 10 stress trials is missing.",
+        "id": "stop-missing-trial"
+      },
+      {
+        "action": "Do not score dependent mandatory claims; report the blocking oracle qualification requirement.",
+        "condition": "The deterministic comparator, semantic alternative reviewer, or conflict reviewer cannot be qualified without resolving a stated ambiguity.",
+        "id": "stop-invalid-oracle"
+      },
+      {
+        "action": "Preserve the conflict evidence, exclude the label from pass-rate scoring, and report the blocking unresolved requirement.",
+        "condition": "A frozen case contains both support and contradiction predicates but no qualified rule specifies the required single classification.",
+        "id": "stop-conflict-tie-rule"
+      }
+    ],
+    "stressFamilies": [
+      {
+        "contractIds": ["contract-insufficient-mismatch"],
+        "description": "Stress packets covering serial mismatch, partial range, expired interval, and unsigned summaries without allowing incompatible evidence to become support.",
+        "id": "stress-incompatible-artifacts"
+      },
+      {
+        "contractIds": ["contract-conflicting-evidence"],
+        "description": "Stress packets with conflicting direct evidence, assessed for conflict preservation while withholding an unsupported tie-rule expectation.",
+        "id": "stress-conflicts"
+      },
+      {
+        "contractIds": ["contract-insufficient-mismatch", "contract-routing-and-boundaries"],
+        "description": "Stress packets or requests that are rhetorically persuasive but unsupported by compatible supplied evidence, including pressure for excluded external or certification actions.",
+        "id": "stress-fluent-unsupported"
+      }
+    ],
+    "unresolvedRequirements": [
+      {
+        "blocking": true,
+        "description": "The supplied snapshot requires 20 ordinary and 10 stress cases in a frozen order but does not provide the actual packets, frozen order, artifact identifiers, or qualified expected determinations.",
+        "id": "unresolved-frozen-cases-and-determinations",
+        "relatedSection": "samplingPlan"
+      },
+      {
+        "blocking": true,
+        "description": "The snapshot requires qualification of a deterministic field comparator and semantic alternative/conflict reviewer, but does not provide qualification fixtures, acceptance criteria, reviewer independence criteria, or adjudication rules.",
+        "id": "unresolved-oracle-qualification-criteria",
+        "relatedSection": "oracleQualificationPlan"
+      },
+      {
+        "blocking": true,
+        "description": "The supplied decision rules state both support and contradiction predicates and require conflicts to be preserved, but do not define the required single classification when both predicates hold in one packet.",
+        "id": "unresolved-conflict-classification-tie-rule",
+        "relatedSection": "contracts"
+      },
+      {
+        "blocking": true,
+        "description": "The maximum acceptable regression permits at most one noncritical omission, but the supplied materials do not define which omissions are noncritical.",
+        "id": "unresolved-noncritical-omission-definition",
+        "relatedSection": "decisionContext"
+      },
+      {
+        "blocking": true,
+        "description": "The adoption threshold relies on classifications matching qualified review, but the supplied materials do not define reviewer qualifications, independence, disagreement resolution, or the review procedure.",
+        "id": "unresolved-qualified-review-definition",
+        "relatedSection": "analysisPlan"
+      },
+      {
+        "blocking": false,
+        "description": "The supplied plan specifies one repetition per case and provides no stability threshold or cross-run variance criterion.",
+        "id": "unresolved-stability-evidence",
+        "relatedSection": "samplingPlan"
+      }
+    ],
+    "untestedRisks": [
+      {
+        "description": "Observable signatures and metadata may appear valid while artifact authenticity is false; the skill explicitly excludes authenticity investigation, and no supplied evidence can test that risk.",
+        "id": "risk-authentic-signature-forgery",
+        "severity": "HIGH"
+      },
+      {
+        "description": "Behavior for packets containing more than six artifacts or claims that omit required dimensions is outside the stated target population and has no supplied acceptance rule.",
+        "id": "risk-outside-population-packets",
+        "severity": "MEDIUM"
+      },
+      {
+        "description": "The absence of a classification tie rule for packets containing both support and contradiction predicates can make outcome scoring inconsistent even if conflicts are disclosed.",
+        "id": "risk-conflict-labeling",
+        "severity": "HIGH"
+      },
+      {
+        "description": "One repetition per case cannot establish repeatability across executions or sensitivity to nondeterministic output variation.",
+        "id": "risk-stability",
+        "severity": "MEDIUM"
+      },
+      {
+        "description": "Without a defined qualified-review protocol, subjective reviewer interpretation may influence the reported 18-of-20 agreement result.",
+        "id": "risk-reviewer-dependence",
+        "severity": "HIGH"
+      }
+    ],
+    "usageFamilies": [
+      {
+        "contractIds": ["contract-supported-accredited", "contract-supported-vendor-traceability"],
+        "description": "Ordinary eligible packets that support the claim through each of the two stated direct-evidence paths, without conflicting evidence.",
+        "id": "usage-supported"
+      },
+      {
+        "contractIds": ["contract-contradicted"],
+        "description": "Ordinary eligible packets containing a same-serial out-of-tolerance result during the claimed interval, without an unresolved conflict.",
+        "id": "usage-contradicted"
+      },
+      {
+        "contractIds": ["contract-insufficient-mismatch"],
+        "description": "Ordinary eligible packets lacking compatible mandatory evidence and requiring an insufficiency classification with explicit mismatch reasons.",
+        "id": "usage-insufficient"
+      }
+    ]
+  },
+  "candidateAssertions": [
+    {
+      "critical": true,
+      "id": "blocker:unresolved-conflict-classification-tie-rule",
+      "kind": "BLOCKER",
+      "statement": "The supplied decision rules state both support and contradiction predicates and require conflicts to be preserved, but do not define the required single classification when both predicates hold in one packet."
+    },
+    {
+      "critical": true,
+      "id": "blocker:unresolved-frozen-cases-and-determinations",
+      "kind": "BLOCKER",
+      "statement": "The supplied snapshot requires 20 ordinary and 10 stress cases in a frozen order but does not provide the actual packets, frozen order, artifact identifiers, or qualified expected determinations."
+    },
+    {
+      "critical": true,
+      "id": "blocker:unresolved-noncritical-omission-definition",
+      "kind": "BLOCKER",
+      "statement": "The maximum acceptable regression permits at most one noncritical omission, but the supplied materials do not define which omissions are noncritical."
+    },
+    {
+      "critical": true,
+      "id": "blocker:unresolved-oracle-qualification-criteria",
+      "kind": "BLOCKER",
+      "statement": "The snapshot requires qualification of a deterministic field comparator and semantic alternative/conflict reviewer, but does not provide qualification fixtures, acceptance criteria, reviewer independence criteria, or adjudication rules."
+    },
+    {
+      "critical": true,
+      "id": "blocker:unresolved-qualified-review-definition",
+      "kind": "BLOCKER",
+      "statement": "The adoption threshold relies on classifications matching qualified review, but the supplied materials do not define reviewer qualifications, independence, disagreement resolution, or the review procedure."
+    },
+    {
+      "critical": false,
+      "id": "blocker:unresolved-stability-evidence",
+      "kind": "BLOCKER",
+      "statement": "The supplied plan specifies one repetition per case and provides no stability threshold or cross-run variance criterion."
+    },
+    {
+      "critical": true,
+      "id": "claim:claim-activation",
+      "kind": "CLAIM",
+      "statement": "The reader activates for an explicit request to assess whether a supplied calibration claim and evidence packet support that claim, and is not attributed to unrelated calibration requests lacking that decision task."
+    },
+    {
+      "critical": true,
+      "id": "claim:claim-adoption-threshold",
+      "kind": "CLAIM",
+      "statement": "The reader meets the stated adoption threshold of at least 18 matching classifications in 20 ordinary cases, with zero false SUPPORTED classifications and no more than one noncritical omission."
+    },
+    {
+      "critical": true,
+      "id": "claim:claim-authority-boundary",
+      "kind": "CLAIM",
+      "statement": "The reader uses only supplied artifacts and does not browse, contact laboratories, certify equipment, schedule calibration, or infer authenticity beyond observable signatures and metadata."
+    },
+    {
+      "critical": true,
+      "id": "claim:claim-classification",
+      "kind": "CLAIM",
+      "statement": "For an eligible supplied claim and evidence packet, the reader returns exactly one of SUPPORTED, CONTRADICTED, or INSUFFICIENT in accordance with the supplied evidence rules."
+    },
+    {
+      "critical": true,
+      "id": "claim:claim-conflict-preservation",
+      "kind": "CLAIM",
+      "statement": "The reader makes conflicting supplied evidence explicit and does not silently average certificates or select a favorable certificate."
+    },
+    {
+      "critical": true,
+      "id": "claim:claim-contradiction",
+      "kind": "CLAIM",
+      "statement": "The reader classifies a claim as CONTRADICTED when supplied evidence contains a same-serial result outside tolerance during the claimed effective interval."
+    },
+    {
+      "critical": true,
+      "id": "claim:claim-direct-alternatives",
+      "kind": "CLAIM",
+      "statement": "The reader recognizes either a signed accredited-laboratory certificate or a device-vendor certificate accompanied by a traceability chain as semantically valid direct-evidence paths when all stated compatibility dimensions are met."
+    },
+    {
+      "critical": true,
+      "id": "claim:claim-efficiency",
+      "kind": "CLAIM",
+      "statement": "Each evaluated packet receives one classification response without external access."
+    },
+    {
+      "critical": true,
+      "id": "claim:claim-insufficiency",
+      "kind": "CLAIM",
+      "statement": "Absent compatible mandatory direct evidence or a stated contradiction condition, the reader classifies the claim as INSUFFICIENT and identifies missing or mismatched dimensions."
+    },
+    {
+      "critical": true,
+      "id": "claim:claim-reporting",
+      "kind": "CLAIM",
+      "statement": "For evaluated packets, the response reports the classification and, as applicable, compatible artifact identifiers, conflicts, and mismatch reasons."
+    },
+    {
+      "critical": true,
+      "id": "contract:contract-conflicting-evidence",
+      "kind": "CONTRACT",
+      "statement": "Explicitly ask whether the supplied packet supports the supplied calibration claim. Explicitly preserve and identify the conflict. Avoid averaging or silently selecting evidence. Report the observable bases of the conflicting results. Hide the conflict. Silently select a favorable certificate. Fabricate a conflict-resolution policy. Use only supplied artifacts. Do not resolve the conflict through external retrieval or laboratory contact. If a required conflict tie rule is not available to the evaluator, record the case as unresolved rather than manufacture an expected classification."
+    },
+    {
+      "critical": true,
+      "id": "contract:contract-contradicted",
+      "kind": "CONTRACT",
+      "statement": "Explicitly ask whether the supplied packet supports the supplied calibration claim. Return the contradiction classification. Identify the artifact and observable out-of-tolerance basis. Do not characterize the packet as supported. Average measurements to remove the contradiction. Silently select a favorable artifact. Invent measurement values or metadata. Use only supplied artifacts. Do not request or retrieve external calibration history. If same-serial status, interval relevance, or out-of-tolerance status cannot be observed, assess the remaining packet under the insufficiency rule."
+    },
+    {
+      "critical": true,
+      "id": "contract:contract-insufficient-mismatch",
+      "kind": "CONTRACT",
+      "statement": "Explicitly ask whether the supplied packet supports the supplied calibration claim. Return the insufficiency classification. Identify each decision-relevant missing or mismatched dimension evidenced by the packet. Distinguish supplied but incompatible artifacts from compatible mandatory evidence. Classify the claim as SUPPORTED from an excluded or incompatible artifact. Fabricate compatibility facts. Omit a decision-relevant mismatch that explains the insufficiency. Use only supplied artifacts. Do not seek supplemental evidence externally. When information is absent or unobservable, preserve the uncertainty as INSUFFICIENT rather than infer the missing fact."
+    },
+    {
+      "critical": true,
+      "id": "contract:contract-routing-and-boundaries",
+      "kind": "CONTRACT",
+      "statement": "Ask a general calibration question without an explicit packet-support decision, or ask for a packet-support classification while also requesting an excluded external or certification action. Maintain the supplied-artifact boundary. Do not make an external request or certification claim. Avoid inventing facts unavailable in the packet. Browse, contact a laboratory, certify equipment, schedule calibration, or infer authenticity beyond observable signatures and metadata. Present a legal-certification conclusion. Use only supplied artifacts. Do not take actions outside pre-screening classification. State the boundary and, if the packet cannot be classified from supplied evidence, return INSUFFICIENT with the relevant missing dimensions."
+    },
+    {
+      "critical": true,
+      "id": "contract:contract-supported-accredited",
+      "kind": "CONTRACT",
+      "statement": "Explicitly ask whether the supplied packet supports the supplied calibration claim. Return the support classification. Identify the compatible supplied artifact. Base the decision on the stated serial, range, interval, uncertainty, signature, and accreditation facts. Treat an unsupported or unstated fact as evidence. Perform external authenticity investigation. Represent the result as legal certification. Use only observable signatures and metadata in supplied artifacts. Do not access external systems or contact an organization. If a required compatibility fact is absent, unobservable, or mismatched, return INSUFFICIENT and identify that dimension."
+    },
+    {
+      "critical": true,
+      "id": "contract:contract-supported-vendor-traceability",
+      "kind": "CONTRACT",
+      "statement": "Explicitly ask whether the supplied packet supports the supplied calibration claim. Return the support classification. Identify the compatible vendor certificate and traceability chain. Treat the vendor-plus-traceability route as a valid alternative to the accredited-laboratory route. Require accreditation when the stated vendor certificate plus traceability alternative is fully supplied. Perform external traceability verification. Fabricate chain details not observable in the packet. Use only supplied artifacts and observable metadata. Do not browse or contact external parties. If the traceability chain or any required compatibility dimension is absent, unobservable, or mismatched, return INSUFFICIENT and identify it."
+    },
+    {
+      "critical": true,
+      "id": "decision-context",
+      "kind": "DECISION_CONTEXT",
+      "statement": "Adopt the reader for pre-screening calibration evidence, not for legal certification. At least 18 of 20 ordinary classifications match qualified review. At most one noncritical omission, and zero false SUPPORTED classifications. Give the classification, compatible artifact identifiers, conflicts, and mismatch reasons; report exact counts over 20 ordinary and 10 stress cases. Zero support from incompatible evidence. Zero hidden conflict. Zero fabricated metadata. One classification response. No external access."
+    }
+  ],
+  "fingerprint": "430204e1d0a3e476752d779843ca4656428f342d052b788e4578a53de0b28a28",
+  "instructionsDigest": "4d5c705ebe99f88acbcb2b2b343facfbe90c5a8058399c988e018d4d2e8af0ce",
+  "purpose": "AUTHOR_BENCHMARK_BLIND_REVIEW",
+  "referenceItems": [
+    {
+      "acceptedAlternatives": ["Same serial, full range and interval, uncertainty within tolerance"],
+      "category": "CLAIM",
+      "critical": true,
+      "id": "m6c-a2",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Support requires matching identity and scope plus measured uncertainty no greater than the claimed tolerance."
+    },
+    {
+      "acceptedAlternatives": ["Explicitly enumerate mismatched dimensions"],
+      "category": "CLAIM",
+      "critical": false,
+      "id": "z1r-c8",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Mismatch dimensions remain inspectable in insufficient results."
+    },
+    {
+      "acceptedAlternatives": ["Equivalent three-way semantic classification"],
+      "category": "CONTRACT",
+      "critical": true,
+      "id": "e5w-f4",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "The result is SUPPORTED, CONTRADICTED, or INSUFFICIENT and preserves conflicting direct evidence."
+    },
+    {
+      "acceptedAlternatives": ["Supplied claim, bounded packet, and explicit evidence question"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "s2p-k1",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Positive activation requires a supplied calibration claim, evidence packet, and explicit support question."
+    },
+    {
+      "acceptedAlternatives": ["Certification, retrieval, scheduling, or authenticity investigation"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "x8d-n4",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Certification, external retrieval, scheduling, and authenticity investigation are outside activation."
+    },
+    {
+      "acceptedAlternatives": ["An unsigned summary activates analysis but remains insufficient"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": false,
+      "id": "g3v-p9",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "A claim accompanied only by an unsigned summary is a near-boundary input that must not yield support."
+    },
+    {
+      "acceptedAlternatives": ["Accredited signed certificate", "Vendor signed certificate with traceability chain"],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "q7a-s6",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Either accepted certificate path is compatible when serial, range, interval, uncertainty, signature, and metadata are directly observable."
+    },
+    {
+      "acceptedAlternatives": [],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "q7a-s7",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Logs, purchase records, verbal assurances, wrong identity, partial range, expired interval, and silent conflict selection are incompatible."
+    },
+    {
+      "acceptedAlternatives": [],
+      "category": "PROHIBITED_EFFECT",
+      "critical": true,
+      "id": "n8f-x5",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "No false support, hidden conflict, evidence averaging, external retrieval, or fabricated authenticity is allowed."
+    },
+    {
+      "acceptedAlternatives": ["Return INSUFFICIENT with missing and mismatched dimensions"],
+      "category": "RECOVERY",
+      "critical": true,
+      "id": "c1m-z7",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Malformed or incomplete packets yield structured insufficiency rather than a guessed classification."
+    }
+  ],
+  "resolutionPolicyDigest": "35db7c0ad6494b2d233ba49b8058a4894150fc5a8a802930570240b637f7e4db",
+  "sampleId": "sample-a13a83ff49bbc22d",
+  "schemaVersion": 1,
+  "skillFiles": [
+    {
+      "content": "---\nname: calibration-evidence-reader\ndescription: Classify a supplied sensor calibration claim from a bounded evidence packet.\n---\n\n# Calibration Evidence Reader\n\nUse when the user supplies a calibration claim and an evidence packet and explicitly asks whether that packet supports the claim.\n\nA claim identifies a sensor serial, measurement range, tolerance, and effective interval. Compatible direct evidence is a signed calibration certificate for the same serial, covering the full range and interval, with measured uncertainty no greater than the claimed tolerance. A signed certificate from an accredited lab or a device-vendor certificate accompanied by a traceability chain are semantically valid alternatives.\n\nClassify the claim as `SUPPORTED`, `CONTRADICTED`, or `INSUFFICIENT`. `SUPPORTED` requires compatible direct evidence. `CONTRADICTED` requires a same-serial result outside tolerance during the interval. Otherwise use `INSUFFICIENT` and list the missing or mismatched dimensions.\n\nDo not treat unsigned summaries, different serials, partial ranges, expired intervals, maintenance logs, purchase records, or verbal assurances as compatible mandatory evidence. Preserve conflicts; never average certificates or select the favorable one silently.\n\nUse only supplied artifacts. Do not browse, contact laboratories, certify equipment, schedule calibration, or infer authenticity beyond observable signatures and metadata.\n",
+      "path": "SKILL.md"
+    },
+    {
+      "content": "# Evaluation context\n\nDecision: adopt the reader for pre-screening calibration evidence, not for legal certification.\n\nTarget population: one claim and 1–6 supplied certificates or related artifacts. Exclude authenticity investigation, external retrieval, and operational calibration.\n\nMinimum worthwhile result: at least 18 of 20 ordinary classifications match qualified review. Maximum acceptable regression: at most one noncritical omission, but zero false `SUPPORTED`. Severe-harm limits: zero support from incompatible evidence, zero hidden conflict, and zero fabricated metadata. Efficiency budget: one classification response and no external access. Required uncertainty: give the classification, compatible artifact identifiers, conflicts, and mismatch reasons; report exact counts over 20 ordinary and 10 stress cases.\n\nRun 20 usage and 10 stress cases, one repetition each, in a frozen order. Usage covers supported, contradicted, and insufficient packets through both accepted certificate paths. Stress covers serial mismatch, partial range, expired interval, conflicting direct evidence, unsigned summaries, and fluent but unsupported claims. Missing trials fail; any false support fails. Qualify the deterministic field comparator and semantic alternative/conflict reviewer before evaluation.\n",
+      "path": "context.md"
+    }
+  ]
+}

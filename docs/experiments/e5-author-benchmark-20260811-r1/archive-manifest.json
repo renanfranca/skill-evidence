@@ -1,0 +1,27 @@
+{
+  "campaignId": "e5-author-benchmark-20260811-r1",
+  "collectionFingerprint": "a51c2c8da8d395e713a0f154ac1e33a02a753906e8a614a4c31efdb57c45fcf6",
+  "componentDigests": {
+    "manifest.json": "c389f6468f83576ddffbd579b7813393d8bd7df6f72ddc8be71f3ed53772cc32",
+    "packets/sample-0e32e58e46c52ccd.json": "b5f02d319c906f4aacd8d813925da346bed946fa0e9a472aaef352ac52d0fe65",
+    "packets/sample-1edd8721cc9369c0.json": "709c8d8a73021609d6f8a47b909c1d0287e5265cbfccdeb4f24d8f59b0bb1a9c",
+    "packets/sample-2a6eb8de62227fe8.json": "a276d37ab3f465c70280e64463c61cd21850c49ab28794c89e7faa9daf6bfda1",
+    "packets/sample-3ecac26c9e09d042.json": "6c9ea23f787c9922634e802e1ff250f15e6757478e752303479741c1c5552066",
+    "packets/sample-5bd34530ee2a2e09.json": "0d496c0da5c38785bb8ba3266d44300d29136f402a6b536e68ded26c14fef406",
+    "packets/sample-a13a83ff49bbc22d.json": "430204e1d0a3e476752d779843ca4656428f342d052b788e4578a53de0b28a28",
+    "packets/sample-c2b5eefd407c034a.json": "cd579e5c153afda35e2bd1448372ee6bd127df4082c998707e1b6655688f8eed",
+    "packets/sample-cca3219a93ea3a9b.json": "bae02705699b5c0c31b1882da4c3ca562a8d90358dea21c347d1c63b5978e155",
+    "qualification-packet.json": "071cac0597eff5d92ed6ada724b268fb6af1c34ab89fb6f0de15a6ee60c93566",
+    "resolution-packet.json": "cc03cd63fd3b93e6546959cb576d3d3a9542add913f3c52ef37c39898174f497",
+    "resolution-policy.md": "215c4df4b9c665195e56bf7a1c54f577f5200b1dc859cf5dbdd67c26c97fa6eb",
+    "resolution.json": "30df3bdb72ee62ca8a04bba1b605b5841eae32878b5fa22b437e34a0bf89f029",
+    "reviewer-a-qualification.json": "ba820e764fb23042ed0e77fe06b75657f4946e9014897a5621f392bdf10212ae",
+    "reviewer-a.json": "ecf285543c08f24e2cabae3f50ceff35338f91d3074a0282c22f2e69cbdc90cb",
+    "reviewer-b-qualification.json": "2ab016cbb7a5ab1109b96e8fb60f156ac3935346e400d2110b18622e57a23926",
+    "reviewer-b.json": "5aee38613d6538dd979d6fa911ccce366d1804bcfdae74d17aa97e2ee7fab3f2",
+    "reviewer-instructions.md": "6bbfa935319aa47ba834df79f4fe2a5ac9e2d76f29dd6e947b766f0e3f551543",
+    "reviewer-qualification-result.json": "971a8c57a0ad1fb0ae6f9863e6e9c034647933c6e9348e0194f992aaad137e3a",
+    "scoring.json": "f204a0e8a9bbbb5c0c8a003e9cd9ed0ab2d36ba1b230235e6780d1ce545dac64"
+  },
+  "schemaVersion": 1
+}

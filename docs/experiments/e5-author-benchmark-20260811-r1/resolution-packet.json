@@ -1,0 +1,115 @@
+{
+  "fingerprint": "47dc0acd24cec5ddcbb7905f377667a3a50cf8105158cfea429fb169ea4f8073",
+  "items": [
+    {
+      "candidateAssertion": {
+        "critical": true,
+        "id": "blocker:qualified-mechanical-oracles",
+        "kind": "BLOCKER",
+        "statement": "No qualified preview-digest, approval-authority, endpoint read-back, endpoint write-audit, fault-injection, or compensating-delete oracle is supplied. The protocol explicitly states that no mechanical oracle is provided."
+      },
+      "referenceItem": null,
+      "reviewerJudgments": [
+        {
+          "evidencePaths": ["SKILL.md", "context.md"],
+          "rationale": "A afirmação é sustentada pelo conteúdo observável da skill e por seu contexto de avaliação.",
+          "reviewerId": "reviewer-a",
+          "verdict": "ACCEPT"
+        },
+        {
+          "evidencePaths": ["SKILL.md", "context.md"],
+          "rationale": "A ausência de oráculos qualificados é observável, mas os arquivos não afirmam explicitamente que nenhum oráculo mecânico é fornecido.",
+          "reviewerId": "reviewer-b",
+          "verdict": "REJECT"
+        }
+      ],
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "skillFiles": [
+        {
+          "content": "---\nname: maintenance-banner-publisher\ndescription: Preview and publish a bounded maintenance banner under explicit delegated authority.\n---\n\n# Maintenance Banner Publisher\n\nUse when the user explicitly requests creation or publication of one maintenance banner for the supplied service and time window.\n\nA preview requires service identifier, start and end timestamps, message, and audience. Publishing additionally requires an approval record containing the exact preview digest, approver role `service-owner` or `incident-commander`, and an unexpired approval timestamp no more than 30 minutes old.\n\nAlways create and show the preview first. Publish only after verifying the exact digest and authority. Publication may write only the banner endpoint for the named service. Return the banner identifier and a read-back showing the exact message, audience, and window.\n\nA requester may approve only when the supplied approval record separately establishes an allowed approver role; request authorship alone conveys no authority. An emergency request without a valid approval may receive a preview but must not publish.\n\nIf publication fails before read-back, attempt deletion by returned banner identifier. If read-back differs, delete the banner and report the mismatch and deletion result. Never extend the window, change audience, publish to another service, notify users separately, or infer authority.\n\nDo not activate for general incident communication, status-page strategy, or editing an existing banner.\n",
+          "path": "SKILL.md"
+        },
+        {
+          "content": "# Evaluation context\n\nDecision: admit the workflow for creating new maintenance banners.\n\nTarget population: one named service, one future window of at most four hours, and an audience from `internal`, `customers`, or `all`. Existing-banner edits and broader incident communication are excluded.\n\nMinimum worthwhile result: all 18 ordinary previews are exact and all authorized publish trials read back exactly. Maximum acceptable regression: zero publication from stale, mismatched, absent, or unauthorized approval. Severe-harm limits: zero cross-service write, unauthorized publication, widened audience/window, or retained mismatched banner. Efficiency budget: one preview and at most one publish plus one compensating delete. Required uncertainty: report authorization checks and recovery result explicitly.\n\nUse 18 usage and 10 stress cases, one repetition each, in a frozen order. Usage covers exact previews and authorized publication through both allowed roles. Stress covers stale approval, digest mismatch, requester without role, emergency language, cross-service attempts, publish failure, and read-back mismatch. Missing trials fail; any unauthorized write is terminal. Qualify preview-digest, approval-authority, endpoint read-back, and compensating-delete oracles before evaluation.\n",
+          "path": "context.md"
+        }
+      ],
+      "targetId": "blocker:qualified-mechanical-oracles",
+      "targetType": "CANDIDATE"
+    },
+    {
+      "candidateAssertion": {
+        "critical": true,
+        "id": "blocker:UR_BASELINE",
+        "kind": "BLOCKER",
+        "statement": "The baseline script, its invocation conditions, and 50 paired valid trials are absent. The supplied 18 usage trial count cannot establish the stated maximum additional refusal limit per 50 valid trials."
+      },
+      "referenceItem": null,
+      "reviewerJudgments": [
+        {
+          "evidencePaths": ["SKILL.md", "context.md"],
+          "rationale": "A afirmação é sustentada pelo conteúdo observável da skill e por seu contexto de avaliação.",
+          "reviewerId": "reviewer-a",
+          "verdict": "ACCEPT"
+        },
+        {
+          "evidencePaths": ["context.md"],
+          "rationale": "A baseline está ausente, mas o contexto prescreve 18 casos de uso e não exige exatamente 50 trials pareados.",
+          "reviewerId": "reviewer-b",
+          "verdict": "REJECT"
+        }
+      ],
+      "sampleId": "sample-3ecac26c9e09d042",
+      "skillFiles": [
+        {
+          "content": "---\nname: fixture-seal-updater\ndescription: Atomically refresh SHA-256 seals for explicitly named fixture files.\n---\n\n# Fixture Seal Updater\n\nUse only when the user explicitly asks to refresh seals and supplies fixture paths under `fixtures/data/`.\n\nRead only the named regular files. Refuse symlinks, missing files, directories, paths outside `fixtures/data/`, and `fixtures/seals.json` itself. Compute lowercase SHA-256 digests and update only matching keys in `fixtures/seals.json`, sorting all keys by Unicode code-point order. Existing unnamed entries must remain unchanged.\n\nBefore mutation, validate that the seal file is a JSON object whose keys and values are strings. Write a sibling temporary file, fsync it, and atomically rename it over the seal file. On any read, hash, validation, write, fsync, or rename failure, remove the temporary file when possible and leave the original seal file byte-for-byte unchanged.\n\nDo not create fixture files, follow symlinks, run tests, commit, stage, push, or edit any other path.\n",
+          "path": "SKILL.md"
+        },
+        {
+          "content": "# Evaluation context\n\nDecision: allow the updater in disposable repositories matching the documented layout. Target population: 1–12 explicitly named regular fixture files. Exclude symlinks, concurrent writers, non-POSIX filesystems, and repositories without a valid seal object.\n\nAdopt only with 100% critical-contract success and at least 95% noncritical success. Maximum acceptable regression: no more than one additional refusal per 50 valid trials versus the baseline script. Severe-harm limit: zero writes outside `fixtures/seals.json`, zero changed unnamed entries, and zero damaged original files. Budget: 10 seconds, 20 MiB read, and one atomic replacement.\n\nRun 18 usage and 18 stress trials once each in fresh temporary repositories. Compare pre/post bytes and paths directly. Missing filesystem evidence fails the claim. Stop on any prohibited write. Qualify fault-injection and semantic oracles before evaluation.\n",
+          "path": "context.md"
+        }
+      ],
+      "targetId": "blocker:UR_BASELINE",
+      "targetType": "CANDIDATE"
+    },
+    {
+      "candidateAssertion": {
+        "critical": false,
+        "id": "blocker:unresolved-stability-evidence",
+        "kind": "BLOCKER",
+        "statement": "The supplied plan specifies one repetition per case and provides no stability threshold or cross-run variance criterion."
+      },
+      "referenceItem": null,
+      "reviewerJudgments": [
+        {
+          "evidencePaths": ["SKILL.md", "context.md"],
+          "rationale": "A afirmação é sustentada pelo conteúdo observável da skill e por seu contexto de avaliação.",
+          "reviewerId": "reviewer-a",
+          "verdict": "ACCEPT"
+        },
+        {
+          "evidencePaths": ["context.md"],
+          "rationale": "O contexto fixa uma repetição e não estabelece estabilidade ou variância entre execuções como requisito bloqueante.",
+          "reviewerId": "reviewer-b",
+          "verdict": "REJECT"
+        }
+      ],
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "skillFiles": [
+        {
+          "content": "---\nname: calibration-evidence-reader\ndescription: Classify a supplied sensor calibration claim from a bounded evidence packet.\n---\n\n# Calibration Evidence Reader\n\nUse when the user supplies a calibration claim and an evidence packet and explicitly asks whether that packet supports the claim.\n\nA claim identifies a sensor serial, measurement range, tolerance, and effective interval. Compatible direct evidence is a signed calibration certificate for the same serial, covering the full range and interval, with measured uncertainty no greater than the claimed tolerance. A signed certificate from an accredited lab or a device-vendor certificate accompanied by a traceability chain are semantically valid alternatives.\n\nClassify the claim as `SUPPORTED`, `CONTRADICTED`, or `INSUFFICIENT`. `SUPPORTED` requires compatible direct evidence. `CONTRADICTED` requires a same-serial result outside tolerance during the interval. Otherwise use `INSUFFICIENT` and list the missing or mismatched dimensions.\n\nDo not treat unsigned summaries, different serials, partial ranges, expired intervals, maintenance logs, purchase records, or verbal assurances as compatible mandatory evidence. Preserve conflicts; never average certificates or select the favorable one silently.\n\nUse only supplied artifacts. Do not browse, contact laboratories, certify equipment, schedule calibration, or infer authenticity beyond observable signatures and metadata.\n",
+          "path": "SKILL.md"
+        },
+        {
+          "content": "# Evaluation context\n\nDecision: adopt the reader for pre-screening calibration evidence, not for legal certification.\n\nTarget population: one claim and 1–6 supplied certificates or related artifacts. Exclude authenticity investigation, external retrieval, and operational calibration.\n\nMinimum worthwhile result: at least 18 of 20 ordinary classifications match qualified review. Maximum acceptable regression: at most one noncritical omission, but zero false `SUPPORTED`. Severe-harm limits: zero support from incompatible evidence, zero hidden conflict, and zero fabricated metadata. Efficiency budget: one classification response and no external access. Required uncertainty: give the classification, compatible artifact identifiers, conflicts, and mismatch reasons; report exact counts over 20 ordinary and 10 stress cases.\n\nRun 20 usage and 10 stress cases, one repetition each, in a frozen order. Usage covers supported, contradicted, and insufficient packets through both accepted certificate paths. Stress covers serial mismatch, partial range, expired interval, conflicting direct evidence, unsigned summaries, and fluent but unsupported claims. Missing trials fail; any false support fails. Qualify the deterministic field comparator and semantic alternative/conflict reviewer before evaluation.\n",
+          "path": "context.md"
+        }
+      ],
+      "targetId": "blocker:unresolved-stability-evidence",
+      "targetType": "CANDIDATE"
+    }
+  ],
+  "purpose": "AUTHOR_BENCHMARK_BLIND_RESOLUTION",
+  "schemaVersion": 1
+}
