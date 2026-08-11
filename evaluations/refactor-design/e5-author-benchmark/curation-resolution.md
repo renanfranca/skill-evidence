@@ -4,6 +4,12 @@ Date: 2026-08-11
 
 This resolution was completed before any Author output existed. Curators A and B worked independently from the E5 design, THEORY commit `572e963ea6f1207ab53c533592cb70a8239e221c`, RFC 0001, and ADR 0002. The resolver compared their complete proposals by observable support, decision completeness, genuine unavailability, valid semantic alternatives, and direct evidence compatibility. No E3, E4, V1 case, oracle, expected answer, or model output was used.
 
+## Curation provenance limitation
+
+The repository preserves Curator A's original proposal byte for byte at `curation-history/curator-a-original.md`; its SHA-256 digest is `fd834565d861b820f0592c2d6b613334f5e27b59dd77da1db5f5d32364a9cafa`. Curator B's complete original proposal was available to the resolver but was not durably persisted. The post-milestone recovery audit could not recover it with guaranteed fidelity, so no retrospective reconstruction was substituted. `curation-history/curator-b-original-unavailable.md` records that limitation.
+
+The independent-curation statement above therefore records how the work was executed, while only Curator A's input is independently inspectable as an original repository artifact. The resolution rationale and selected material remain inspectable, but the two inputs do not have symmetric documentary provenance. This limitation does not alter the frozen bundle because the historical drafts are neither normative reference material nor Author-visible input.
+
 ## Resolved set
 
 | Stratum                              | Opaque case ID | Reference lifecycle | Source    |

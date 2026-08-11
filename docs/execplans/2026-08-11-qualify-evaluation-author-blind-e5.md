@@ -347,6 +347,9 @@ Milestone 2 closed with 107 green tests, zero provider imports at the public che
 - Decision: qualify the two reviewers before authorizing collection.
   Rationale: both reviewers independently achieved 100% critical and noncritical probe accuracy with 100% agreement; the locked qualification fingerprint is `432d823d85a5ff4995f71a25e84b71441517098ae53c94cf8c3daf452c2271df`.
   Date/Author: 2026-08-11 / user, independent reviewers, and implementation agent.
+- Decision: disclose asymmetric preservation of the two original curation proposals without repeating curatorship.
+  Rationale: Curator A's original is recoverable byte for byte, while Curator B's original was not durably persisted and can only be reconstructed without a fidelity guarantee. Preserving A and an explicit non-preservation record is stronger evidence than silently omitting the gap or presenting a retrospective reconstruction as original.
+  Date/Author: 2026-08-11 / user and implementation agent.
 
 ## Risks and Mitigations
 
@@ -362,6 +365,7 @@ Milestone 2 closed with 107 green tests, zero provider imports at the public che
 - Risk: API list prices are mistaken for actual ChatGPT cost. Mitigation: label token-price calculations API-equivalent and report actual account cost as unknown.
 - Risk: schema-2 accidentally changes the implicit E4 path. Mitigation: preserve schema-1 unchanged, select schema-2 only for explicit conditions, and assert the historical E4 condition fingerprint exactly.
 - Risk: reference or visible skill material drifts after bundle creation. Mitigation: the offline command recomputes every skill snapshot, compares every reference and reviewer artifact, and reruns packet-blindness checks against the frozen bundle.
+- Risk: the independence of dual curation is interpreted as symmetrically artifact-verifiable. Mitigation: preserve Curator A's original with its digest, record that Curator B's original is unavailable, and characterize independence as execution provenance rather than two-original documentary proof.
 
 ## Validation Strategy
 
@@ -404,6 +408,7 @@ A qualified condition becomes `STALE` when any model/reasoning request, instruct
 - Opaque case IDs alone are insufficient for blindness; frozen reference text, atomic IDs, schedule IDs, reviewer probes, condition labels, and digest-correlated material all require mechanical packet checks.
 - A `BLOCKED` reference remains complete authorship when it preserves supported behavior and exposes a genuinely unavailable decision-critical requirement without selecting a placeholder.
 - Reviewer qualification is part of the instrument identity, not evidence that either Author condition is qualified.
+- Independent work and durable proof of independence are separate properties; missing original provenance must be disclosed rather than reconstructed after resolution.
 - Breadth across paired behavioral strata is more useful than repeating one adaptable development canary.
 - A complete `BLOCKED` Blueprint is a success case for honest authorship, not an incomplete `DRAFT`.
 - Blindness is an enforceable data-flow property, not merely an instruction to the model or reviewer.
