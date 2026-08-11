@@ -50,6 +50,7 @@ export interface AuthorBenchmarkPreflightEvidence {
   conditionFingerprints: { LUNA_MAX: string; TERRA_XHIGH: string };
   credentialVariablesAbsent: boolean;
   currentCommit: string;
+  expectedCommit: string;
   environment: AuthorBenchmarkCampaignEnvironment;
   offlineQualificationResult: 'BLOCKED' | 'SUPPORTED_FOR_DEVELOPMENT';
   outputDirectoryExists: boolean;
@@ -66,6 +67,7 @@ export interface AuthorBenchmarkCampaignPreflightReport {
   campaignId: string;
   checks: Array<{ id: string; status: 'FAIL' | 'PASS' }>;
   currentCommit: string;
+  expectedCommit: string;
   externalProviderCalls: 0;
   limitations: string[];
   providerInvocations: 0;
@@ -232,7 +234,16 @@ export function evaluateAuthorBenchmarkCampaignPreflight(
           ? 'PASS'
           : 'FAIL',
     },
-    { id: 'EXACT_CLEAN_COMMIT', status: evidence.worktreeClean && /^[a-f0-9]{40}$/.test(evidence.currentCommit) ? 'PASS' : 'FAIL' },
+    {
+      id: 'EXACT_CLEAN_COMMIT',
+      status:
+        evidence.worktreeClean &&
+        /^[a-f0-9]{40}$/.test(evidence.currentCommit) &&
+        /^[a-f0-9]{40}$/.test(evidence.expectedCommit) &&
+        evidence.currentCommit === evidence.expectedCommit
+          ? 'PASS'
+          : 'FAIL',
+    },
     { id: 'ENVIRONMENT_VERSIONS', status: sameEnvironment(campaign.environment, evidence.environment) ? 'PASS' : 'FAIL' },
     {
       id: 'CHATGPT_AUTHENTICATION',
@@ -253,6 +264,7 @@ export function evaluateAuthorBenchmarkCampaignPreflight(
     campaignId: campaign.campaignId,
     checks,
     currentCommit: evidence.currentCommit,
+    expectedCommit: evidence.expectedCommit,
     externalProviderCalls: 0,
     limitations: [
       'Preflight does not reserve a campaign or invoke either Author condition.',

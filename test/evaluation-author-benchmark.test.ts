@@ -297,6 +297,7 @@ describe('blind Evaluation Author benchmark', () => {
       bundleFingerprint: campaign.bundleFingerprint,
       conditionFingerprints: { LUNA_MAX: 'c'.repeat(64), TERRA_XHIGH: 'b'.repeat(64) },
       currentCommit: 'e'.repeat(40),
+      expectedCommit: 'e'.repeat(40),
       credentialVariablesAbsent: true,
       environment: campaign.environment,
       offlineQualificationResult: 'SUPPORTED_FOR_DEVELOPMENT',
@@ -315,6 +316,8 @@ describe('blind Evaluation Author benchmark', () => {
       ...evidence,
       conditionFingerprints: { ...evidence.conditionFingerprints, LUNA_MAX: 'f'.repeat(64) },
     });
+    const changedCommit = evaluateAuthorBenchmarkCampaignPreflight(campaign, { ...evidence, currentCommit: 'f'.repeat(40) });
+    const dirtyCommit = evaluateAuthorBenchmarkCampaignPreflight(campaign, { ...evidence, worktreeClean: false });
 
     expect(ready).toMatchObject({
       campaignId: campaign.campaignId,
@@ -327,6 +330,10 @@ describe('blind Evaluation Author benchmark', () => {
     expect(blocked).toMatchObject({ result: 'BLOCKED' });
     expect(blocked.checks).toContainEqual({ id: 'RESERVATION_ABSENT', status: 'FAIL' });
     expect(changedCondition.checks).toContainEqual({ id: 'AUTHOR_CONDITIONS_FROZEN', status: 'FAIL' });
+    expect(changedCommit).toMatchObject({ result: 'BLOCKED' });
+    expect(changedCommit.checks).toContainEqual({ id: 'EXACT_CLEAN_COMMIT', status: 'FAIL' });
+    expect(dirtyCommit).toMatchObject({ result: 'BLOCKED' });
+    expect(dirtyCommit.checks).toContainEqual({ id: 'EXACT_CLEAN_COMMIT', status: 'FAIL' });
   });
 
   it('rejects malformed campaign preparation without interpreting missing fields', () => {
@@ -336,12 +343,35 @@ describe('blind Evaluation Author benchmark', () => {
     });
   });
 
+  it('requires a literal expected commit before collecting preflight evidence', async () => {
+    const common = [
+      '--bundle',
+      'evaluations/refactor-design/e5-author-benchmark',
+      '--preparation',
+      'evaluations/refactor-design/e5-author-benchmark/campaign-preparation.json',
+    ];
+
+    await expect(runAuthorBenchmarkCampaignPreflight(common)).rejects.toThrow(
+      'USAGE: --bundle <directory> --preparation <campaign-preparation.json> --expected-commit <40-char-sha>',
+    );
+    await expect(runAuthorBenchmarkCampaignPreflight([...common, '--expected-commit', 'HEAD'])).rejects.toThrow(
+      'USAGE: --bundle <directory> --preparation <campaign-preparation.json> --expected-commit <40-char-sha>',
+    );
+  });
+
   it('collects a provider-free preflight through the internal campaign command boundary', async () => {
     const root = resolve('.');
     const bundleDirectory = join(root, 'evaluations/refactor-design/e5-author-benchmark');
 
     const report = await runAuthorBenchmarkCampaignPreflight(
-      ['--bundle', bundleDirectory, '--preparation', join(bundleDirectory, 'campaign-preparation.json')],
+      [
+        '--bundle',
+        bundleDirectory,
+        '--preparation',
+        join(bundleDirectory, 'campaign-preparation.json'),
+        '--expected-commit',
+        'e'.repeat(40),
+      ],
       {
         codexCliVersion: () => Promise.resolve('0.147.0'),
         currentCommit: () => Promise.resolve('e'.repeat(40)),
@@ -357,6 +387,8 @@ describe('blind Evaluation Author benchmark', () => {
     );
 
     expect(report).toMatchObject({
+      currentCommit: 'e'.repeat(40),
+      expectedCommit: 'e'.repeat(40),
       externalProviderCalls: 0,
       providerInvocations: 0,
       reservationCreated: false,

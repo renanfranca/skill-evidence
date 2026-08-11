@@ -30,19 +30,26 @@ export interface AuthorBenchmarkPreflightDependencies {
   workingTreeClean?: () => Promise<boolean>;
 }
 
-function parseArguments(args: string[]): { bundle: string; preparation: string } {
+function parseArguments(args: string[]): { bundle: string; expectedCommit: string; preparation: string } {
   const bundleIndex = args.indexOf('--bundle');
+  const expectedCommitIndex = args.indexOf('--expected-commit');
   const preparationIndex = args.indexOf('--preparation');
+  const bundle = args[bundleIndex + 1];
+  const expectedCommit = args[expectedCommitIndex + 1];
+  const preparation = args[preparationIndex + 1];
   if (
-    args.length !== 4 ||
+    args.length !== 6 ||
     bundleIndex === -1 ||
+    expectedCommitIndex === -1 ||
     preparationIndex === -1 ||
-    args[bundleIndex + 1] === undefined ||
-    args[preparationIndex + 1] === undefined
+    bundle === undefined ||
+    expectedCommit === undefined ||
+    !/^[a-f0-9]{40}$/.test(expectedCommit) ||
+    preparation === undefined
   ) {
-    throw new Error('USAGE: --bundle <directory> --preparation <campaign-preparation.json>');
+    throw new Error('USAGE: --bundle <directory> --preparation <campaign-preparation.json> --expected-commit <40-char-sha>');
   }
-  return { bundle: args[bundleIndex + 1]!, preparation: args[preparationIndex + 1]! };
+  return { bundle, expectedCommit, preparation };
 }
 
 async function commandOutput(command: string, args: string[], cwd: string): Promise<string> {
@@ -140,6 +147,7 @@ export async function runAuthorBenchmarkCampaignPreflight(
     conditionFingerprints: { LUNA_MAX: luna.conditionFingerprint, TERRA_XHIGH: terra.conditionFingerprint },
     credentialVariablesAbsent: environment.OPENAI_API_KEY === undefined && environment.CODEX_API_KEY === undefined,
     currentCommit: commit,
+    expectedCommit: parsed.expectedCommit,
     environment: {
       codexCliVersion: codexCli,
       codexHome,

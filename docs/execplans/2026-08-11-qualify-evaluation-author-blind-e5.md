@@ -6,7 +6,7 @@ Safety boundary: E5 Milestones 1 through 3 were explicitly authorized on 2026-08
 
 The intended implementation executor is `gpt-5.6-terra` with `xhigh` reasoning. The E4 baseline is commit `916f8bbcc438d1b5aa30868fad4e4379fdf2ea43` on `feat/e4-evaluation-author-v0`. Authorized Milestone 1 implementation began on `feat/e5-blind-author-benchmark` from planning commit `973efba2e0b1d02afc1de550053cf6df914408a9`, which contains that E4 baseline. The normative THEORY was read in full at commit `572e963ea6f1207ab53c533592cb70a8239e221c`.
 
-Status: `MILESTONE 3 COMPLETE — SIXTEEN PROVIDER CALLS NOT AUTHORIZED`.
+Status: `MILESTONE 3 COMMIT-FREEZE HARDENING IN PROGRESS — SIXTEEN PROVIDER CALLS NOT AUTHORIZED`.
 
 Milestone 1 implementation is recorded at commit `46d83a9`.
 Milestone 2 implementation is recorded at commit `8a154f2`.
@@ -69,6 +69,7 @@ E5 excludes:
 - An **atomic reference item** is one prespecified semantic claim, contract, activation region, evidence requirement, exclusion, blocker, or uncertainty expectation with criticality and accepted semantic alternatives.
 - A **qualified reviewer** has passed the frozen reviewer-qualification probes before seeing benchmark outputs.
 - A **campaign bundle** contains the eight cases, references, rubric, thresholds, counterbalanced schedule, software identities, budget, and canonical fingerprint frozen before collection.
+- A **campaign commit freeze** is the equality between an explicitly expected Git commit and the clean observed `HEAD` used by a formal qualification campaign. It identifies campaign infrastructure; it is not a per-skill requirement or a normal Author contract.
 
 ## Desired End State and Internal Interfaces
 
@@ -110,7 +111,8 @@ npm run experiment:qualify:author-benchmark:offline -- --bundle <directory>
 
 SKILL_EVIDENCE_AUTHOR_CODEX_HOME=/home/renanfranca/.codex \
   npm run experiment:preflight:author-benchmark -- \
-  --bundle <directory> --preparation <campaign-preparation.json>
+  --bundle <directory> --preparation <campaign-preparation.json> \
+  --expected-commit <40-char-sha>
 
 npm run experiment:benchmark:author -- --bundle <directory> --campaign <id> \
   --approve-provider-invocations 16
@@ -181,9 +183,9 @@ The two conditions are fixed:
 
 Run each of the eight cases once under each condition: sixteen total invocations. Use one fresh thread and empty temporary workspace per invocation, cache disabled, concurrency one, `maxRetries: 0`, five-minute per-call timeout, read-only sandbox, approvals `never`, disabled network/web search/thread persistence/sharing/latest results/multi-agent, and the explicitly selected `/home/renanfranca/.codex` ChatGPT-authenticated home.
 
-Derive a deterministic counterbalanced order from the frozen bundle fingerprint: Terra runs first for four cases and Luna first for four. Freeze that schedule before reservation. Create an atomic campaign reservation with total budget sixteen, then atomically consume one sample reservation immediately before each call. Never replace, repeat, or reorder a consumed sample.
+Derive a deterministic counterbalanced order from the frozen bundle fingerprint: Terra runs first for four cases and Luna first for four. Freeze that schedule before reservation. Create an atomic campaign reservation with total budget sixteen that copies the campaign fingerprint and explicitly expected commit, then atomically consume one sample reservation immediately before each call. The runner must reject a clean but different `HEAD` before the first reservation or call. Never replace, repeat, or reorder a consumed sample.
 
-Preflight must verify a clean exact commit, current bundle fingerprint, Node/npm/Promptfoo/SDK/CLI versions, writable authenticated Codex home, absent `OPENAI_API_KEY` and `CODEX_API_KEY`, no prior campaign, output-path exclusivity, packet blindness, and qualified reviewers. It must not make a provider call.
+Preflight must verify that the clean observed `HEAD` equals the explicitly supplied expected commit, plus the current bundle fingerprint, Node/npm/Promptfoo/SDK/CLI versions, writable authenticated Codex home, absent `OPENAI_API_KEY` and `CODEX_API_KEY`, no prior campaign, output-path exclusivity, packet blindness, and qualified reviewers. It must not make a provider call. This commit freeze is exclusive to E5 and equivalent formal qualification campaigns: ordinary skill development uses snapshot identity, and future normal Author use must not require a Git repository or clean worktree.
 
 If one sample fails or times out, record it and continue the frozen schedule unless the failure is classified as global authentication failure, global model unavailability, security-boundary failure, or infrastructure corruption. A global failure stops remaining calls and yields `INSUFFICIENT`; exposed material cannot be used in a replacement qualification campaign. A blindness, freeze, reservation, or schedule violation yields `INVALIDATED`.
 
@@ -237,11 +239,11 @@ Acceptance: references are complete and internally consistent; both reviewers qu
 
 Run the full offline validation and `refactor-design`, reconcile documentation, and create a clean preparation commit. Record exact versions, fingerprints, reservations, budgets, stop rules, reviewer identities, output locations, and sanitized-report policy. Obtain separate explicit authorization for exactly sixteen calls.
 
-Acceptance: preflight passes without provider access; no reservation or model call exists before authorization.
+Acceptance: preflight passes without provider access only when the clean observed `HEAD` equals a literal expected SHA; no reservation or model call exists before authorization.
 
 ### Milestone 4 — Execute the fixed blind schedule
 
-Reserve the sixteen-call campaign atomically and run the frozen counterbalanced schedule once. Preserve every terminal result, including errors. Do not score, inspect aggregate condition performance, modify the instrument, or adapt remaining calls during collection.
+Reserve the sixteen-call campaign atomically, copying the authorized campaign fingerprint and expected commit, and run the frozen counterbalanced schedule once. Preserve every terminal result, including errors. Do not score, inspect aggregate condition performance, modify the instrument, or adapt remaining calls during collection.
 
 Acceptance: each started sample consumed one reservation; no retry occurred; execution stopped only under a prespecified global stop; all available final candidates and provenance are preserved without raw reasoning.
 
@@ -314,6 +316,7 @@ git status --short
 - [x] Complete the post-green `refactor-design` review with no behavior-changing finding.
 - [x] Freeze the campaign manifest and pass the provider-free preflight from clean preparation commit `f8dfe28`.
 - [x] Complete Milestone 3 preparation with zero reservations and zero provider calls.
+- [ ] Require the clean campaign `HEAD` to equal an explicitly expected commit before requesting authorization.
 - [ ] Receive explicit authorization for exactly sixteen provider calls.
 - [ ] Complete Milestone 4 exactly once.
 - [ ] Complete Milestone 5.
@@ -322,6 +325,8 @@ git status --short
 Milestone 2 closed with 107 green tests, zero provider imports at the public checkpoint, zero external calls in every local qualifier, and canonical report `docs/experiments/e5-author-benchmark-offline-qualification-20260811.json`. The offline result is `SUPPORTED_FOR_DEVELOPMENT`; it qualifies only the frozen instrument and reviewers.
 
 Milestone 3 closed with 110 green tests and campaign fingerprint `d4fa2011bcb04d9dfb4840ce5b5954c5bad630e8407f21223dca6834f343a860`. The clean-commit preflight returned `READY_FOR_AUTHORIZATION` with all ten checks passing, `providerInvocations: 0`, and `reservationCreated: false`. This state permits requesting authorization; it does not authorize collection.
+
+Post-milestone review found that `EXACT_CLEAN_COMMIT` originally proved only a clean worktree and a syntactically valid observed SHA. Hardening is in progress so a distinct expected SHA must be supplied and equal the observed `HEAD`; no reservation or provider access is authorized by this correction.
 
 ## Decisions
 
@@ -370,6 +375,12 @@ Milestone 3 closed with 110 green tests and campaign fingerprint `d4fa2011bcb04d
 - Decision: retain the post-green structure after `refactor-design` review.
   Rationale: no concrete temporal coupling, hidden state, fragile representation, or architecture leak justified a behavior-preserving refactor; splitting the preflight solely by file size would add topology without reducing a demonstrated risk.
   Date/Author: 2026-08-11 / implementation agent.
+- Decision: require a literal expected commit as a separate preflight input rather than storing it in the versioned campaign preparation.
+  Rationale: equality against the observed `HEAD` prevents accidental infrastructure drift, while keeping the value outside its own commit avoids cryptographic self-reference. The authorization must later name the same literal SHA.
+  Date/Author: 2026-08-11 / user and implementation agent.
+- Decision: scope the commit freeze to formal qualification campaigns.
+  Rationale: E5 needs exact infrastructure provenance because its blind collection becomes irreversible; ordinary development and normal Author use are identified by skill snapshots, product versions, and condition fingerprints and must not require a Git worktree.
+  Date/Author: 2026-08-11 / user and implementation agent.
 
 ## Risks and Mitigations
 
@@ -387,6 +398,8 @@ Milestone 3 closed with 110 green tests and campaign fingerprint `d4fa2011bcb04d
 - Risk: reference or visible skill material drifts after bundle creation. Mitigation: the offline command recomputes every skill snapshot, compares every reference and reviewer artifact, and reruns packet-blindness checks against the frozen bundle.
 - Risk: the independence of dual curation is interpreted as symmetrically artifact-verifiable. Mitigation: preserve Curator A's original with its digest, record that Curator B's original is unavailable, and characterize independence as execution provenance rather than two-original documentary proof.
 - Risk: readable local authentication is mistaken for live model availability. Mitigation: the preflight limitation states that it proves only session presence; model availability remains an observation of the authorized terminal collection, with no retry.
+- Risk: a syntactically valid later commit is mistaken for the frozen campaign implementation. Mitigation: require a literal expected SHA, compare it with the clean observed `HEAD`, record both in the preflight, and copy the expected SHA into the future atomic campaign reservation.
+- Risk: campaign provenance requirements leak into normal product use. Mitigation: keep `expectedCommit` out of skill snapshots, `authorEvaluationBlueprint`, condition fingerprints, and the campaign fingerprint; normal Author operation does not require Git.
 
 ## Validation Strategy
 
@@ -411,6 +424,7 @@ No lower rung substitutes for a higher rung, and no real call substitutes for qu
 
 - Milestone 2 adds only blind development fixtures, internal qualification contracts, a provider-free command, deterministic CI coverage, and a sanitized offline report.
 - Milestone 3 adds a frozen campaign manifest and a provider-free, non-reserving preflight command; it adds no benchmark result or model-backed evidence.
+- Commit-freeze hardening adds only a campaign-specific preflight input and report field; it does not change snapshot or Author interfaces.
 - AGENTS.md documents both offline commands while preserving model-backed collection as a separately authorized local operation.
 - RFC 0001 and ADR 0002 remain unchanged unless implementation discovers a normative contradiction.
 - Historical E0–E4 plans and reports remain byte-for-byte preserved.
@@ -436,3 +450,5 @@ A qualified condition becomes `STALE` when any model/reasoning request, instruct
 - Blindness is an enforceable data-flow property, not merely an instruction to the model or reviewer.
 - A new reasoning condition cannot be represented honestly by broadening a fingerprinted historical schema in place; versioned schema evolution preserves both provenance and compatibility.
 - A clean preflight can establish readiness to request authorization without consuming a reservation; authentication presence and model availability must remain separate facts.
+- Cleanliness and a SHA-shaped `HEAD` do not establish exact campaign provenance; the observed SHA must equal an independently stated expectation.
+- Commit freezing is proportional for irreversible qualification evidence but would be an inappropriate dependency for ordinary skill authoring.
