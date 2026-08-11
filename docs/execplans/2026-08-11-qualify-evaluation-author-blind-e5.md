@@ -2,11 +2,11 @@
 
 This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mitigations`, and `Lessons Learned` current throughout execution.
 
-Safety boundary: E5 Milestones 1 through 3 were explicitly authorized on 2026-08-11. The campaign may be prepared and checked without provider access, but reservations, provider calls, output review, Author-condition qualification, and normal-path promotion remain unauthorized. Offline instrument qualification does not itself satisfy Gate G5.
+Safety boundary: E5 Milestones 1 through 3 and provider-free preparation of the final Milestone 4 runner were explicitly authorized on 2026-08-11. The runner may be implemented and qualified only with temporary reservations and a deterministic local executable; the real campaign reservation, external provider calls, output review, Author-condition qualification, and normal-path promotion remain unauthorized. Offline instrument or runner qualification does not itself satisfy Gate G5.
 
 The intended implementation executor is `gpt-5.6-terra` with `xhigh` reasoning. The E4 baseline is commit `916f8bbcc438d1b5aa30868fad4e4379fdf2ea43` on `feat/e4-evaluation-author-v0`. Authorized Milestone 1 implementation began on `feat/e5-blind-author-benchmark` from planning commit `973efba2e0b1d02afc1de550053cf6df914408a9`, which contains that E4 baseline. The normative THEORY was read in full at commit `572e963ea6f1207ab53c533592cb70a8239e221c`.
 
-Status: `MILESTONE 3 COMMIT-FREEZE HARDENED — SIXTEEN PROVIDER CALLS NOT AUTHORIZED`.
+Status: `MILESTONE 4 RUNNER PREPARATION IN PROGRESS — REAL RESERVATION AND SIXTEEN PROVIDER CALLS NOT AUTHORIZED`.
 
 Milestone 1 implementation is recorded at commit `46d83a9`.
 Milestone 2 implementation is recorded at commit `8a154f2`.
@@ -116,6 +116,7 @@ SKILL_EVIDENCE_AUTHOR_CODEX_HOME=/home/renanfranca/.codex \
   --expected-commit <40-char-sha>
 
 npm run experiment:benchmark:author -- --bundle <directory> --campaign <id> \
+  --preparation <campaign-preparation.json> --expected-commit <40-char-sha> \
   --approve-provider-invocations 16
 
 npm run experiment:score:author-benchmark -- --campaign <id> \
@@ -242,11 +243,13 @@ Run the full offline validation and `refactor-design`, reconcile documentation, 
 
 Acceptance: preflight passes without provider access only when the clean observed `HEAD` equals a literal expected SHA; no reservation or model call exists before authorization.
 
-### Milestone 4 — Execute the fixed blind schedule
+### Milestone 4 — Prepare and execute the fixed blind schedule
 
-Reserve the sixteen-call campaign atomically, copying the authorized campaign fingerprint and expected commit, and run the frozen counterbalanced schedule once. Preserve every terminal result, including errors. Do not score, inspect aggregate condition performance, modify the instrument, or adapt remaining calls during collection.
+First implement the final live-capable runner and qualify the complete path through a deterministic local executable and temporary artifact roots. This provider-free preparation includes the exact CLI, preflight handoff, global and per-sample reservations, sequential schedule, sanitized telemetry, global stops, and canonical collection records, but creates no real reservation. Re-run the clean exact-commit preflight and obtain separate authorization naming the final SHA before proceeding.
 
-Acceptance: each started sample consumed one reservation; no retry occurred; execution stopped only under a prespecified global stop; all available final candidates and provenance are preserved without raw reasoning.
+After that authorization, reserve the sixteen-call campaign atomically, copying the authorized campaign fingerprint and expected commit, and run the frozen counterbalanced schedule once. Preserve every terminal result, including errors. Do not score, inspect aggregate condition performance, modify the instrument, or adapt remaining calls during collection.
+
+Preparation acceptance: the deterministic runner qualifier executes one complete sixteen-call local campaign and one global-stop campaign, reports zero external calls, and writes only under temporary roots. Collection acceptance remains: each started real sample consumed one reservation; no retry occurred; execution stopped only under a prespecified global stop; all available final candidates and provenance are preserved without raw reasoning.
 
 ### Milestone 5 — Blind review, adjudicate, and classify
 
@@ -318,6 +321,8 @@ git status --short
 - [x] Freeze the campaign manifest and pass the provider-free preflight from clean preparation commit `f8dfe28`.
 - [x] Complete Milestone 3 preparation with zero reservations and zero provider calls.
 - [x] Require the clean campaign `HEAD` to equal an explicitly expected commit before requesting authorization.
+- [x] Receive explicit authorization to implement and qualify the final runner offline without touching the real campaign.
+- [ ] Complete the live-capable runner with temporary deterministic qualification and a new clean preflight.
 - [ ] Receive explicit authorization for exactly sixteen provider calls.
 - [ ] Complete Milestone 4 exactly once.
 - [ ] Complete Milestone 5.
@@ -382,6 +387,17 @@ Post-milestone review found that `EXACT_CLEAN_COMMIT` originally proved only a c
 - Decision: scope the commit freeze to formal qualification campaigns.
   Rationale: E5 needs exact infrastructure provenance because its blind collection becomes irreversible; ordinary development and normal Author use are identified by skill snapshots, product versions, and condition fingerprints and must not require a Git worktree.
   Date/Author: 2026-08-11 / user and implementation agent.
+- Decision: implement the final live-capable runner before requesting provider authorization, but qualify it only through a deterministic local executable and temporary artifact roots.
+  Rationale: deferring the real adapter would change the repository commit after authorization; exercising the final path locally permits the next clean SHA to identify all collection infrastructure without consuming the real campaign.
+  Date/Author: 2026-08-11 / user and implementation agent.
+
+- Decision: classify invalid output, timeout, rate limit, and unknown provider failures as sample-local, while authentication, model access, configuration, and process failures stop the remaining schedule globally.
+  Rationale: the former can produce a terminal observation for one prespecified sample without implying that later samples cannot run; the latter invalidate the shared execution capability or environment.
+  Date/Author: 2026-08-11 / implementation agent.
+
+- Decision: preserve only normalized numeric token fields and bounded latency values, with unavailable telemetry represented as `null`.
+  Rationale: collection evidence should retain useful operational facts without inferring missing measurements or allowing provider-specific payloads to enter canonical artifacts.
+  Date/Author: 2026-08-11 / implementation agent.
 
 ## Risks and Mitigations
 
@@ -401,6 +417,8 @@ Post-milestone review found that `EXACT_CLEAN_COMMIT` originally proved only a c
 - Risk: readable local authentication is mistaken for live model availability. Mitigation: the preflight limitation states that it proves only session presence; model availability remains an observation of the authorized terminal collection, with no retry.
 - Risk: a syntactically valid later commit is mistaken for the frozen campaign implementation. Mitigation: require a literal expected SHA, compare it with the clean observed `HEAD`, record both in the preflight, and copy the expected SHA into the future atomic campaign reservation.
 - Risk: campaign provenance requirements leak into normal product use. Mitigation: keep `expectedCommit` out of skill snapshots, `authorEvaluationBlueprint`, condition fingerprints, and the campaign fingerprint; normal Author operation does not require Git.
+- Risk: local integration success is mistaken for provider availability or Author quality. Mitigation: the runner qualifier uses an executable that cannot reach the network, reports `DEVELOPMENT`, and explicitly qualifies only orchestration, persistence, telemetry projection, and terminal policy.
+- Risk: test reservations consume the real campaign. Mitigation: every runner-qualification campaign uses a fresh temporary repository root and verifies that the workspace reservation and output paths remain absent.
 
 ## Validation Strategy
 
@@ -426,6 +444,7 @@ No lower rung substitutes for a higher rung, and no real call substitutes for qu
 - Milestone 2 adds only blind development fixtures, internal qualification contracts, a provider-free command, deterministic CI coverage, and a sanitized offline report.
 - Milestone 3 adds a frozen campaign manifest and a provider-free, non-reserving preflight command; it adds no benchmark result or model-backed evidence.
 - Commit-freeze hardening adds only a campaign-specific preflight input and report field; it does not change snapshot or Author interfaces.
+- Provider-free runner preparation adds the final internal collection command, deterministic local qualifier, CI coverage, and temporary fixtures; no real campaign artifact or model-backed evidence is produced.
 - AGENTS.md documents both offline commands while preserving model-backed collection as a separately authorized local operation.
 - RFC 0001 and ADR 0002 remain unchanged unless implementation discovers a normative contradiction.
 - Historical E0–E4 plans and reports remain byte-for-byte preserved.
@@ -453,3 +472,4 @@ A qualified condition becomes `STALE` when any model/reasoning request, instruct
 - A clean preflight can establish readiness to request authorization without consuming a reservation; authentication presence and model availability must remain separate facts.
 - Cleanliness and a SHA-shaped `HEAD` do not establish exact campaign provenance; the observed SHA must equal an independently stated expectation.
 - Commit freezing is proportional for irreversible qualification evidence but would be an inappropriate dependency for ordinary skill authoring.
+- A live-capable runner can be frozen safely before cost authorization when its complete provider boundary is exercised with a deterministic local executable and all reservations are redirected to temporary roots.

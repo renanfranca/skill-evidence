@@ -35,6 +35,7 @@ describe('pull request validation', () => {
       'npm run experiment:qualify:author',
       'npm run experiment:qualify:author-provider',
       'npm run experiment:qualify:author-benchmark:offline -- --bundle evaluations/refactor-design/e5-author-benchmark',
+      'npm run experiment:qualify:author-benchmark:runner',
     ]);
     expect(packageManifest.scripts['prettier:check']).toContain('.github');
     expect(packageManifest.scripts['prettier:format']).toContain('.github');

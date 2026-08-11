@@ -1,17 +1,23 @@
-import { readFile } from 'node:fs/promises';
+import { access, appendFile, cp, mkdtemp, readFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
 import { prepareAuthorInvocation } from '../src/author/evaluation-author.js';
+import { AuthorProviderError } from '../src/author/provider-diagnostic.js';
 import { createSkillSnapshot } from '../src/intake/skill-snapshot.js';
 import {
   evaluateAuthorBenchmarkCampaignPreflight,
   validateAuthorBenchmarkCampaignPreparation,
   type AuthorBenchmarkCampaignPreparation,
+  type AuthorBenchmarkCampaignPreflightReport,
   type AuthorBenchmarkPreflightEvidence,
 } from '../src/qualification/author-benchmark-preflight.js';
 import { runAuthorBenchmarkCampaignPreflight } from '../src/qualification/preflight-author-benchmark.js';
+import { runAuthorBenchmarkCampaign } from '../src/qualification/author-benchmark-runner.js';
+import { runAuthorBenchmarkCommand } from '../src/qualification/run-author-benchmark.js';
+import { qualifyAuthorBenchmarkRunner } from '../src/qualification/qualify-author-benchmark-runner.js';
 
 import {
   createAuthorBenchmarkSchedule,
@@ -71,6 +77,38 @@ function balancedBundle(): AuthorBenchmarkBundleCandidate {
     theoryCommit: '572e963ea6f1207ab53c533592cb70a8239e221c',
   };
   return { ...material, schedule: createAuthorBenchmarkSchedule(material) };
+}
+
+async function frozenCampaignFixture(): Promise<{
+  bundle: AuthorBenchmarkBundleCandidate;
+  bundleDirectory: string;
+  campaign: AuthorBenchmarkCampaignPreparation;
+}> {
+  const bundleDirectory = resolve('evaluations/refactor-design/e5-author-benchmark');
+  const [bundle, campaign] = await Promise.all([
+    readFile(join(bundleDirectory, 'bundle.json'), 'utf8').then((value) => JSON.parse(value) as AuthorBenchmarkBundleCandidate),
+    readFile(join(bundleDirectory, 'campaign-preparation.json'), 'utf8').then(
+      (value) => JSON.parse(value) as AuthorBenchmarkCampaignPreparation,
+    ),
+  ]);
+  return { bundle, bundleDirectory, campaign };
+}
+
+function readyCampaignPreflight(campaign: AuthorBenchmarkCampaignPreparation, commit: string): AuthorBenchmarkCampaignPreflightReport {
+  return {
+    campaignFingerprint: 'd4fa2011bcb04d9dfb4840ce5b5954c5bad630e8407f21223dca6834f343a860',
+    campaignId: campaign.campaignId,
+    checks: [],
+    currentCommit: commit,
+    expectedCommit: commit,
+    externalProviderCalls: 0,
+    limitations: [],
+    providerInvocations: 0,
+    purpose: 'DEVELOPMENT',
+    reservationCreated: false,
+    result: 'READY_FOR_AUTHORIZATION',
+    schemaVersion: 1,
+  };
 }
 
 describe('blind Evaluation Author benchmark', () => {
@@ -393,6 +431,316 @@ describe('blind Evaluation Author benchmark', () => {
       providerInvocations: 0,
       reservationCreated: false,
       result: 'READY_FOR_AUTHORIZATION',
+    });
+  });
+
+  it('rejects a non-exact invocation approval before reserving or invoking the benchmark', async () => {
+    const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-guard-'));
+    let invocations = 0;
+
+    await expect(
+      runAuthorBenchmarkCampaign(
+        {
+          approval: '15',
+          bundle,
+          bundleDirectory,
+          campaign,
+          codexHome: '/unused',
+          expectedCommit: 'e'.repeat(40),
+          preflight: readyCampaignPreflight(campaign, 'e'.repeat(40)),
+          repositoryRoot,
+        },
+        {
+          createInvoker: () => {
+            invocations += 1;
+            return () => Promise.reject(new Error('must not invoke'));
+          },
+          currentCommit: () => Promise.resolve('e'.repeat(40)),
+          workingTreeClean: () => Promise.resolve(true),
+        },
+      ),
+    ).rejects.toMatchObject({ code: 'BENCHMARK_APPROVAL_REQUIRED' });
+    expect(invocations).toBe(0);
+    await expect(access(join(repositoryRoot, campaign.reservationPath))).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('rejects commit drift after preflight before reserving or invoking the benchmark', async () => {
+    const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-commit-'));
+    let invocations = 0;
+
+    await expect(
+      runAuthorBenchmarkCampaign(
+        {
+          approval: '16',
+          bundle,
+          bundleDirectory,
+          campaign,
+          codexHome: '/unused',
+          expectedCommit: 'e'.repeat(40),
+          preflight: readyCampaignPreflight(campaign, 'e'.repeat(40)),
+          repositoryRoot,
+        },
+        {
+          createInvoker: () => {
+            invocations += 1;
+            return () => Promise.reject(new Error('must not invoke'));
+          },
+          currentCommit: () => Promise.resolve('f'.repeat(40)),
+          workingTreeClean: () => Promise.resolve(true),
+        },
+      ),
+    ).rejects.toMatchObject({ code: 'BENCHMARK_COMMIT_MISMATCH' });
+    expect(invocations).toBe(0);
+    await expect(access(join(repositoryRoot, campaign.reservationPath))).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('reserves and collects every sample once in the frozen sequential schedule', async () => {
+    const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-complete-'));
+    const candidate = await readFile(resolve('evaluations/refactor-design/e5-author-runner/candidate.json'), 'utf8');
+    const requestedModels: string[] = [];
+    let clock = 0;
+
+    const collection = await runAuthorBenchmarkCampaign(
+      {
+        approval: '16',
+        bundle,
+        bundleDirectory,
+        campaign,
+        codexHome: '/unused',
+        expectedCommit: 'e'.repeat(40),
+        preflight: readyCampaignPreflight(campaign, 'e'.repeat(40)),
+        repositoryRoot,
+      },
+      {
+        createInvoker: () => (request) => {
+          requestedModels.push(request.model);
+          return Promise.resolve({
+            observedModel: null,
+            output: candidate,
+            providerLatencyMs: 4,
+            tokenUsage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningOutputTokens: 4, totalTokens: 5 },
+          });
+        },
+        currentCommit: () => Promise.resolve('e'.repeat(40)),
+        now: () => (clock += 5),
+        workingTreeClean: () => Promise.resolve(true),
+      },
+    );
+
+    expect(collection).toMatchObject({ campaignId: campaign.campaignId, providerInvocations: 16, status: 'COMPLETE' });
+    expect(collection.samples.map((sample) => sample.sampleId)).toEqual(bundle.schedule.map((sample) => sample.sampleId));
+    expect(collection.samples.every((sample) => sample.status === 'COMPLETED')).toBe(true);
+    expect(collection.samples[0]).toMatchObject({
+      elapsedMs: 5,
+      providerLatencyMs: 4,
+      tokenUsage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningOutputTokens: 4, totalTokens: 5 },
+    });
+    expect(requestedModels).toEqual(
+      bundle.schedule.map((sample) => (sample.condition === 'TERRA_XHIGH' ? 'gpt-5.6-terra' : 'gpt-5.6-luna')),
+    );
+    const reservation = JSON.parse(await readFile(join(repositoryRoot, campaign.reservationPath), 'utf8')) as Record<string, unknown>;
+    expect(reservation).toMatchObject({
+      campaignFingerprint: readyCampaignPreflight(campaign, 'e'.repeat(40)).campaignFingerprint,
+      currentCommit: 'e'.repeat(40),
+      expectedCommit: 'e'.repeat(40),
+      invocationBudget: 16,
+      status: 'RESERVED',
+    });
+    expect(JSON.stringify(collection)).not.toMatch(/expectedLifecycle|referenceItems|acceptedAlternatives/);
+  });
+
+  it('stops on a global provider failure and marks the untouched schedule as not run', async () => {
+    const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-global-stop-'));
+    const candidate = await readFile(resolve('evaluations/refactor-design/e5-author-runner/candidate.json'), 'utf8');
+    let invocations = 0;
+
+    const collection = await runAuthorBenchmarkCampaign(
+      {
+        approval: '16',
+        bundle,
+        bundleDirectory,
+        campaign,
+        codexHome: '/unused',
+        expectedCommit: 'e'.repeat(40),
+        preflight: readyCampaignPreflight(campaign, 'e'.repeat(40)),
+        repositoryRoot,
+      },
+      {
+        createInvoker: () => () => {
+          invocations += 1;
+          return invocations === 3
+            ? Promise.reject(new AuthorProviderError({ category: 'AUTHENTICATION', code: 'HTTP_401', stage: 'RESULT' }))
+            : Promise.resolve({ observedModel: null, output: candidate });
+        },
+        currentCommit: () => Promise.resolve('e'.repeat(40)),
+        workingTreeClean: () => Promise.resolve(true),
+      },
+    );
+
+    expect(collection).toMatchObject({ providerInvocations: 3, status: 'INSUFFICIENT', stopReason: 'GLOBAL_AUTHENTICATION' });
+    expect(collection.samples).toHaveLength(16);
+    expect(collection.samples.slice(0, 2).every((sample) => sample.status === 'COMPLETED')).toBe(true);
+    expect(collection.samples[2]).toMatchObject({ error: { code: 'PROVIDER_ERROR' }, status: 'ERROR' });
+    expect(collection.samples.slice(3).every((sample) => sample.status === 'NOT_RUN')).toBe(true);
+  });
+
+  it('preserves sample-local invalid output and timeout errors without adapting the schedule', async () => {
+    const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-local-errors-'));
+    const candidate = await readFile(resolve('evaluations/refactor-design/e5-author-runner/candidate.json'), 'utf8');
+    let invocations = 0;
+
+    const collection = await runAuthorBenchmarkCampaign(
+      {
+        approval: '16',
+        bundle,
+        bundleDirectory,
+        campaign,
+        codexHome: '/unused',
+        expectedCommit: 'e'.repeat(40),
+        preflight: readyCampaignPreflight(campaign, 'e'.repeat(40)),
+        repositoryRoot,
+      },
+      {
+        createInvoker: () => () => {
+          invocations += 1;
+          if (invocations === 1) return Promise.resolve({ observedModel: null, output: '```json\n{}\n```' });
+          if (invocations === 2) {
+            return Promise.reject(new AuthorProviderError({ category: 'TIMEOUT', code: 'ABORTED', stage: 'RESULT' }));
+          }
+          return Promise.resolve({ observedModel: null, output: candidate });
+        },
+        currentCommit: () => Promise.resolve('e'.repeat(40)),
+        workingTreeClean: () => Promise.resolve(true),
+      },
+    );
+
+    expect(collection).toMatchObject({ providerInvocations: 16, status: 'COMPLETE', stopReason: null });
+    expect(collection.samples[0]).toMatchObject({ error: { code: 'INVALID_JSON' }, status: 'ERROR' });
+    expect(collection.samples[1]).toMatchObject({ error: { code: 'PROVIDER_ERROR' }, status: 'ERROR' });
+    expect(collection.samples.slice(2).every((sample) => sample.status === 'COMPLETED')).toBe(true);
+    expect(JSON.stringify(collection)).not.toContain('```json');
+  });
+
+  it('permits only one collector to claim a campaign under concurrent attempts', async () => {
+    const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-exclusive-'));
+    const candidate = await readFile(resolve('evaluations/refactor-design/e5-author-runner/candidate.json'), 'utf8');
+    let invocations = 0;
+    const input = {
+      approval: '16',
+      bundle,
+      bundleDirectory,
+      campaign,
+      codexHome: '/unused',
+      expectedCommit: 'e'.repeat(40),
+      preflight: readyCampaignPreflight(campaign, 'e'.repeat(40)),
+      repositoryRoot,
+    };
+    const dependencies = {
+      createInvoker: () => () => {
+        invocations += 1;
+        return Promise.resolve({ observedModel: null, output: candidate });
+      },
+      currentCommit: () => Promise.resolve('e'.repeat(40)),
+      workingTreeClean: () => Promise.resolve(true),
+    };
+
+    const attempts = await Promise.allSettled([
+      runAuthorBenchmarkCampaign(input, dependencies),
+      runAuthorBenchmarkCampaign(input, dependencies),
+    ]);
+
+    expect(attempts.filter((attempt) => attempt.status === 'fulfilled')).toHaveLength(1);
+    expect(attempts.filter((attempt) => attempt.status === 'rejected')[0]).toMatchObject({
+      reason: { code: 'BENCHMARK_ALREADY_RESERVED' },
+    });
+    expect(invocations).toBe(16);
+  });
+
+  it('invalidates collection without a call when frozen skill material drifts after preflight', async () => {
+    const fixture = await frozenCampaignFixture();
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-drift-root-'));
+    const bundleDirectory = join(repositoryRoot, 'bundle-copy');
+    await cp(fixture.bundleDirectory, bundleDirectory, { recursive: true });
+    const firstCase = fixture.bundle.cases.find((entry) => entry.id === fixture.bundle.schedule[0]!.caseId)!;
+    await appendFile(join(bundleDirectory, firstCase.skillPath, 'SKILL.md'), '\nUnexpected post-preflight drift.\n');
+    let invocations = 0;
+
+    const collection = await runAuthorBenchmarkCampaign(
+      {
+        approval: '16',
+        bundle: fixture.bundle,
+        bundleDirectory,
+        campaign: fixture.campaign,
+        codexHome: '/unused',
+        expectedCommit: 'e'.repeat(40),
+        preflight: readyCampaignPreflight(fixture.campaign, 'e'.repeat(40)),
+        repositoryRoot,
+      },
+      {
+        createInvoker: () => {
+          invocations += 1;
+          return () => Promise.reject(new Error('must not invoke'));
+        },
+        currentCommit: () => Promise.resolve('e'.repeat(40)),
+        workingTreeClean: () => Promise.resolve(true),
+      },
+    );
+
+    expect(collection).toMatchObject({ providerInvocations: 0, status: 'INVALIDATED', stopReason: 'SNAPSHOT_DRIFT' });
+    expect(collection.samples.every((sample) => sample.status === 'NOT_RUN')).toBe(true);
+    expect(invocations).toBe(0);
+  });
+
+  it('stops as insufficient without a call when isolated workspace creation fails', async () => {
+    const { bundle, bundleDirectory, campaign } = await frozenCampaignFixture();
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-benchmark-infrastructure-'));
+
+    const collection = await runAuthorBenchmarkCampaign(
+      {
+        approval: '16',
+        bundle,
+        bundleDirectory,
+        campaign,
+        codexHome: '/unused',
+        expectedCommit: 'e'.repeat(40),
+        preflight: readyCampaignPreflight(campaign, 'e'.repeat(40)),
+        repositoryRoot,
+      },
+      {
+        createWorkspace: () => Promise.reject(new Error('synthetic workspace failure')),
+        currentCommit: () => Promise.resolve('e'.repeat(40)),
+        workingTreeClean: () => Promise.resolve(true),
+      },
+    );
+
+    expect(collection).toMatchObject({ providerInvocations: 0, status: 'INSUFFICIENT', stopReason: 'INFRASTRUCTURE_WORKSPACE' });
+    expect(collection.samples.every((sample) => sample.status === 'NOT_RUN')).toBe(true);
+  });
+
+  it('requires every explicit campaign argument at the internal command boundary', async () => {
+    await expect(runAuthorBenchmarkCommand(['--bundle', 'evaluations/refactor-design/e5-author-benchmark'])).rejects.toMatchObject({
+      code: 'BENCHMARK_ARGUMENT_INVALID',
+    });
+  });
+
+  it('qualifies the final runner through Promptfoo with only deterministic local processes', async () => {
+    await expect(qualifyAuthorBenchmarkRunner()).resolves.toMatchObject({
+      campaigns: [
+        { providerInvocations: 16, status: 'COMPLETE' },
+        { providerInvocations: 1, status: 'INSUFFICIENT', stopReason: 'GLOBAL_AUTHENTICATION' },
+      ],
+      externalProviderCalls: 0,
+      localProcessCalls: 17,
+      purpose: 'DEVELOPMENT',
+      result: 'SUPPORTED_FOR_DEVELOPMENT',
+      schemaVersion: 1,
+      workspaceCampaignArtifacts: 0,
     });
   });
 });

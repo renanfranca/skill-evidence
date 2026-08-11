@@ -688,6 +688,39 @@ describe('Evaluation Author v0', () => {
     expect(() => JSON.stringify(invocation)).not.toThrow();
   });
 
+  it('normalizes available Promptfoo latency and token usage without inventing missing fields', async () => {
+    const invoke = createPromptfooAuthorInvoker({
+      codexHome: '/external/codex-home',
+      loadPromptfoo: () =>
+        Promise.resolve({
+          evaluate: () =>
+            Promise.resolve({
+              toEvaluateSummary: () =>
+                Promise.resolve({
+                  results: [
+                    {
+                      latencyMs: 17,
+                      response: {
+                        metadata: {},
+                        output: '{}',
+                        tokenUsage: { cached: 2, completion: 5, completionDetails: { reasoning: 3 }, prompt: 7, total: 12 },
+                      },
+                    },
+                  ],
+                }),
+            }),
+        }),
+      workingDirectory: '/empty/workspace',
+    });
+
+    await expect(invoke({ maxRetries: 0, model: 'gpt-5.6-terra', prompt: '{}', reasoningEffort: 'xhigh' })).resolves.toEqual({
+      observedModel: null,
+      output: '{}',
+      providerLatencyMs: 17,
+      tokenUsage: { cachedInputTokens: 2, inputTokens: 7, outputTokens: 5, reasoningOutputTokens: 3, totalTokens: 12 },
+    });
+  });
+
   it('atomically permits only one Author invocation reservation per campaign', async () => {
     const root = await mkdtemp(join(tmpdir(), 'skill-evidence-reservation-root-'));
     const reservation = {

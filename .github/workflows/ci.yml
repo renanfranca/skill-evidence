@@ -63,3 +63,6 @@ jobs:
 
       - name: Qualify blind Author benchmark instrument offline
         run: npm run experiment:qualify:author-benchmark:offline -- --bundle evaluations/refactor-design/e5-author-benchmark
+
+      - name: Qualify blind Author benchmark runner locally
+        run: npm run experiment:qualify:author-benchmark:runner

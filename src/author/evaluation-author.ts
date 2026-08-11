@@ -36,6 +36,16 @@ export interface AuthorInvocationRequest {
 export interface AuthorInvocationResponse {
   observedModel: string | null;
   output: string;
+  providerLatencyMs?: number | null;
+  tokenUsage?: AuthorTokenUsage | null;
+}
+
+export interface AuthorTokenUsage {
+  cachedInputTokens: number | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  reasoningOutputTokens: number | null;
+  totalTokens: number | null;
 }
 
 export type AuthorInvoker = (request: AuthorInvocationRequest) => Promise<AuthorInvocationResponse>;
@@ -52,6 +62,8 @@ export type AuthorErrorCode = 'CANDIDATE_STRUCTURALLY_INVALID' | 'INVALID_JSON' 
 interface AuthorRunEvidence {
   invocationAttempts: 1;
   packetFingerprint: string;
+  providerLatencyMs: number | null;
+  tokenUsage: AuthorTokenUsage | null;
 }
 
 type AuthorRunError =
@@ -137,12 +149,26 @@ export function prepareAuthorInvocation(snapshot: SkillSnapshot, condition?: Aut
   };
 }
 
-function errorResult(code: 'CANDIDATE_STRUCTURALLY_INVALID' | 'INVALID_JSON', packetFingerprint: string): AuthorRunResult {
-  return { error: { code }, invocationAttempts: 1, packetFingerprint, status: 'ERROR' };
+function responseEvidence(response: AuthorInvocationResponse | undefined): Pick<AuthorRunEvidence, 'providerLatencyMs' | 'tokenUsage'> {
+  return { providerLatencyMs: response?.providerLatencyMs ?? null, tokenUsage: response?.tokenUsage ?? null };
+}
+
+function errorResult(
+  code: 'CANDIDATE_STRUCTURALLY_INVALID' | 'INVALID_JSON',
+  packetFingerprint: string,
+  response: AuthorInvocationResponse,
+): AuthorRunResult {
+  return { error: { code }, invocationAttempts: 1, packetFingerprint, ...responseEvidence(response), status: 'ERROR' };
 }
 
 function providerErrorResult(diagnostic: AuthorProviderDiagnostic, packetFingerprint: string): AuthorRunResult {
-  return { error: { code: 'PROVIDER_ERROR', diagnostic }, invocationAttempts: 1, packetFingerprint, status: 'ERROR' };
+  return {
+    error: { code: 'PROVIDER_ERROR', diagnostic },
+    invocationAttempts: 1,
+    packetFingerprint,
+    ...responseEvidence(undefined),
+    status: 'ERROR',
+  };
 }
 
 export async function authorEvaluationBlueprint(input: AuthorInput): Promise<AuthorRunResult> {
@@ -158,11 +184,11 @@ export async function authorEvaluationBlueprint(input: AuthorInput): Promise<Aut
   try {
     parsed = JSON.parse(response.output) as unknown;
   } catch {
-    return errorResult('INVALID_JSON', packetFingerprint);
+    return errorResult('INVALID_JSON', packetFingerprint, response);
   }
   const validation = validateEvaluationBlueprint(parsed);
   if (!validation.structurallyValid) {
-    return errorResult('CANDIDATE_STRUCTURALLY_INVALID', packetFingerprint);
+    return errorResult('CANDIDATE_STRUCTURALLY_INVALID', packetFingerprint, response);
   }
   const candidate = parsed as BlueprintCandidate;
   const selectedCondition = prepared.condition;
@@ -192,5 +218,5 @@ export async function authorEvaluationBlueprint(input: AuthorInput): Promise<Aut
     schemaVersion: prepared.schemaVersion,
     snapshotFingerprint: input.snapshot.fingerprint,
   };
-  return { blueprint, invocationAttempts: 1, packetFingerprint, status: 'COMPLETED' };
+  return { blueprint, invocationAttempts: 1, packetFingerprint, ...responseEvidence(response), status: 'COMPLETED' };
 }

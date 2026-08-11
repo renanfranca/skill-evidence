@@ -1,0 +1,100 @@
+{
+  "activationRegions": {
+    "nearBoundary": ["The request omits a required source artifact."],
+    "negative": ["The request targets behavior outside the supplied skill."],
+    "positive": ["The request explicitly asks for the supplied skill behavior."]
+  },
+  "analysisPlan": {
+    "missingTrials": "Preserve missing trials as missing.",
+    "multiplicity": "Report every prespecified measure.",
+    "primaryComparisons": ["Observable contract satisfaction."],
+    "reportingRule": "Preserve all scheduled outcomes.",
+    "subgroups": ["usage", "stress"]
+  },
+  "claims": [
+    {
+      "id": "claim-runner-observation",
+      "mandatory": true,
+      "statement": "The skill behavior is evaluated through observable results.",
+      "type": "OBSERVED_BEHAVIOR"
+    }
+  ],
+  "contrasts": [
+    {
+      "claimIds": ["claim-runner-observation"],
+      "condition": "current requested condition",
+      "id": "contrast-current-condition",
+      "rationale": "Describe the current condition without causal attribution."
+    }
+  ],
+  "contracts": [
+    {
+      "acceptableDecisions": ["Produce the requested observable result or report a blocker."],
+      "activationExpectation": "Activate only for explicit in-scope requests.",
+      "authorityConstraints": ["Do not extend authority beyond supplied context."],
+      "claimIds": ["claim-runner-observation"],
+      "evidenceRequired": ["Resulting artifact and terminal status."],
+      "id": "contract-runner-observable",
+      "preconditions": ["The request and required inputs are available."],
+      "prohibitedEffects": ["Inventing absent context."],
+      "recoveryBehavior": ["Report unavailable required input."],
+      "requiredEffects": ["Produce an inspectable result."],
+      "responsibilityBoundaries": ["External state remains outside the skill."],
+      "stimulus": "An explicit request for the supplied skill behavior.",
+      "temporalConstraints": ["Validate before declaring completion."]
+    }
+  ],
+  "decisionContext": {
+    "decision": "Whether observable contracts are represented.",
+    "efficiencyBudgets": ["One invocation for this scheduled sample."],
+    "maximumAcceptableRegression": "No critical contract regression.",
+    "minimumWorthwhileImprovement": "Preserve the observable contract.",
+    "requiredUncertainty": "Retain unknown information explicitly.",
+    "severeHarmLimits": ["No credential disclosure."]
+  },
+  "evidencePlan": [
+    {
+      "claimIds": ["claim-runner-observation"],
+      "contractIds": ["contract-runner-observable"],
+      "evidenceType": "DIRECT",
+      "id": "evidence-runner-artifact",
+      "required": true,
+      "source": "Observable artifact and terminal status."
+    }
+  ],
+  "exclusions": [{ "description": "Hidden qualification references are excluded.", "id": "exclude-hidden-reference" }],
+  "oracleQualificationPlan": {
+    "ambiguousAlternatives": ["A structured blocker when required input is absent."],
+    "invalidBehaviors": ["Fabricated context or evidence."],
+    "leakageChecks": ["Expected conclusions remain outside the Author packet."],
+    "validBehaviors": ["Complete observable contract representation."]
+  },
+  "policies": {
+    "criticalViolationPrecedence": "Critical violations override favorable aggregates.",
+    "expectationBlindness": "Expected answers remain hidden.",
+    "missingEvidence": "Missing mandatory evidence remains unresolved.",
+    "semanticEquivalence": "Equivalent supported behavior is acceptable."
+  },
+  "population": {
+    "excluded": ["Decision execution and hidden reference material."],
+    "target": "Authorized skills with observable contracts."
+  },
+  "samplingPlan": {
+    "exclusionRules": ["Keep invalid executions as terminal errors."],
+    "inclusionRules": ["Include every scheduled result."],
+    "randomization": "Use the frozen schedule.",
+    "repetitions": 1,
+    "stressCount": 1,
+    "usageCount": 1
+  },
+  "skill": { "name": "Local runner fixture", "summary": "Exercises deterministic collection plumbing." },
+  "stoppingConditions": [{ "action": "Stop and report.", "condition": "A security boundary fails.", "id": "stop-boundary" }],
+  "stressFamilies": [
+    { "contractIds": ["contract-runner-observable"], "description": "Required input is unavailable.", "id": "stress-unavailable" }
+  ],
+  "unresolvedRequirements": [],
+  "untestedRisks": [
+    { "description": "Live provider availability is not tested locally.", "id": "risk-live-provider", "severity": "MEDIUM" }
+  ],
+  "usageFamilies": [{ "contractIds": ["contract-runner-observable"], "description": "Ordinary explicit request.", "id": "usage-explicit" }]
+}
