@@ -6,6 +6,8 @@ Safety boundary: this work is authorized, defensive maintenance in this reposito
 
 The intended executor is `gpt-5.6-terra` with `xhigh` reasoning. The baseline is `main` at `500e182`. The normative THEORY was read in full at commit `572e963ea6f1207ab53c533592cb70a8239e221c` on 2026-08-10.
 
+Closure status: `CLOSED — INSUFFICIENT`. The product core and offline validation are complete, and the authorized campaign is closed, but Milestone 4 acceptance was not satisfied because its only permitted invocation ended in `PROVIDER_ERROR` before producing an Author candidate. E4 therefore does not support advancement to E5. A further real attempt requires a separate addendum or ExecPlan, a novel fixture and campaign, and new explicit one-invocation authorization.
+
 ## Purpose / Big Picture
 
 Deliver the first product core that turns an authorized, reproducible skill snapshot into a canonical schema-1 `EvaluationBlueprint` whose lifecycle is `DRAFT`, `BLOCKED`, or `READY`. E4 uses development-only material to show that an Author can discover claims, contracts, activation boundaries, evidence needs, and uncertainty without inventing absent context. A `READY` result remains development-only and cannot authorize a decision run because blind Author qualification belongs to E5.
@@ -119,7 +121,8 @@ git status --short
 - [x] Complete Milestone 3.
 - [x] Create a clean preparation commit.
 - [x] Pass the real-canary preflight after the user explicitly selected `/home/renanfranca/.codex`.
-- [x] Execute and record Milestone 4. The single reserved attempt ended in terminal `PROVIDER_ERROR`; the sanitized result is `INSUFFICIENT` and no retry is authorized.
+- [x] Execute and record the single authorized Milestone 4 attempt. It ended in terminal `PROVIDER_ERROR`; the sanitized result is `INSUFFICIENT` and no retry is authorized.
+- [ ] Satisfy Milestone 4 acceptance. No Author candidate was produced, so the prescribed lifecycle, contract, boundary, unresolved-requirement, and non-fabrication checks were not observed.
 - [x] Complete the scoped `refactor-design` review after restoring all behavior gates.
 - [x] Complete final validation without repeating the real canary.
 
@@ -149,6 +152,9 @@ git status --short
 - Decision: classify the single real canary as `INSUFFICIENT` after `PROVIDER_ERROR` and leave semantic checks unobserved.
   Rationale: the prespecified protocol makes provider failure terminal; absence of a candidate cannot support contract discovery, lifecycle, non-fabrication, or E5-readiness claims.
   Date/Author: 2026-08-10 / implementation agent.
+- Decision: close E4 as `CLOSED — INSUFFICIENT`, not as successfully complete.
+  Rationale: campaign closure records that the one-call protocol ended and cannot be retried, whereas milestone acceptance requires a candidate that passes the prespecified real-canary checks. Offline completion does not substitute for that missing evidence or authorize E5.
+  Date/Author: 2026-08-10 / user and implementation agent.
 - Decision: atomically claim the Blueprint output path before reserving or invoking the Author.
   Rationale: discovering an existing or unavailable output only after provider work could consume the unique reservation without any possible artifact; the preflight now fails before both reservation and invocation.
   Date/Author: 2026-08-10 / implementation agent after `refactor-design` exception gate.
@@ -165,6 +171,7 @@ git status --short
 - Risk: `READY` is mistaken for authorization. Mitigation: invariant `DEVELOPMENT_AUTHORING`, `NOT_QUALIFIED`, and `decisionEligible: false`.
 - Risk: product code duplicates Promptfoo. Mitigation: Promptfoo owns invocation/provider lifecycle; Skill Evidence owns intake, schema, semantics, eligibility, reservation, and provenance.
 - Risk: a poor canary tempts retry. Mitigation: exclusive atomic reservation and terminal `INSUFFICIENT` classification.
+- Risk: a closed campaign is mistaken for satisfied E4 acceptance or E5 readiness. Mitigation: record product/offline completion separately from the unchecked Milestone 4 acceptance and label the canonical plan status `CLOSED — INSUFFICIENT`.
 - Risk: concurrent writes can be observed between filesystem operations. Mitigation: compare file identity, size, nanosecond modification time, and bytes read across an explicit consistency window, aborting on any mismatch.
 - Risk: selecting an ambient Codex home could use an unintended ChatGPT identity. Mitigation: require the caller to set `SKILL_EVIDENCE_AUTHOR_CODEX_HOME` explicitly; the blocked 2026-08-10 preflight created no reservation and made no provider call.
 
@@ -197,6 +204,7 @@ There is no deployment. E4 is delivered on `feat/e4-evaluation-author-v0`; push 
 - The eight-case local Promptfoo qualifier is `SUPPORTED_FOR_DEVELOPMENT` with zero external calls; this verifies packet blindness and lifecycle ownership without supporting model reliability claims.
 - The first real-canary preflight stopped safely with both API-key variables and the campaign reservation absent. Two authenticated writable homes exist (`/home/renanfranca/.codex` and `/mnt/c/Users/renan/.codex`), so choosing one is an identity decision rather than a mechanical default.
 - After explicit home selection, the repeated preflight passed at `0eb5395`; the unique reservation was consumed by one attempt, which ended in `PROVIDER_ERROR` without a model identity or candidate. The public report therefore records `INSUFFICIENT`, zero retries, and all candidate-dependent checks as `NOT_OBSERVED`.
+- Terminal execution and successful acceptance are distinct states: preserving the one permitted failed attempt correctly closes the campaign, but it cannot satisfy Milestone 4 or support progression to E5.
 - The design review first found missing output-preflight behavior and correctly returned to behavior TDD before refactoring. Its subsequent behavior-preserving pass made Author outcomes a discriminated union and consolidated canonicalization without changing fingerprints or historical qualification results.
 - Normalizing provider failures to a safe code protects public artifacts but leaves the canary root cause unknown; future instrument evolution needs an explicitly designed sanitized diagnostic contract rather than retrospective inspection or retry.
 - Final validation passed after one formatting-only restart: audit reported zero vulnerabilities; 85 tests passed; provider-free verification reported zero imports; archaeological and Author qualifiers remained supported; Codex OTEL and Promptfoo tracing remained `EXACT_SUPPORTED`; loopback tracing integration passed; and `git diff --check` was clean.
