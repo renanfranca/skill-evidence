@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "e5-author-benchmark-20260811-r1",
+  "bundleFingerprint": "e5b69fe99942c7c4054b55f7ba2a570f180f3968f9f292ee288f2253ef08f3e1",
+  "reviewerQualificationFingerprint": "432d823d85a5ff4995f71a25e84b71441517098ae53c94cf8c3daf452c2271df",
+  "invocationBudget": 16,
+  "actualAccountCost": "UNKNOWN",
+  "conditions": [
+    {
+      "id": "TERRA_XHIGH",
+      "requestedModel": "gpt-5.6-terra",
+      "reasoningEffort": "xhigh",
+      "conditionFingerprint": "f3eeb2e2fad33a83ed394a91d639777e25050ef21c1f33258bad27806f2ad0d1"
+    },
+    {
+      "id": "LUNA_MAX",
+      "requestedModel": "gpt-5.6-luna",
+      "reasoningEffort": "max",
+      "conditionFingerprint": "040c6d8f1bc9f549b8a6f38ab09056f115b4155b86f97c16a6c94267cf739379"
+    }
+  ],
+  "environment": {
+    "nodeVersion": "24.16.0",
+    "npmVersion": "11.13.0",
+    "promptfooVersion": "0.122.0",
+    "codexSdkVersion": "0.147.0",
+    "codexCliVersion": "0.147.0",
+    "codexHome": "/home/renanfranca/.codex"
+  },
+  "reviewerIds": ["reviewer-a", "reviewer-b"],
+  "reservationPath": ".skill-evidence/author-benchmark-reservations/e5-author-benchmark-20260811-r1.json",
+  "outputDirectory": ".skill-evidence/author-benchmark/e5-author-benchmark-20260811-r1",
+  "sanitizedReportPath": "docs/experiments/e5-author-benchmark-20260811-r1.json",
+  "sanitizedReportPolicy": {
+    "publishAfter": "ADJUDICATION_COMPLETE",
+    "includes": [
+      "terminal outcomes and bounded diagnostics",
+      "canonical candidate identities and Blueprints",
+      "requested conditions and nullable effective-model evidence",
+      "token usage, elapsed time, fingerprints, judgments, metrics, and limitations"
+    ],
+    "excludes": ["credentials and authentication contents", "raw model reasoning", "absolute local paths", "unsanitized provider artifacts"]
+  },
+  "apiEquivalentPriceReference": {
+    "capturedAt": "2026-08-11",
+    "currency": "USD",
+    "perMillionTokens": {
+      "TERRA_XHIGH": { "input": 2, "cachedInput": 0.2, "output": 12 },
+      "LUNA_MAX": { "input": 0.2, "cachedInput": 0.02, "output": 1.2 }
+    },
+    "sources": ["https://developers.openai.com/api/docs/models/gpt-5.6-terra", "https://developers.openai.com/api/docs/models/gpt-5.6-luna"]
+  },
+  "stopRules": [
+    "Never retry, repeat, replace, or reorder a consumed sample.",
+    "Continue the frozen schedule after a per-sample error or timeout unless a prespecified global stop applies.",
+    "Stop remaining calls on global authentication failure, global model unavailability, security-boundary failure, or infrastructure corruption; classify the campaign INSUFFICIENT.",
+    "Invalidate the campaign on blindness, freeze, reservation, or schedule violation.",
+    "Do not inspect aggregate condition performance or adapt the instrument during collection.",
+    "Do not persist credentials, authentication contents, raw model reasoning, or unsanitized provider artifacts."
+  ]
+}

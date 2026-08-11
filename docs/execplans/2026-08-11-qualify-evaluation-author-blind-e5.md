@@ -2,11 +2,11 @@
 
 This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mitigations`, and `Lessons Learned` current throughout execution.
 
-Safety boundary: E5 Milestones 1 and 2 were explicitly authorized on 2026-08-11. The blind instrument may be created and qualified offline, but campaign preparation, reservations, provider calls, output review, Author-condition qualification, and normal-path promotion remain unauthorized. Offline instrument qualification does not itself satisfy Gate G5.
+Safety boundary: E5 Milestones 1 through 3 were explicitly authorized on 2026-08-11. The campaign may be prepared and checked without provider access, but reservations, provider calls, output review, Author-condition qualification, and normal-path promotion remain unauthorized. Offline instrument qualification does not itself satisfy Gate G5.
 
 The intended implementation executor is `gpt-5.6-terra` with `xhigh` reasoning. The E4 baseline is commit `916f8bbcc438d1b5aa30868fad4e4379fdf2ea43` on `feat/e4-evaluation-author-v0`. Authorized Milestone 1 implementation began on `feat/e5-blind-author-benchmark` from planning commit `973efba2e0b1d02afc1de550053cf6df914408a9`, which contains that E4 baseline. The normative THEORY was read in full at commit `572e963ea6f1207ab53c533592cb70a8239e221c`.
 
-Status: `MILESTONE 2 COMPLETE — CAMPAIGN PREPARATION AND PROVIDER EXECUTION NOT AUTHORIZED`.
+Status: `MILESTONE 3 IN PROGRESS — RESERVATIONS AND PROVIDER EXECUTION NOT AUTHORIZED`.
 
 Milestone 1 implementation is recorded at commit `46d83a9`.
 Milestone 2 implementation is recorded at commit `8a154f2`.
@@ -106,6 +106,10 @@ The planned internal commands are:
 
 ```text
 npm run experiment:qualify:author-benchmark:offline -- --bundle <directory>
+
+SKILL_EVIDENCE_AUTHOR_CODEX_HOME=/home/renanfranca/.codex \
+  npm run experiment:preflight:author-benchmark -- \
+  --bundle <directory> --preparation <campaign-preparation.json>
 
 npm run experiment:benchmark:author -- --bundle <directory> --campaign <id> \
   --approve-provider-invocations 16
@@ -305,6 +309,9 @@ git status --short
 - [x] Complete Milestone 1 with schema-1 compatibility, schema-2 explicit conditions, qualification-report contracts, 95 green tests, and provider-free checkpoints.
 - [x] Receive explicit authorization to create blind material.
 - [x] Complete Milestone 2 with eight dual-curated cases, sixteen reviewer probes, a counterbalanced schedule, and provider-free qualification.
+- [x] Receive explicit authorization to prepare E5 Milestone 3 without reservation or provider access.
+- [x] Complete the post-green `refactor-design` review with no behavior-changing finding.
+- [ ] Freeze the campaign manifest and pass the provider-free preflight from a clean preparation commit.
 - [ ] Complete Milestone 3 and obtain explicit sixteen-call authorization.
 - [ ] Complete Milestone 4 exactly once.
 - [ ] Complete Milestone 5.
@@ -350,6 +357,9 @@ Milestone 2 closed with 107 green tests, zero provider imports at the public che
 - Decision: disclose asymmetric preservation of the two original curation proposals without repeating curatorship.
   Rationale: Curator A's original is recoverable byte for byte, while Curator B's original was not durably persisted and can only be reconstructed without a fidelity guarantee. Preserving A and an explicit non-preservation record is stronger evidence than silently omitting the gap or presenting a retrospective reconstruction as original.
   Date/Author: 2026-08-11 / user and implementation agent.
+- Decision: freeze API-equivalent prices captured from the official model pages on 2026-08-11 while keeping actual ChatGPT-account cost `UNKNOWN`.
+  Rationale: the preparation records Terra at USD 2.00 input, USD 0.20 cached input, and USD 12.00 output per million tokens, and Luna at USD 0.20, USD 0.02, and USD 1.20 respectively. These rates support a later analytical estimate only; ChatGPT authentication does not establish API billing.
+  Date/Author: 2026-08-11 / implementation agent.
 
 ## Risks and Mitigations
 

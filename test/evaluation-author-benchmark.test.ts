@@ -5,6 +5,13 @@ import { describe, expect, it } from 'vitest';
 
 import { prepareAuthorInvocation } from '../src/author/evaluation-author.js';
 import { createSkillSnapshot } from '../src/intake/skill-snapshot.js';
+import {
+  evaluateAuthorBenchmarkCampaignPreflight,
+  validateAuthorBenchmarkCampaignPreparation,
+  type AuthorBenchmarkCampaignPreparation,
+  type AuthorBenchmarkPreflightEvidence,
+} from '../src/qualification/author-benchmark-preflight.js';
+import { runAuthorBenchmarkCampaignPreflight } from '../src/qualification/preflight-author-benchmark.js';
 
 import {
   createAuthorBenchmarkSchedule,
@@ -230,5 +237,130 @@ describe('blind Evaluation Author benchmark', () => {
       const prepared = prepareAuthorInvocation(snapshot, { model: 'gpt-5.6-terra', reasoningEffort: 'xhigh' });
       expect(verifyAuthorBenchmarkPacketBlindness(bundle, benchmarkCase, prepared.request.prompt)).toEqual({ findings: [], valid: true });
     }
+  });
+
+  it('requires every frozen campaign prerequisite without creating a reservation or provider call', () => {
+    const campaign: AuthorBenchmarkCampaignPreparation = {
+      actualAccountCost: 'UNKNOWN',
+      apiEquivalentPriceReference: {
+        capturedAt: '2026-08-11',
+        currency: 'USD',
+        perMillionTokens: {
+          LUNA_MAX: { cachedInput: 0.02, input: 0.2, output: 1.2 },
+          TERRA_XHIGH: { cachedInput: 0.2, input: 2, output: 12 },
+        },
+        sources: [
+          'https://developers.openai.com/api/docs/models/gpt-5.6-terra',
+          'https://developers.openai.com/api/docs/models/gpt-5.6-luna',
+        ],
+      },
+      bundleFingerprint: 'a'.repeat(64),
+      campaignId: 'e5-author-benchmark-20260811-r1',
+      conditions: [
+        {
+          conditionFingerprint: 'b'.repeat(64),
+          id: 'TERRA_XHIGH',
+          requestedModel: 'gpt-5.6-terra',
+          reasoningEffort: 'xhigh',
+        },
+        {
+          conditionFingerprint: 'c'.repeat(64),
+          id: 'LUNA_MAX',
+          requestedModel: 'gpt-5.6-luna',
+          reasoningEffort: 'max',
+        },
+      ],
+      environment: {
+        codexCliVersion: '0.147.0',
+        codexHome: '/home/renanfranca/.codex',
+        codexSdkVersion: '0.147.0',
+        nodeVersion: '24.16.0',
+        npmVersion: '11.13.0',
+        promptfooVersion: '0.122.0',
+      },
+      invocationBudget: 16,
+      outputDirectory: '.skill-evidence/author-benchmark/e5-author-benchmark-20260811-r1',
+      reservationPath: '.skill-evidence/author-benchmark-reservations/e5-author-benchmark-20260811-r1.json',
+      reviewerIds: ['reviewer-a', 'reviewer-b'],
+      reviewerQualificationFingerprint: 'd'.repeat(64),
+      sanitizedReportPath: 'docs/experiments/e5-author-benchmark-20260811-r1.json',
+      sanitizedReportPolicy: {
+        excludes: ['credentials', 'raw model reasoning', 'absolute local paths'],
+        includes: ['terminal outcomes', 'canonical candidates', 'bounded diagnostics', 'usage and elapsed time'],
+        publishAfter: 'ADJUDICATION_COMPLETE',
+      },
+      schemaVersion: 1,
+      stopRules: ['Stop on a global authentication failure.', 'Never retry or replace a consumed sample.'],
+    };
+    const evidence: AuthorBenchmarkPreflightEvidence = {
+      authentication: { authFileReadable: true, codexHome: campaign.environment.codexHome, homeWritable: true },
+      bundleFingerprint: campaign.bundleFingerprint,
+      conditionFingerprints: { LUNA_MAX: 'c'.repeat(64), TERRA_XHIGH: 'b'.repeat(64) },
+      currentCommit: 'e'.repeat(40),
+      credentialVariablesAbsent: true,
+      environment: campaign.environment,
+      offlineQualificationResult: 'SUPPORTED_FOR_DEVELOPMENT',
+      outputDirectoryExists: false,
+      outputParentWritable: true,
+      reservationExists: false,
+      reviewerQualificationFingerprint: campaign.reviewerQualificationFingerprint,
+      reviewerQualificationResult: 'QUALIFIED',
+      scheduleCount: 16,
+      worktreeClean: true,
+    };
+
+    const ready = evaluateAuthorBenchmarkCampaignPreflight(campaign, evidence);
+    const blocked = evaluateAuthorBenchmarkCampaignPreflight(campaign, { ...evidence, reservationExists: true });
+    const changedCondition = evaluateAuthorBenchmarkCampaignPreflight(campaign, {
+      ...evidence,
+      conditionFingerprints: { ...evidence.conditionFingerprints, LUNA_MAX: 'f'.repeat(64) },
+    });
+
+    expect(ready).toMatchObject({
+      campaignId: campaign.campaignId,
+      externalProviderCalls: 0,
+      providerInvocations: 0,
+      reservationCreated: false,
+      result: 'READY_FOR_AUTHORIZATION',
+    });
+    expect(ready.checks.every((check) => check.status === 'PASS')).toBe(true);
+    expect(blocked).toMatchObject({ result: 'BLOCKED' });
+    expect(blocked.checks).toContainEqual({ id: 'RESERVATION_ABSENT', status: 'FAIL' });
+    expect(changedCondition.checks).toContainEqual({ id: 'AUTHOR_CONDITIONS_FROZEN', status: 'FAIL' });
+  });
+
+  it('rejects malformed campaign preparation without interpreting missing fields', () => {
+    expect(validateAuthorBenchmarkCampaignPreparation({ campaignId: 'partial' })).toEqual({
+      diagnostics: [{ code: 'CAMPAIGN_PREPARATION_INVALID', path: '/' }],
+      valid: false,
+    });
+  });
+
+  it('collects a provider-free preflight through the internal campaign command boundary', async () => {
+    const root = resolve('.');
+    const bundleDirectory = join(root, 'evaluations/refactor-design/e5-author-benchmark');
+
+    const report = await runAuthorBenchmarkCampaignPreflight(
+      ['--bundle', bundleDirectory, '--preparation', join(bundleDirectory, 'campaign-preparation.json')],
+      {
+        codexCliVersion: () => Promise.resolve('0.147.0'),
+        currentCommit: () => Promise.resolve('e'.repeat(40)),
+        environment: { SKILL_EVIDENCE_AUTHOR_CODEX_HOME: '/home/renanfranca/.codex' },
+        npmVersion: () => Promise.resolve('11.13.0'),
+        packageVersion: (name) => Promise.resolve(name === 'promptfoo' ? '0.122.0' : '0.147.0'),
+        pathExists: () => Promise.resolve(false),
+        pathReadable: () => Promise.resolve(true),
+        pathWritable: (path) => Promise.resolve(path === '/home/renanfranca/.codex' || path === join(root, '.skill-evidence')),
+        repositoryRoot: root,
+        workingTreeClean: () => Promise.resolve(true),
+      },
+    );
+
+    expect(report).toMatchObject({
+      externalProviderCalls: 0,
+      providerInvocations: 0,
+      reservationCreated: false,
+      result: 'READY_FOR_AUTHORIZATION',
+    });
   });
 });
