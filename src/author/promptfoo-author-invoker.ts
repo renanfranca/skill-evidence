@@ -27,8 +27,8 @@ export interface AuthorPromptfooInvocation {
         enable_streaming: false;
         inherit_process_env: false;
         maxRetries: 0;
-        model: 'gpt-5.6-terra';
-        model_reasoning_effort: 'xhigh';
+        model: AuthorInvocationRequest['model'];
+        model_reasoning_effort: AuthorInvocationRequest['reasoningEffort'];
         network_access_enabled: false;
         persist_threads: false;
         sandbox_mode: 'read-only';
