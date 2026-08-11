@@ -6,12 +6,13 @@ Safety boundary: E5 Milestones 1 through 3 and provider-free preparation of the 
 
 The intended implementation executor is `gpt-5.6-terra` with `xhigh` reasoning. The E4 baseline is commit `916f8bbcc438d1b5aa30868fad4e4379fdf2ea43` on `feat/e4-evaluation-author-v0`. Authorized Milestone 1 implementation began on `feat/e5-blind-author-benchmark` from planning commit `973efba2e0b1d02afc1de550053cf6df914408a9`, which contains that E4 baseline. The normative THEORY was read in full at commit `572e963ea6f1207ab53c533592cb70a8239e221c`.
 
-Status: `MILESTONE 4 RUNNER PREPARATION IN PROGRESS — REAL RESERVATION AND SIXTEEN PROVIDER CALLS NOT AUTHORIZED`.
+Status: `MILESTONE 4 RUNNER PREPARED — REAL RESERVATION AND SIXTEEN PROVIDER CALLS NOT AUTHORIZED`.
 
 Milestone 1 implementation is recorded at commit `46d83a9`.
 Milestone 2 implementation is recorded at commit `8a154f2`.
 Milestone 3 preparation is recorded at commit `f8dfe28`.
 Milestone 3 commit-freeze hardening is recorded at commit `0ed7c3d`.
+Milestone 4 provider-free runner preparation is recorded at commit `1b157d8`.
 
 ## Purpose / Big Picture
 
@@ -322,7 +323,7 @@ git status --short
 - [x] Complete Milestone 3 preparation with zero reservations and zero provider calls.
 - [x] Require the clean campaign `HEAD` to equal an explicitly expected commit before requesting authorization.
 - [x] Receive explicit authorization to implement and qualify the final runner offline without touching the real campaign.
-- [ ] Complete the live-capable runner with temporary deterministic qualification and a new clean preflight.
+- [x] Complete the live-capable runner with temporary deterministic qualification and a new clean preflight.
 - [ ] Receive explicit authorization for exactly sixteen provider calls.
 - [ ] Complete Milestone 4 exactly once.
 - [ ] Complete Milestone 5.
@@ -333,6 +334,8 @@ Milestone 2 closed with 107 green tests, zero provider imports at the public che
 Milestone 3 closed with 110 green tests and campaign fingerprint `d4fa2011bcb04d9dfb4840ce5b5954c5bad630e8407f21223dca6834f343a860`. The clean-commit preflight returned `READY_FOR_AUTHORIZATION` with all ten checks passing, `providerInvocations: 0`, and `reservationCreated: false`. This state permits requesting authorization; it does not authorize collection.
 
 Post-milestone review found that `EXACT_CLEAN_COMMIT` originally proved only a clean worktree and a syntactically valid observed SHA. Commit `0ed7c3d` hardened the contract so a distinct literal expected SHA is mandatory and must equal the clean observed `HEAD`. The focused suite, full 111-test suite, public provider-free checkpoint, and offline benchmark qualification passed; the clean preflight returned `READY_FOR_AUTHORIZATION` with both SHAs equal, zero provider calls, and no reservation. The final exact SHA remains an external authorization fact recorded by the ignored preflight report rather than a self-referential field in the versioned preparation.
+
+Milestone 4 runner preparation closed with 122 green tests. The deterministic runner qualifier traversed the final Promptfoo/Codex SDK path with sixteen local successful samples and a separate one-call authentication stop, reported `SUPPORTED_FOR_DEVELOPMENT`, and recorded seventeen local processes, zero external provider calls, and zero workspace campaign artifacts. Post-GREEN design review replaced a fragile inferred Blueprint type with the explicit product type and removed an absolute path from the reservation-collision diagnostic; focused tests and the provider-free public checkpoint remained green. A clean literal-SHA preflight on implementation commit `1b157d8` passed all ten checks with zero calls and no reservation. The final documentation commit is rechecked separately and its exact SHA remains only in the ignored preflight report and later authorization.
 
 ## Decisions
 
@@ -397,6 +400,10 @@ Post-milestone review found that `EXACT_CLEAN_COMMIT` originally proved only a c
 
 - Decision: preserve only normalized numeric token fields and bounded latency values, with unavailable telemetry represented as `null`.
   Rationale: collection evidence should retain useful operational facts without inferring missing measurements or allowing provider-specific payloads to enter canonical artifacts.
+  Date/Author: 2026-08-11 / implementation agent.
+
+- Decision: treat the deterministic runner qualification as evidence about orchestration and terminal policy only.
+  Rationale: seventeen local executable processes exercise the final adapter without network access, but cannot establish provider availability or either Author condition's quality.
   Date/Author: 2026-08-11 / implementation agent.
 
 ## Risks and Mitigations
@@ -473,3 +480,4 @@ A qualified condition becomes `STALE` when any model/reasoning request, instruct
 - Cleanliness and a SHA-shaped `HEAD` do not establish exact campaign provenance; the observed SHA must equal an independently stated expectation.
 - Commit freezing is proportional for irreversible qualification evidence but would be an inappropriate dependency for ordinary skill authoring.
 - A live-capable runner can be frozen safely before cost authorization when its complete provider boundary is exercised with a deterministic local executable and all reservations are redirected to temporary roots.
+- Normalizing optional telemetry at the provider boundary preserves operational evidence without letting provider-specific shapes or missing values alter campaign identity.
