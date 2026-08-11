@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "expectedLifecycle": "BLOCKED",
+  "observableChecks": [
+    "At least one contract covers explicit normalization of user-supplied dependency change records.",
+    "At least one negative activation region excludes dependency advice, vulnerability review, upgrade planning, or package installation.",
+    "Required effects preserve supplied package and version values, sort valid records by package, preserve duplicate-package input order, and separate incomplete records.",
+    "Prohibited effects include invented or normalized versions and compatibility, security, licensing, priority, or upgrade recommendations.",
+    "Responsibility boundaries prohibit manifests, lockfiles, registries, advisories, release notes, external state, and package-manager execution.",
+    "Blocking unresolved requirements preserve absent decision thresholds, target usage distribution, severe-harm limits, or required uncertainty rather than inventing them.",
+    "Every identifier is derived from observable authored content rather than hidden expected state."
+  ],
+  "terminalFailureConditions": [
+    "Provider error or timeout",
+    "Invalid or fenced JSON",
+    "Lifecycle other than BLOCKED",
+    "Missing observable contract or activation boundary",
+    "Fabricated decision context",
+    "Decision eligibility or qualified provenance"
+  ]
+}
