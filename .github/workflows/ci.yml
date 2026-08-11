@@ -57,3 +57,6 @@ jobs:
 
       - name: Qualify Evaluation Author development behavior
         run: npm run experiment:qualify:author
+
+      - name: Qualify Evaluation Author provider boundary
+        run: npm run experiment:qualify:author-provider

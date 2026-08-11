@@ -3,19 +3,26 @@ import { AuthorProviderError, diagnoseProviderFailure } from './provider-diagnos
 
 export interface CreateAuthorPromptfooInvocationInput {
   codexHome: string;
+  localDiagnostic?: AuthorLocalDiagnosticOverride;
   request: AuthorInvocationRequest;
   workingDirectory: string;
 }
 
+export interface AuthorLocalDiagnosticOverride {
+  codexPathOverride: string;
+  environment: Record<string, string>;
+}
+
 export interface AuthorPromptfooInvocation {
-  options: { cache: false; maxConcurrency: 1; maxEvalTimeMs: 360000; timeoutMs: 300000 };
+  options: { cache: false; maxConcurrency: 1; maxEvalTimeMs: 360000; silent: true; timeoutMs: 300000 };
   suite: {
     prompts: [string];
     providers: Array<{
       config: {
         approval_policy: 'never';
         cli_config: { features: { multi_agent: false } };
-        cli_env: { CODEX_HOME: string };
+        cli_env: Record<string, string>;
+        codex_path_override?: string;
         deep_tracing: false;
         enable_streaming: false;
         inherit_process_env: false;
@@ -32,7 +39,7 @@ export interface AuthorPromptfooInvocation {
       id: 'openai:codex-sdk';
     }>;
     sharing: false;
-    tests: [Record<string, never>];
+    tests: [{ vars: Record<string, never> }];
     writeLatestResults: false;
   };
 }
@@ -51,8 +58,9 @@ interface PromptfooModule {
 }
 
 export function createAuthorPromptfooInvocation(input: CreateAuthorPromptfooInvocationInput): AuthorPromptfooInvocation {
+  const localDiagnostic = input.localDiagnostic;
   return {
-    options: { cache: false, maxConcurrency: 1, maxEvalTimeMs: 360_000, timeoutMs: 300_000 },
+    options: { cache: false, maxConcurrency: 1, maxEvalTimeMs: 360_000, silent: true, timeoutMs: 300_000 },
     suite: {
       prompts: [input.request.prompt],
       providers: [
@@ -60,7 +68,8 @@ export function createAuthorPromptfooInvocation(input: CreateAuthorPromptfooInvo
           config: {
             approval_policy: 'never',
             cli_config: { features: { multi_agent: false } },
-            cli_env: { CODEX_HOME: input.codexHome },
+            cli_env: { CODEX_HOME: input.codexHome, ...(localDiagnostic?.environment ?? {}) },
+            ...(localDiagnostic === undefined ? {} : { codex_path_override: localDiagnostic.codexPathOverride }),
             deep_tracing: false,
             enable_streaming: false,
             inherit_process_env: false,
@@ -78,7 +87,7 @@ export function createAuthorPromptfooInvocation(input: CreateAuthorPromptfooInvo
         },
       ],
       sharing: false,
-      tests: [{}],
+      tests: [{ vars: {} }],
       writeLatestResults: false,
     },
   };
@@ -87,10 +96,16 @@ export function createAuthorPromptfooInvocation(input: CreateAuthorPromptfooInvo
 export function createPromptfooAuthorInvoker(input: {
   codexHome: string;
   loadPromptfoo?: () => Promise<PromptfooModule>;
+  localDiagnostic?: AuthorLocalDiagnosticOverride;
   workingDirectory: string;
 }): AuthorInvoker {
   return async (request): Promise<AuthorInvocationResponse> => {
-    const invocation = createAuthorPromptfooInvocation({ codexHome: input.codexHome, request, workingDirectory: input.workingDirectory });
+    const invocation = createAuthorPromptfooInvocation({
+      codexHome: input.codexHome,
+      ...(input.localDiagnostic === undefined ? {} : { localDiagnostic: input.localDiagnostic }),
+      request,
+      workingDirectory: input.workingDirectory,
+    });
     const promptfoo = input.loadPromptfoo === undefined ? ((await import('promptfoo')) as PromptfooModule) : await input.loadPromptfoo();
     let evaluation: PromptfooEvaluation;
     try {

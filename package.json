@@ -17,6 +17,7 @@
     "experiment:qualify:archaeological": "npm run build --silent && node dist/experiments/qualify-archaeological.js",
     "experiment:qualify:codex-otel": "npm run build --silent && node dist/experiments/qualify-codex-otel.js",
     "experiment:qualify:author": "npm run build --silent && node dist/src/author/qualify-author.js",
+    "experiment:qualify:author-provider": "npm run build --silent && node dist/src/author/qualify-author-provider.js",
     "experiment:qualify:tracing": "npm run build --silent && node dist/experiments/qualify-tracing.js",
     "experiment:report": "npm run build --silent && node dist/experiments/cli.js report",
     "experiment:verify": "npm run build --silent && node dist/experiments/cli.js verify",

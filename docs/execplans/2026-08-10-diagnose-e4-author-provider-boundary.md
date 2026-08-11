@@ -100,7 +100,7 @@ Acceptance requires every command green, zero external provider calls in the new
 - [x] Inspect the pinned Promptfoo/Codex SDK error path.
 - [x] Create this ExecPlan and its index entry.
 - [x] Complete Milestone 1 through behavior TDD: 27 focused tests, typecheck, and provider-free checkpoint green.
-- [ ] Complete Milestone 2 through behavior TDD.
+- [x] Complete Milestone 2 through behavior TDD: real Promptfoo/SDK traversal, six local process calls, and zero external calls.
 - [ ] Pass the post-GREEN design review.
 - [ ] Reconcile documentation and CI.
 - [ ] Complete final deterministic validation.
@@ -121,6 +121,12 @@ Acceptance requires every command green, zero external provider calls in the new
   Date/Author: 2026-08-10 / implementation agent.
 - Decision: render command failures as canonical safe JSON, including the provider diagnostic only for `PROVIDER_ERROR`.
   Rationale: operators and report builders need a machine-readable boundary; unexpected errors must not fall back to arbitrary exception text.
+  Date/Author: 2026-08-10 / implementation agent.
+- Decision: replace the empty Promptfoo test case with an explicit empty `vars` object.
+  Rationale: Promptfoo 0.122.0 rejects `{}` before provider construction; `{vars:{}}` is the smallest valid, JSON-serializable case and lets the configured Codex SDK boundary execute.
+  Date/Author: 2026-08-10 / implementation agent.
+- Decision: retain `UNCLASSIFIED` as the safe code when Promptfoo converts an observed HTTP 429 into its own rate-limit error without preserving the numeric status.
+  Rationale: the category remains supported, but claiming an observed HTTP code after the adapter removed it would overstate the retained evidence.
   Date/Author: 2026-08-10 / implementation agent.
 
 ## Risks and Mitigations
@@ -152,3 +158,5 @@ There is no deployment or live collection. Commits can be reverted normally. If 
 - The pinned dependencies already expose failure information. Skill Evidence currently discards it.
 - Better observability must narrow uncertainty without converting error prose into unsupported causal attribution.
 - Promptfoo failures can be projected at `EVALUATION`, `RESULT`, and `OUTPUT` without retaining their message. Known signals map to bounded categories, while ambiguous HTTP 403 and unknown prose remain explicit `UNKNOWN`.
+- The local adapter qualifier reproduced the pre-provider failure from R1/R2: Promptfoo rejected `tests:[{}]` as structurally invalid, so those campaigns did not establish model difficulty or provider rejection.
+- After changing the test case to `{vars:{}}`, all six local scenarios traversed Promptfoo and Codex SDK exactly once; the success scenario produced `READY` and each failure reached the bounded diagnostic projection.

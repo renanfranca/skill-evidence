@@ -9,6 +9,7 @@ import { authorEvaluationBlueprint, type AuthorInvocationRequest } from '../src/
 import { createAuthorPromptfooInvocation, createPromptfooAuthorInvoker } from '../src/author/promptfoo-author-invoker.js';
 import { reserveAuthorInvocation } from '../src/author/reservation.js';
 import { qualifyEvaluationAuthor, runAuthorConformance } from '../src/author/qualify-author.js';
+import { qualifyAuthorProviderBoundary } from '../src/author/qualify-author-provider.js';
 import { createSkillSnapshot } from '../src/intake/skill-snapshot.js';
 import { renderAuthorCommandError, runAuthorCommand } from '../src/cli.js';
 
@@ -488,7 +489,7 @@ describe('Evaluation Author v0', () => {
     });
 
     expect(invocation).toEqual({
-      options: { cache: false, maxConcurrency: 1, maxEvalTimeMs: 360_000, timeoutMs: 300_000 },
+      options: { cache: false, maxConcurrency: 1, maxEvalTimeMs: 360_000, silent: true, timeoutMs: 300_000 },
       suite: {
         prompts: ['{"packet":true}'],
         providers: [
@@ -514,7 +515,7 @@ describe('Evaluation Author v0', () => {
           },
         ],
         sharing: false,
-        tests: [{}],
+        tests: [{ vars: {} }],
         writeLatestResults: false,
       },
     });
@@ -568,6 +569,25 @@ describe('Evaluation Author v0', () => {
     expect(report.cases).toHaveLength(8);
     expect(report.cases.every((entry) => entry.actual === entry.expected)).toBe(true);
     expect(report.limitations).toContain('Deterministic local providers do not qualify a model-backed Author condition.');
+  });
+
+  it('qualifies the real Promptfoo and Codex SDK boundary through a local executable with zero external calls', async () => {
+    const first = await qualifyAuthorProviderBoundary();
+    const second = await qualifyAuthorProviderBoundary();
+
+    expect(first).toEqual(second);
+    expect(first).toMatchObject({
+      codexSdkVersion: '0.147.0',
+      externalProviderCalls: 0,
+      localProcessCalls: 6,
+      promptfooVersion: '0.122.0',
+      purpose: 'DEVELOPMENT',
+      result: 'SUPPORTED_FOR_DEVELOPMENT',
+      schemaVersion: 1,
+    });
+    expect(first.cases).toHaveLength(6);
+    expect(first.cases.every((entry) => entry.actual === entry.expected)).toBe(true);
+    expect(JSON.stringify(first)).not.toMatch(/owner@example\.com|secret-token-value|private\/work/);
   });
 
   it('refuses the internal Author command without approval for exactly one provider invocation', async () => {
@@ -669,13 +689,15 @@ describe('Evaluation Author v0', () => {
     expect(reservation).toMatchObject({ invocationBudget: 1, status: 'RESERVED' });
   });
 
-  it('runs deterministic Author qualification in CI after the archaeological corpus', async () => {
+  it('runs deterministic Author qualifications in CI after the archaeological corpus', async () => {
     const workflow = await readFile('.github/workflows/ci.yml', 'utf8');
 
     const archaeological = workflow.indexOf('npm run experiment:qualify:archaeological');
     const author = workflow.indexOf('npm run experiment:qualify:author');
+    const provider = workflow.indexOf('npm run experiment:qualify:author-provider');
     expect(archaeological).toBeGreaterThan(-1);
     expect(author).toBeGreaterThan(archaeological);
+    expect(provider).toBeGreaterThan(author);
     expect(workflow).not.toContain('experiment:author --');
   });
 
