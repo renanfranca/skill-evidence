@@ -6,7 +6,7 @@ Safety boundary: this work is authorized, defensive maintenance in this reposito
 
 The intended executor is `gpt-5.6-terra` with `xhigh` reasoning. The baseline is `main` at `500e182`. The normative THEORY was read in full at commit `572e963ea6f1207ab53c533592cb70a8239e221c` on 2026-08-10.
 
-Closure status: `CLOSED — INSUFFICIENT`. The product core and offline validation are complete, and the authorized campaign is closed, but Milestone 4 acceptance was not satisfied because its only permitted invocation ended in `PROVIDER_ERROR` before producing an Author candidate. E4 therefore does not support advancement to E5. A further real attempt requires a separate addendum or ExecPlan, a novel fixture and campaign, and new explicit one-invocation authorization.
+Closure status: `COMPLETE — R3 SUPPORTED_FOR_E5`. The original R1 and independent R2 campaigns remain terminal `INSUFFICIENT`, but ExecPlan 13 identified and repaired their pre-provider Promptfoo test-case defect. The separately authorized R3 campaign then completed with a canonical `BLOCKED` Blueprint and passed every prespecified development check. E4 now supports planning blind E5 qualification; the Author condition remains `NOT_QUALIFIED` and decision-ineligible.
 
 ## Purpose / Big Picture
 
@@ -122,7 +122,7 @@ git status --short
 - [x] Create a clean preparation commit.
 - [x] Pass the real-canary preflight after the user explicitly selected `/home/renanfranca/.codex`.
 - [x] Execute and record the single authorized Milestone 4 attempt. It ended in terminal `PROVIDER_ERROR`; the sanitized result is `INSUFFICIENT` and no retry is authorized.
-- [ ] Satisfy Milestone 4 acceptance. No Author candidate was produced, so the prescribed lifecycle, contract, boundary, unresolved-requirement, and non-fabrication checks were not observed.
+- [x] Satisfy Milestone 4 acceptance through the separately authorized R3 campaign after provider-boundary repair; the candidate passed lifecycle, contract, boundary, unresolved-requirement, and non-fabrication checks.
 - [x] Complete the scoped `refactor-design` review after restoring all behavior gates.
 - [x] Complete final validation without repeating the real canary.
 
@@ -161,6 +161,9 @@ git status --short
 - Decision: use `src/canonical-json.ts` as the single canonical JSON and SHA-256 implementation while preserving the experiments reexport.
   Rationale: snapshot, condition, packet, report, and historical experiment identities must not diverge through duplicated transformations.
   Date/Author: 2026-08-10 / implementation agent during `refactor-design`.
+- Decision: supersede the original E4 insufficiency conclusion with R3 development support while preserving R1/R2 unchanged.
+  Rationale: the earlier campaigns remain valid terminal evidence about the defective pre-provider instrument. After that defect was reproduced, repaired, and locally qualified, R3 supplied the previously missing semantic evidence under a new fixture, campaign, reservation, and explicit authorization.
+  Date/Author: 2026-08-11 / user and implementation agent.
 
 ## Risks and Mitigations
 
@@ -172,6 +175,7 @@ git status --short
 - Risk: product code duplicates Promptfoo. Mitigation: Promptfoo owns invocation/provider lifecycle; Skill Evidence owns intake, schema, semantics, eligibility, reservation, and provenance.
 - Risk: a poor canary tempts retry. Mitigation: exclusive atomic reservation and terminal `INSUFFICIENT` classification.
 - Risk: a closed campaign is mistaken for satisfied E4 acceptance or E5 readiness. Mitigation: record product/offline completion separately from the unchecked Milestone 4 acceptance and label the canonical plan status `CLOSED — INSUFFICIENT`.
+- Risk resolved by later evidence: R3 satisfied the development-canary acceptance after the pre-provider defect was repaired. Mitigation retained: E5 remains a separate blind qualification and `decisionEligible` remains false.
 - Risk: concurrent writes can be observed between filesystem operations. Mitigation: compare file identity, size, nanosecond modification time, and bytes read across an explicit consistency window, aborting on any mismatch.
 - Risk: selecting an ambient Codex home could use an unintended ChatGPT identity. Mitigation: require the caller to set `SKILL_EVIDENCE_AUTHOR_CODEX_HOME` explicitly; the blocked 2026-08-10 preflight created no reservation and made no provider call.
 
@@ -208,3 +212,5 @@ There is no deployment. E4 is delivered on `feat/e4-evaluation-author-v0`; push 
 - The design review first found missing output-preflight behavior and correctly returned to behavior TDD before refactoring. Its subsequent behavior-preserving pass made Author outcomes a discriminated union and consolidated canonicalization without changing fingerprints or historical qualification results.
 - Normalizing provider failures to a safe code protects public artifacts but leaves the canary root cause unknown; future instrument evolution needs an explicitly designed sanitized diagnostic contract rather than retrospective inspection or retry.
 - Final validation passed after one formatting-only restart: audit reported zero vulnerabilities; 85 tests passed; provider-free verification reported zero imports; archaeological and Author qualifiers remained supported; Codex OTEL and Promptfoo tracing remained `EXACT_SUPPORTED`; loopback tracing integration passed; and `git diff --check` was clean.
+- ExecPlan 13 demonstrated that R1/R2 stopped before provider construction because `tests:[{}]` was invalid for Promptfoo 0.122.0; `{vars:{}}` repaired the boundary and the real local adapter qualifier prevented another opaque attempt.
+- The separately authorized R3 invocation completed with `BLOCKED`, captured all required observable contracts and boundaries, represented missing decision evidence as blockers, invented no decision thresholds, and preserved `NOT_QUALIFIED` plus `decisionEligible:false`. E4 therefore supports planning E5 without qualifying the Author.

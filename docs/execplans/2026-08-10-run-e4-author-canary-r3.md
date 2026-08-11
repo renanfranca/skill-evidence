@@ -46,6 +46,8 @@ R3 has one immutable local reservation tied to a clean preparation commit and on
 
 R3 is `SUPPORTED_FOR_E5` only when the provider returns pure JSON, Skill Evidence derives `BLOCKED`, contracts and activation boundaries cover the fixture, missing decision context remains in blocking unresolved requirements, no absent context is fabricated, controlled fields remain system-owned, provenance is `NOT_QUALIFIED`, and `decisionEligible` is false.
 
+Closure status: `CLOSED — SUPPORTED_FOR_E5`. The sole invocation completed with Blueprint `ebp-053df2ef14ceaf5cf4ba047fd3a8bc78d859ca0a8d18c04f14a982f862ad1051`, derived lifecycle `BLOCKED`, all prespecified checks passing, one attempt, and zero retries. The observed model identifier was not exposed and remains explicitly `null`; this limits provenance but does not negate the completed candidate or permit qualification claims.
+
 ## Milestones
 
 ### Milestone 1 — Prespecify the independent R3 collection
@@ -123,11 +125,11 @@ Acceptance: every deterministic command is green, no second R3 call exists, hist
 - [x] Read THEORY in full at the recorded commit and check official Terra/xhigh guidance.
 - [x] Confirm the corrected local adapter boundary and current environment are suitable for planning.
 - [x] Create and validate the R3 ExecPlan, fixture, and hidden oracle.
-- [ ] Create the clean preparation commit and confirm the recorded fingerprints from it.
-- [ ] Pass every mandatory preflight from the exact preparation commit.
-- [ ] Reserve and execute exactly one R3 invocation.
-- [ ] Publish the sanitized terminal report and reconcile E4 status.
-- [ ] Complete deterministic final validation without another live invocation.
+- [x] Create the clean preparation commit at `0fa9f05adfb3018216d34d63d25efd2d447ffae9` and confirm the recorded fingerprints from it.
+- [x] Pass every mandatory preflight from the exact preparation commit.
+- [x] Reserve and execute exactly one R3 invocation; it completed with lifecycle `BLOCKED`.
+- [x] Publish the sanitized terminal report and reconcile E4 status as `SUPPORTED_FOR_E5`.
+- [x] Complete deterministic final validation without another live invocation: audit 0, 90 tests, and every offline/local qualifier green.
 
 ## Decisions
 
@@ -146,6 +148,9 @@ Acceptance: every deterministic command is green, no second R3 call exists, hist
 - Decision: add no artificial production test for the development fixture files.
   Rationale: R3 changes no product behavior; observable gates are the real snapshot/packet, existing E4 behavior suite, public checkpoint, local qualifiers, and prespecified oracle.
   Date/Author: 2026-08-11 / implementation agent.
+- Decision: classify R3 as `SUPPORTED_FOR_E5` despite `observedModel:null`.
+  Rationale: Promptfoo/Codex completed and returned a valid candidate under the requested pinned condition, while the SDK did not expose an observed identifier. Provenance records that absence explicitly; every semantic, lifecycle, blindness, and safety check independently passed.
+  Date/Author: 2026-08-11 / implementation agent.
 
 ## Risks and Mitigations
 
@@ -155,6 +160,7 @@ Acceptance: every deterministic command is green, no second R3 call exists, hist
 - Risk: post-result adaptation biases classification. Mitigation: commit fixture, oracle, checks, and fingerprints before reservation; permit only mechanical classification afterward.
 - Risk: a successful development canary is mistaken for qualification. Mitigation: keep `NOT_QUALIFIED`, `decisionEligible:false`, `DEVELOPMENT`, and require a separate blind E5 ExecPlan.
 - Risk: raw errors or credentials enter Git. Mitigation: do not inspect credential contents; commit only allowlisted diagnostic enums and sanitized canonical fields.
+- Risk realized: the completed provider result did not expose an observed model identifier. Mitigation applied: preserve `observedModel:null`, make no inference about effective routing, and limit the conclusion to support for blind E5 planning under the requested condition.
 
 ## Validation Strategy
 
@@ -178,3 +184,6 @@ There is no deployment. Before reservation, the preparation commit can be revert
 - A real local adapter qualifier is necessary to distinguish harness readiness from provider or model behavior.
 - Fresh identities and a prespecified hidden oracle let R3 add evidence without rewriting earlier failures.
 - The R3 packet contains exactly the nested skill snapshot and no expected lifecycle or oracle material; both local Author qualifiers are green before the preparation commit.
+- The repaired production boundary completed on its first authorized real invocation. The Author preserved absent decision context as blockers, found the observable contracts and activation boundaries, and left lifecycle/provenance/eligibility under system control.
+- A missing observed model identifier is a provenance limitation, not permission to infer routing or discard otherwise direct evidence of a completed candidate.
+- Final validation passed without another Author invocation: provider-free verification reported zero imports, both Author qualifiers remained supported, Codex OTEL and Promptfoo tracing remained exact, and loopback tracing integration passed.
