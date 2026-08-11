@@ -2,13 +2,14 @@
 
 This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mitigations`, and `Lessons Learned` current throughout execution.
 
-Safety boundary: only this planning document is authorized on 2026-08-11. Creating benchmark material, changing product or experiment code, reserving campaigns, invoking providers, adjudicating results, qualifying an Author condition, or promoting any normal product path requires later explicit authorization. Planning does not expose blind material and does not itself satisfy Gate G5.
+Safety boundary: E5 Milestones 1 and 2 were explicitly authorized on 2026-08-11. The blind instrument may be created and qualified offline, but campaign preparation, reservations, provider calls, output review, Author-condition qualification, and normal-path promotion remain unauthorized. Offline instrument qualification does not itself satisfy Gate G5.
 
 The intended implementation executor is `gpt-5.6-terra` with `xhigh` reasoning. The E4 baseline is commit `916f8bbcc438d1b5aa30868fad4e4379fdf2ea43` on `feat/e4-evaluation-author-v0`. Authorized Milestone 1 implementation began on `feat/e5-blind-author-benchmark` from planning commit `973efba2e0b1d02afc1de550053cf6df914408a9`, which contains that E4 baseline. The normative THEORY was read in full at commit `572e963ea6f1207ab53c533592cb70a8239e221c`.
 
-Status: `MILESTONE 1 COMPLETE — BLIND MATERIAL AND PROVIDER EXECUTION NOT AUTHORIZED`.
+Status: `MILESTONE 2 COMPLETE — CAMPAIGN PREPARATION AND PROVIDER EXECUTION NOT AUTHORIZED`.
 
 Milestone 1 implementation is recorded at commit `46d83a9`.
+Milestone 2 implementation is recorded at commit `8a154f2`.
 
 ## Purpose / Big Picture
 
@@ -302,12 +303,14 @@ git status --short
 - [x] Receive explicit authorization to implement E5 Milestone 1 only.
 - [x] Create the E5 branch and record its exact baseline.
 - [x] Complete Milestone 1 with schema-1 compatibility, schema-2 explicit conditions, qualification-report contracts, 95 green tests, and provider-free checkpoints.
-- [ ] Receive explicit authorization to create blind material.
-- [ ] Complete Milestone 2.
+- [x] Receive explicit authorization to create blind material.
+- [x] Complete Milestone 2 with eight dual-curated cases, sixteen reviewer probes, a counterbalanced schedule, and provider-free qualification.
 - [ ] Complete Milestone 3 and obtain explicit sixteen-call authorization.
 - [ ] Complete Milestone 4 exactly once.
 - [ ] Complete Milestone 5.
 - [ ] Complete Milestone 6.
+
+Milestone 2 closed with 107 green tests, zero provider imports at the public checkpoint, zero external calls in every local qualifier, and canonical report `docs/experiments/e5-author-benchmark-offline-qualification-20260811.json`. The offline result is `SUPPORTED_FOR_DEVELOPMENT`; it qualifies only the frozen instrument and reviewers.
 
 ## Decisions
 
@@ -335,6 +338,15 @@ git status --short
 - Decision: preserve schema-1 byte-for-byte and introduce schema-2 for explicit E5 conditions.
   Rationale: schema-1 fixes `reasoningEffort` to `xhigh`; changing it would invalidate E4's schema digest and condition fingerprint, while recording Luna/max under schema-1 would violate the normative schema. Omitted conditions therefore retain schema-1 and the exact E4 fingerprint; explicit Terra/xhigh or Luna/max conditions use schema-2.
   Date/Author: 2026-08-11 / user and implementation agent.
+- Decision: resolve the instrument from two independent curation proposals before any Author output exists.
+  Rationale: the resolver selected one `READY` and one `BLOCKED` case per behavioral stratum using observable support, genuine missing authority, evidence compatibility, and semantic alternatives rather than model behavior.
+  Date/Author: 2026-08-11 / user, two independent curators, resolver, and implementation agent.
+- Decision: freeze schedule and reviewer protocol inside bundle fingerprint `e5b69fe99942c7c4054b55f7ba2a570f180f3968f9f292ee288f2253ef08f3e1`.
+  Rationale: schedule order, references, snapshots, probes, reviewer instructions, and resolution policy must change the identity of the instrument before any reservation.
+  Date/Author: 2026-08-11 / implementation agent.
+- Decision: qualify the two reviewers before authorizing collection.
+  Rationale: both reviewers independently achieved 100% critical and noncritical probe accuracy with 100% agreement; the locked qualification fingerprint is `432d823d85a5ff4995f71a25e84b71441517098ae53c94cf8c3daf452c2271df`.
+  Date/Author: 2026-08-11 / user, independent reviewers, and implementation agent.
 
 ## Risks and Mitigations
 
@@ -349,6 +361,7 @@ git status --short
 - Risk: E5 silently expands into E6/E7 or production. Mitigation: no compiler, oracle generation, `FROZEN`, decision eligibility, public CLI, or normal-path activation.
 - Risk: API list prices are mistaken for actual ChatGPT cost. Mitigation: label token-price calculations API-equivalent and report actual account cost as unknown.
 - Risk: schema-2 accidentally changes the implicit E4 path. Mitigation: preserve schema-1 unchanged, select schema-2 only for explicit conditions, and assert the historical E4 condition fingerprint exactly.
+- Risk: reference or visible skill material drifts after bundle creation. Mitigation: the offline command recomputes every skill snapshot, compares every reference and reviewer artifact, and reruns packet-blindness checks against the frozen bundle.
 
 ## Validation Strategy
 
@@ -371,8 +384,8 @@ No lower rung substitutes for a higher rung, and no real call substitutes for qu
 
 ## Documentation Impact
 
-- This plan and `docs/execplans/README.md` are the only files changed under the current authorization.
-- Future implementation updates AGENTS.md with E5 commands and explicit model-backed exclusions from CI.
+- Milestone 2 adds only blind development fixtures, internal qualification contracts, a provider-free command, deterministic CI coverage, and a sanitized offline report.
+- AGENTS.md documents the offline command while preserving model-backed collection as a separately authorized local operation.
 - RFC 0001 and ADR 0002 remain unchanged unless implementation discovers a normative contradiction.
 - Historical E0–E4 plans and reports remain byte-for-byte preserved.
 - Official model guidance is a dated operational source, not normative evidence about Author quality.
@@ -388,6 +401,9 @@ A qualified condition becomes `STALE` when any model/reasoning request, instruct
 - E4 R3 established that one real successful Author call can support planning without qualifying reliability.
 - Requested and effective model identity are different facts; the current SDK surface exposes only enough evidence to characterize the requested operational condition.
 - A lower-cost condition should be selected only after it clears the same noncompensatory quality gates.
+- Opaque case IDs alone are insufficient for blindness; frozen reference text, atomic IDs, schedule IDs, reviewer probes, condition labels, and digest-correlated material all require mechanical packet checks.
+- A `BLOCKED` reference remains complete authorship when it preserves supported behavior and exposes a genuinely unavailable decision-critical requirement without selecting a placeholder.
+- Reviewer qualification is part of the instrument identity, not evidence that either Author condition is qualified.
 - Breadth across paired behavioral strata is more useful than repeating one adaptable development canary.
 - A complete `BLOCKED` Blueprint is a success case for honest authorship, not an incomplete `DRAFT`.
 - Blindness is an enforceable data-flow property, not merely an instruction to the model or reviewer.

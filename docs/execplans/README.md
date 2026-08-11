@@ -16,7 +16,7 @@
 | [ExecPlan 12 — Run a fresh E4 Author canary — R2](2026-08-10-run-e4-author-canary-r2.md)                            | Closed: `INSUFFICIENT` (provider error)     | Authorized E4 development canary |
 | [ExecPlan 13 — Diagnose E4 Author provider boundary](2026-08-10-diagnose-e4-author-provider-boundary.md)            | Complete: local boundary supported          | Offline provider diagnostics     |
 | [ExecPlan 14 — Run E4 Author canary R3](2026-08-10-run-e4-author-canary-r3.md)                                      | Closed: `SUPPORTED_FOR_E5`                  | Authorized E4 development canary |
-| [ExecPlan 15 — Qualify the Evaluation Author blindly — E5](2026-08-11-qualify-evaluation-author-blind-e5.md)        | Milestone 1 complete; material unauthorized | Blind Author qualification plan  |
+| [ExecPlan 15 — Qualify the Evaluation Author blindly — E5](2026-08-11-qualify-evaluation-author-blind-e5.md)        | Milestone 2 complete; campaign unauthorized | Blind Author qualification plan  |
 | [Historical record — Pre-live instrument hardening](2026-08-08-pre-live-instrument-hardening-record.md)             | Closed and blocked at `60c0240`             | Preserved hardening provenance   |
 
 Live experiments are separate from offline validation. Their sanitized curated reports may be committed only after the corresponding provider invocation has completed.

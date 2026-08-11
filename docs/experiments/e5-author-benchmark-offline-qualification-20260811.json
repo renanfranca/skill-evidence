@@ -1,0 +1,35 @@
+{
+  "bundleFingerprint": "e5b69fe99942c7c4054b55f7ba2a570f180f3968f9f292ee288f2253ef08f3e1",
+  "caseCount": 8,
+  "externalProviderCalls": 0,
+  "instrumentIntegrity": {
+    "findings": [],
+    "valid": true
+  },
+  "limitations": [
+    "Offline qualification does not evaluate a model-backed Author condition.",
+    "Development probes qualify the frozen review protocol only for the fingerprinted bundle.",
+    "No benchmark provider invocation, Author output, or reliability claim is produced."
+  ],
+  "probeCount": 16,
+  "purpose": "DEVELOPMENT",
+  "result": "SUPPORTED_FOR_DEVELOPMENT",
+  "reviewerQualification": {
+    "agreement": 1,
+    "result": "QUALIFIED",
+    "reviewers": [
+      {
+        "criticalAccuracy": 1,
+        "noncriticalAccuracy": 1,
+        "reviewerId": "reviewer-a"
+      },
+      {
+        "criticalAccuracy": 1,
+        "noncriticalAccuracy": 1,
+        "reviewerId": "reviewer-b"
+      }
+    ]
+  },
+  "reviewerQualificationFingerprint": "432d823d85a5ff4995f71a25e84b71441517098ae53c94cf8c3daf452c2271df",
+  "schemaVersion": 1
+}
