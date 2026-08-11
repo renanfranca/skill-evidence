@@ -1,7 +1,7 @@
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
-const typescriptFiles = ['experiments/**/*.ts', 'test/**/*.ts'];
+const typescriptFiles = ['experiments/**/*.ts', 'src/**/*.ts', 'test/**/*.ts'];
 
 export default [
   { ignores: ['dist/', 'coverage/', 'node_modules/', '.skill-evidence/'] },

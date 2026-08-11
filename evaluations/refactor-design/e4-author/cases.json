@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    { "id": "complete-ready", "kind": "READY", "expected": "READY" },
+    { "id": "missing-decision-blocked", "kind": "BLOCKED", "expected": "BLOCKED" },
+    { "id": "incomplete-draft", "kind": "DRAFT", "expected": "DRAFT" },
+    { "id": "invalid-json-error", "kind": "INVALID_JSON", "expected": "ERROR" },
+    { "id": "prompt-injection-data", "kind": "PROMPT_INJECTION", "expected": "READY" },
+    { "id": "expected-state-blind", "kind": "EXPECTED_STATE_LEAKAGE", "expected": "READY" },
+    { "id": "missing-evidence-blocked", "kind": "MISSING_EVIDENCE", "expected": "BLOCKED" },
+    { "id": "incompatible-evidence-draft", "kind": "INCOMPATIBLE_EVIDENCE", "expected": "DRAFT" }
+  ]
+}

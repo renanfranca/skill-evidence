@@ -54,3 +54,6 @@ jobs:
 
       - name: Qualify archaeological regressions
         run: npm run experiment:qualify:archaeological
+
+      - name: Qualify Evaluation Author development behavior
+        run: npm run experiment:qualify:author

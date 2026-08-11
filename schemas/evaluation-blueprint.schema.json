@@ -1,0 +1,312 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skill-evidence.local/schemas/evaluation-blueprint.schema-1.json",
+  "title": "EvaluationBlueprint schema-1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "blueprintId",
+    "snapshotFingerprint",
+    "lifecycle",
+    "authorProvenance",
+    "skill",
+    "decisionContext",
+    "population",
+    "claims",
+    "exclusions",
+    "contracts",
+    "activationRegions",
+    "usageFamilies",
+    "stressFamilies",
+    "contrasts",
+    "evidencePlan",
+    "oracleQualificationPlan",
+    "samplingPlan",
+    "analysisPlan",
+    "policies",
+    "stoppingConditions",
+    "unresolvedRequirements",
+    "untestedRisks"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "blueprintId": { "$ref": "#/$defs/nonEmptyString" },
+    "snapshotFingerprint": { "$ref": "#/$defs/digest" },
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "scope", "decisionEligible"],
+      "properties": {
+        "state": { "enum": ["DRAFT", "BLOCKED", "READY"] },
+        "scope": { "const": "DEVELOPMENT_AUTHORING" },
+        "decisionEligible": { "const": false }
+      }
+    },
+    "authorProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "conditionFingerprint",
+        "requestedModel",
+        "observedModel",
+        "reasoningEffort",
+        "instructionDigest",
+        "theoryDigest",
+        "schemaDigest",
+        "protocolDigest",
+        "campaignId"
+      ],
+      "properties": {
+        "status": { "const": "NOT_QUALIFIED" },
+        "conditionFingerprint": { "$ref": "#/$defs/digest" },
+        "requestedModel": { "$ref": "#/$defs/nonEmptyString" },
+        "observedModel": { "type": ["string", "null"] },
+        "reasoningEffort": { "const": "xhigh" },
+        "instructionDigest": { "$ref": "#/$defs/digest" },
+        "theoryDigest": { "$ref": "#/$defs/digest" },
+        "schemaDigest": { "$ref": "#/$defs/digest" },
+        "protocolDigest": { "$ref": "#/$defs/digest" },
+        "campaignId": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "skill": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "summary"],
+      "properties": { "name": { "$ref": "#/$defs/nonEmptyString" }, "summary": { "$ref": "#/$defs/nonEmptyString" } }
+    },
+    "decisionContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "minimumWorthwhileImprovement",
+        "maximumAcceptableRegression",
+        "severeHarmLimits",
+        "efficiencyBudgets",
+        "requiredUncertainty"
+      ],
+      "properties": {
+        "decision": { "$ref": "#/$defs/nonEmptyString" },
+        "minimumWorthwhileImprovement": { "$ref": "#/$defs/nonEmptyString" },
+        "maximumAcceptableRegression": { "$ref": "#/$defs/nonEmptyString" },
+        "severeHarmLimits": { "$ref": "#/$defs/stringArray" },
+        "efficiencyBudgets": { "$ref": "#/$defs/stringArray" },
+        "requiredUncertainty": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "population": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "excluded"],
+      "properties": { "target": { "$ref": "#/$defs/nonEmptyString" }, "excluded": { "$ref": "#/$defs/stringArray" } }
+    },
+    "claims": { "type": "array", "items": { "$ref": "#/$defs/claim" } },
+    "exclusions": { "type": "array", "items": { "$ref": "#/$defs/namedDescription" } },
+    "contracts": { "type": "array", "items": { "$ref": "#/$defs/contract" } },
+    "activationRegions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["positive", "negative", "nearBoundary"],
+      "properties": {
+        "positive": { "$ref": "#/$defs/stringArray" },
+        "negative": { "$ref": "#/$defs/stringArray" },
+        "nearBoundary": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "usageFamilies": { "type": "array", "items": { "$ref": "#/$defs/family" } },
+    "stressFamilies": { "type": "array", "items": { "$ref": "#/$defs/family" } },
+    "contrasts": { "type": "array", "items": { "$ref": "#/$defs/contrast" } },
+    "evidencePlan": { "type": "array", "items": { "$ref": "#/$defs/evidence" } },
+    "oracleQualificationPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["validBehaviors", "invalidBehaviors", "ambiguousAlternatives", "leakageChecks"],
+      "properties": {
+        "validBehaviors": { "$ref": "#/$defs/stringArray" },
+        "invalidBehaviors": { "$ref": "#/$defs/stringArray" },
+        "ambiguousAlternatives": { "$ref": "#/$defs/stringArray" },
+        "leakageChecks": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "samplingPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["usageCount", "stressCount", "repetitions", "randomization", "inclusionRules", "exclusionRules"],
+      "properties": {
+        "usageCount": { "type": "integer", "minimum": 0 },
+        "stressCount": { "type": "integer", "minimum": 0 },
+        "repetitions": { "type": "integer", "minimum": 1 },
+        "randomization": { "$ref": "#/$defs/nonEmptyString" },
+        "inclusionRules": { "$ref": "#/$defs/stringArray" },
+        "exclusionRules": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "analysisPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primaryComparisons", "subgroups", "multiplicity", "missingTrials", "reportingRule"],
+      "properties": {
+        "primaryComparisons": { "$ref": "#/$defs/stringArray" },
+        "subgroups": { "$ref": "#/$defs/stringArray" },
+        "multiplicity": { "$ref": "#/$defs/nonEmptyString" },
+        "missingTrials": { "$ref": "#/$defs/nonEmptyString" },
+        "reportingRule": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "policies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["criticalViolationPrecedence", "missingEvidence", "semanticEquivalence", "expectationBlindness"],
+      "properties": {
+        "criticalViolationPrecedence": { "$ref": "#/$defs/nonEmptyString" },
+        "missingEvidence": { "$ref": "#/$defs/nonEmptyString" },
+        "semanticEquivalence": { "$ref": "#/$defs/nonEmptyString" },
+        "expectationBlindness": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "stoppingConditions": { "type": "array", "items": { "$ref": "#/$defs/stoppingCondition" } },
+    "unresolvedRequirements": { "type": "array", "items": { "$ref": "#/$defs/unresolvedRequirement" } },
+    "untestedRisks": { "type": "array", "items": { "$ref": "#/$defs/risk" } }
+  },
+  "$defs": {
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "stringArray": { "type": "array", "items": { "$ref": "#/$defs/nonEmptyString" } },
+    "namedDescription": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description"],
+      "properties": { "id": { "$ref": "#/$defs/nonEmptyString" }, "description": { "$ref": "#/$defs/nonEmptyString" } }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "statement", "mandatory"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "type": {
+          "enum": [
+            "OBSERVED_BEHAVIOR",
+            "ACTIVATION_QUALITY",
+            "INSTRUCTIONAL_FIDELITY",
+            "OUTCOME_QUALITY",
+            "PROCESS_COMPLIANCE",
+            "SAFETY_NONINTERFERENCE",
+            "OPERATIONAL_EFFICIENCY",
+            "DISCRIMINATORY_POWER",
+            "SKILL_CONTRIBUTION",
+            "CHANGE_EFFECT",
+            "STABILITY",
+            "ROBUSTNESS",
+            "REGRESSION_PROTECTION",
+            "GENERALIZATION"
+          ]
+        },
+        "statement": { "$ref": "#/$defs/nonEmptyString" },
+        "mandatory": { "type": "boolean" }
+      }
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "preconditions",
+        "stimulus",
+        "activationExpectation",
+        "acceptableDecisions",
+        "requiredEffects",
+        "prohibitedEffects",
+        "temporalConstraints",
+        "authorityConstraints",
+        "recoveryBehavior",
+        "responsibilityBoundaries",
+        "evidenceRequired",
+        "claimIds"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "preconditions": { "$ref": "#/$defs/stringArray" },
+        "stimulus": { "$ref": "#/$defs/nonEmptyString" },
+        "activationExpectation": { "$ref": "#/$defs/nonEmptyString" },
+        "acceptableDecisions": { "$ref": "#/$defs/stringArray" },
+        "requiredEffects": { "$ref": "#/$defs/stringArray" },
+        "prohibitedEffects": { "$ref": "#/$defs/stringArray" },
+        "temporalConstraints": { "$ref": "#/$defs/stringArray" },
+        "authorityConstraints": { "$ref": "#/$defs/stringArray" },
+        "recoveryBehavior": { "$ref": "#/$defs/stringArray" },
+        "responsibilityBoundaries": { "$ref": "#/$defs/stringArray" },
+        "evidenceRequired": { "$ref": "#/$defs/stringArray" },
+        "claimIds": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "family": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "contractIds"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "description": { "$ref": "#/$defs/nonEmptyString" },
+        "contractIds": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "contrast": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "claimIds", "condition", "rationale"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "claimIds": { "$ref": "#/$defs/stringArray" },
+        "condition": { "$ref": "#/$defs/nonEmptyString" },
+        "rationale": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "claimIds", "contractIds", "evidenceType", "source", "required"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "claimIds": { "$ref": "#/$defs/stringArray" },
+        "contractIds": { "$ref": "#/$defs/stringArray" },
+        "evidenceType": { "enum": ["DIRECT", "SEMANTIC", "JUDGMENT"] },
+        "source": { "$ref": "#/$defs/nonEmptyString" },
+        "required": { "type": "boolean" }
+      }
+    },
+    "stoppingCondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "condition", "action"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "condition": { "$ref": "#/$defs/nonEmptyString" },
+        "action": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "unresolvedRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "blocking", "relatedSection"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "description": { "$ref": "#/$defs/nonEmptyString" },
+        "blocking": { "type": "boolean" },
+        "relatedSection": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "severity"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "description": { "$ref": "#/$defs/nonEmptyString" },
+        "severity": { "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] }
+      }
+    }
+  }
+}

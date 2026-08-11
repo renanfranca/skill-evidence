@@ -114,10 +114,10 @@ git status --short
 - [x] Choose internal commands rather than a public CLI.
 - [x] Authorize one real development collection.
 - [x] Create branch, ExecPlan, and index entry.
-- [ ] Complete Milestone 1.
-- [ ] Complete Milestone 2.
-- [ ] Complete Milestone 3.
-- [ ] Create a clean preparation commit.
+- [x] Complete Milestone 1.
+- [x] Complete Milestone 2.
+- [x] Complete Milestone 3.
+- [x] Create a clean preparation commit.
 - [ ] Execute and record Milestone 4.
 - [ ] Complete design review and final validation.
 
@@ -141,6 +141,9 @@ git status --short
 - Decision: keep E4 development material separate from historical refactor-design evidence and future E5 blind material.
   Rationale: this preserves future benchmark blindness and avoids reusing expected answers.
   Date/Author: 2026-08-10 / planning agent.
+- Decision: treat a documented blocking gap as semantically complete authorship while keeping the resulting lifecycle `BLOCKED`.
+  Rationale: an Author must preserve absent context explicitly; turning honest absence into `DRAFT` would conflate incomplete authorship with a complete description of a blocked design.
+  Date/Author: 2026-08-10 / implementation agent.
 
 ## Risks and Mitigations
 
@@ -151,6 +154,7 @@ git status --short
 - Risk: `READY` is mistaken for authorization. Mitigation: invariant `DEVELOPMENT_AUTHORING`, `NOT_QUALIFIED`, and `decisionEligible: false`.
 - Risk: product code duplicates Promptfoo. Mitigation: Promptfoo owns invocation/provider lifecycle; Skill Evidence owns intake, schema, semantics, eligibility, reservation, and provenance.
 - Risk: a poor canary tempts retry. Mitigation: exclusive atomic reservation and terminal `INSUFFICIENT` classification.
+- Risk: concurrent writes can be observed between filesystem operations. Mitigation: compare file identity, size, nanosecond modification time, and bytes read across an explicit consistency window, aborting on any mismatch.
 
 ## Validation Strategy
 
@@ -177,3 +181,5 @@ There is no deployment. E4 is delivered on `feat/e4-evaluation-author-v0`; push 
 - Blueprint lifecycle is Skill Evidence policy, not Author judgment.
 - An Author returning `BLOCKED` can be behaving correctly.
 - E4 development must preserve genuinely blind E5 material.
+- Candidate structure and semantic completeness are separate: malformed or system-controlled fields produce `ERROR`, while structurally complete sections with unresolved evidence gaps can validly produce `DRAFT` or `BLOCKED`.
+- The eight-case local Promptfoo qualifier is `SUPPORTED_FOR_DEVELOPMENT` with zero external calls; this verifies packet blindness and lifecycle ownership without supporting model reliability claims.
