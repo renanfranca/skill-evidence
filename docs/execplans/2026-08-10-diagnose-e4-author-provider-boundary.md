@@ -99,7 +99,7 @@ Acceptance requires every command green, zero external provider calls in the new
 - [x] Read THEORY in full at the recorded commit.
 - [x] Inspect the pinned Promptfoo/Codex SDK error path.
 - [x] Create this ExecPlan and its index entry.
-- [ ] Complete Milestone 1 through behavior TDD.
+- [x] Complete Milestone 1 through behavior TDD: 27 focused tests, typecheck, and provider-free checkpoint green.
 - [ ] Complete Milestone 2 through behavior TDD.
 - [ ] Pass the post-GREEN design review.
 - [ ] Reconcile documentation and CI.
@@ -118,6 +118,9 @@ Acceptance requires every command green, zero external provider calls in the new
   Date/Author: 2026-08-10 / implementation agent.
 - Decision: qualify the actual Promptfoo/Codex SDK process boundary with a fake executable.
   Rationale: mock Promptfoo result objects alone would retest the existing mock seam and leave the failed integration layer unobserved.
+  Date/Author: 2026-08-10 / implementation agent.
+- Decision: render command failures as canonical safe JSON, including the provider diagnostic only for `PROVIDER_ERROR`.
+  Rationale: operators and report builders need a machine-readable boundary; unexpected errors must not fall back to arbitrary exception text.
   Date/Author: 2026-08-10 / implementation agent.
 
 ## Risks and Mitigations
@@ -148,3 +151,4 @@ There is no deployment or live collection. Commits can be reverted normally. If 
 - R1/R2 did not show that the Author task is difficult; they showed that the live invocation boundary is opaque.
 - The pinned dependencies already expose failure information. Skill Evidence currently discards it.
 - Better observability must narrow uncertainty without converting error prose into unsupported causal attribution.
+- Promptfoo failures can be projected at `EVALUATION`, `RESULT`, and `OUTPUT` without retaining their message. Known signals map to bounded categories, while ambiguous HTTP 403 and unknown prose remain explicit `UNKNOWN`.

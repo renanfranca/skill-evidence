@@ -6,11 +6,11 @@ import { describe, expect, it } from 'vitest';
 
 import { deriveBlueprintLifecycle, validateEvaluationBlueprint, type BlueprintCandidate } from '../src/blueprint/evaluation-blueprint.js';
 import { authorEvaluationBlueprint, type AuthorInvocationRequest } from '../src/author/evaluation-author.js';
-import { createAuthorPromptfooInvocation } from '../src/author/promptfoo-author-invoker.js';
+import { createAuthorPromptfooInvocation, createPromptfooAuthorInvoker } from '../src/author/promptfoo-author-invoker.js';
 import { reserveAuthorInvocation } from '../src/author/reservation.js';
 import { qualifyEvaluationAuthor, runAuthorConformance } from '../src/author/qualify-author.js';
 import { createSkillSnapshot } from '../src/intake/skill-snapshot.js';
-import { runAuthorCommand } from '../src/cli.js';
+import { renderAuthorCommandError, runAuthorCommand } from '../src/cli.js';
 
 function completeCandidate(): BlueprintCandidate {
   return {
@@ -359,6 +359,107 @@ describe('Evaluation Author v0', () => {
     }
   });
 
+  it('projects Promptfoo provider failures as bounded diagnostics without leaking raw error data', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-diagnostic-root-'));
+    await writeFile(join(root, 'SKILL.md'), '# Diagnostic behavior\n');
+    const snapshot = await createSkillSnapshot({ rootDirectory: root });
+    const rawError =
+      'Error calling OpenAI Codex SDK: model gpt-private was not found (HTTP 404) for owner@example.com at /private/work with Bearer secret-token-value';
+    const invoke = createPromptfooAuthorInvoker({
+      codexHome: '/external/codex-home',
+      loadPromptfoo: () =>
+        Promise.resolve({
+          evaluate: () =>
+            Promise.resolve({
+              toEvaluateSummary: () => Promise.resolve({ results: [{ error: rawError }] }),
+            }),
+        }),
+      workingDirectory: '/empty/workspace',
+    });
+
+    const result = await authorEvaluationBlueprint({ campaignId: 'provider-diagnostic', invoke, snapshot });
+
+    expect(result).toMatchObject({
+      error: {
+        code: 'PROVIDER_ERROR',
+        diagnostic: { category: 'MODEL_ACCESS', code: 'HTTP_404', stage: 'RESULT' },
+      },
+      invocationAttempts: 1,
+      status: 'ERROR',
+    });
+    expect(JSON.stringify(result)).not.toMatch(/gpt-private|owner@example\.com|private\/work|secret-token-value/);
+  });
+
+  it('classifies only known provider failure signals and preserves ambiguous failures as unknown', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-diagnostic-categories-root-'));
+    await writeFile(join(root, 'SKILL.md'), '# Diagnostic categories\n');
+    const snapshot = await createSkillSnapshot({ rootDirectory: root });
+    const scenarios = [
+      {
+        diagnostic: { category: 'TIMEOUT', code: 'ABORTED', stage: 'RESULT' },
+        message: 'Request timed out while model gpt-private was unavailable with HTTP 404',
+      },
+      { diagnostic: { category: 'RATE_LIMIT', code: 'HTTP_429', stage: 'RESULT' }, message: 'HTTP 429 rate limit exceeded' },
+      { diagnostic: { category: 'AUTHENTICATION', code: 'HTTP_401', stage: 'RESULT' }, message: 'HTTP 401 login required' },
+      { diagnostic: { category: 'MODEL_ACCESS', code: 'UNCLASSIFIED', stage: 'RESULT' }, message: 'Requested model is unavailable' },
+      { diagnostic: { category: 'CONFIGURATION', code: 'UNCLASSIFIED', stage: 'RESULT' }, message: 'Invalid configuration value' },
+      { diagnostic: { category: 'PROCESS', code: 'EXIT_NONZERO', stage: 'RESULT' }, message: 'Codex Exec exited with code 1' },
+      { diagnostic: { category: 'UNKNOWN', code: 'HTTP_403', stage: 'RESULT' }, message: 'HTTP 403 forbidden' },
+      { diagnostic: { category: 'UNKNOWN', code: 'UNCLASSIFIED', stage: 'RESULT' }, message: 'Unexpected failure' },
+    ] as const;
+
+    for (const scenario of scenarios) {
+      const invoke = createPromptfooAuthorInvoker({
+        codexHome: '/external/codex-home',
+        loadPromptfoo: () =>
+          Promise.resolve({
+            evaluate: () =>
+              Promise.resolve({
+                toEvaluateSummary: () => Promise.resolve({ results: [{ error: scenario.message }] }),
+              }),
+          }),
+        workingDirectory: '/empty/workspace',
+      });
+
+      const result = await authorEvaluationBlueprint({ campaignId: 'provider-diagnostic-categories', invoke, snapshot });
+
+      expect(result).toMatchObject({ error: { code: 'PROVIDER_ERROR', diagnostic: scenario.diagnostic }, status: 'ERROR' });
+    }
+  });
+
+  it('distinguishes Promptfoo evaluation, result, and output failure stages', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-diagnostic-stages-root-'));
+    await writeFile(join(root, 'SKILL.md'), '# Diagnostic stages\n');
+    const snapshot = await createSkillSnapshot({ rootDirectory: root });
+    const scenarios = [
+      {
+        diagnostic: { category: 'RATE_LIMIT', code: 'HTTP_429', stage: 'EVALUATION' },
+        evaluate: () => Promise.reject(new Error('HTTP 429 rate limit exceeded')),
+      },
+      {
+        diagnostic: { category: 'UNKNOWN', code: 'NO_RESULT', stage: 'RESULT' },
+        evaluate: () => Promise.resolve({ toEvaluateSummary: () => Promise.resolve({ results: [] }) }),
+      },
+      {
+        diagnostic: { category: 'UNKNOWN', code: 'NO_TEXT', stage: 'OUTPUT' },
+        evaluate: () =>
+          Promise.resolve({ toEvaluateSummary: () => Promise.resolve({ results: [{ response: { output: { not: 'text' } } }] }) }),
+      },
+    ] as const;
+
+    for (const scenario of scenarios) {
+      const invoke = createPromptfooAuthorInvoker({
+        codexHome: '/external/codex-home',
+        loadPromptfoo: () => Promise.resolve({ evaluate: scenario.evaluate }),
+        workingDirectory: '/empty/workspace',
+      });
+
+      const result = await authorEvaluationBlueprint({ campaignId: 'provider-diagnostic-stages', invoke, snapshot });
+
+      expect(result).toMatchObject({ error: { code: 'PROVIDER_ERROR', diagnostic: scenario.diagnostic }, status: 'ERROR' });
+    }
+  });
+
   it('rejects a candidate that attempts to provide system-controlled lifecycle or provenance', async () => {
     const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-control-root-'));
     await writeFile(join(root, 'SKILL.md'), '# Controlled fields\n');
@@ -482,6 +583,50 @@ describe('Evaluation Author v0', () => {
         '2',
       ]),
     ).rejects.toMatchObject({ code: 'AUTHOR_APPROVAL_REQUIRED' });
+  });
+
+  it('projects provider diagnostics through the command boundary as canonical safe JSON', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-command-diagnostic-repository-'));
+    const skillRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-command-diagnostic-skill-'));
+    const codexHome = await mkdtemp(join(tmpdir(), 'skill-evidence-command-diagnostic-codex-home-'));
+    const workspace = await mkdtemp(join(tmpdir(), 'skill-evidence-command-diagnostic-workspace-'));
+    const outputPath = join(repositoryRoot, 'blueprint.json');
+    await Promise.all([
+      writeFile(join(skillRoot, 'SKILL.md'), '# Command diagnostic\n'),
+      writeFile(join(codexHome, 'auth.json'), '{"auth":"fixture"}\n'),
+    ]);
+    const invoke = createPromptfooAuthorInvoker({
+      codexHome,
+      loadPromptfoo: () =>
+        Promise.resolve({
+          evaluate: () =>
+            Promise.resolve({
+              toEvaluateSummary: () =>
+                Promise.resolve({
+                  results: [{ error: 'HTTP 401 login required for owner@example.com with Bearer secret-token-value' }],
+                }),
+            }),
+        }),
+      workingDirectory: workspace,
+    });
+
+    const error = await runAuthorCommand(
+      ['--skill', skillRoot, '--out', outputPath, '--campaign', 'e4-command-diagnostic', '--approve-provider-invocations', '1'],
+      {
+        codexCliVersion: () => Promise.resolve('0.147.0'),
+        createWorkspace: () => Promise.resolve({ cleanup: () => Promise.resolve(), path: workspace }),
+        currentCommit: () => Promise.resolve('a'.repeat(40)),
+        environment: { SKILL_EVIDENCE_AUTHOR_CODEX_HOME: codexHome },
+        invoke,
+        repositoryRoot,
+        workingTreeClean: () => Promise.resolve(true),
+      },
+    ).catch((value: unknown) => value);
+
+    expect(renderAuthorCommandError(error)).toBe(
+      '{"code":"AUTHOR_RUN_ERROR","diagnostic":{"category":"AUTHENTICATION","code":"HTTP_401","stage":"RESULT"},"message":"Author invocation ended with PROVIDER_ERROR","status":"ERROR"}',
+    );
+    expect(renderAuthorCommandError(error)).not.toMatch(/owner@example\.com|secret-token-value/);
   });
 
   it('reserves one invocation and writes a canonical Blueprint through the internal command', async () => {

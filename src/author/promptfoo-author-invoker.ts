@@ -1,4 +1,5 @@
 import type { AuthorInvocationRequest, AuthorInvocationResponse, AuthorInvoker } from './evaluation-author.js';
+import { AuthorProviderError, diagnoseProviderFailure } from './provider-diagnostic.js';
 
 export interface CreateAuthorPromptfooInvocationInput {
   codexHome: string;
@@ -91,11 +92,27 @@ export function createPromptfooAuthorInvoker(input: {
   return async (request): Promise<AuthorInvocationResponse> => {
     const invocation = createAuthorPromptfooInvocation({ codexHome: input.codexHome, request, workingDirectory: input.workingDirectory });
     const promptfoo = input.loadPromptfoo === undefined ? ((await import('promptfoo')) as PromptfooModule) : await input.loadPromptfoo();
-    const evaluation = (await promptfoo.evaluate(invocation.suite, invocation.options)) as PromptfooEvaluation;
-    const summary = await evaluation.toEvaluateSummary();
+    let evaluation: PromptfooEvaluation;
+    try {
+      evaluation = (await promptfoo.evaluate(invocation.suite, invocation.options)) as PromptfooEvaluation;
+    } catch (error) {
+      throw new AuthorProviderError(diagnoseProviderFailure('EVALUATION', error instanceof Error ? error.message : ''));
+    }
+    let summary: Awaited<ReturnType<PromptfooEvaluation['toEvaluateSummary']>>;
+    try {
+      summary = await evaluation.toEvaluateSummary();
+    } catch (error) {
+      throw new AuthorProviderError(diagnoseProviderFailure('RESULT', error instanceof Error ? error.message : ''));
+    }
     const result = summary.results[0];
-    if (result === undefined || result.error || typeof result.response?.output !== 'string') {
-      throw new Error(result?.error ?? 'Promptfoo Author invocation returned no text output');
+    if (result === undefined) {
+      throw new AuthorProviderError({ category: 'UNKNOWN', code: 'NO_RESULT', stage: 'RESULT' });
+    }
+    if (result.error) {
+      throw new AuthorProviderError(diagnoseProviderFailure('RESULT', result.error));
+    }
+    if (typeof result.response?.output !== 'string') {
+      throw new AuthorProviderError({ category: 'UNKNOWN', code: 'NO_TEXT', stage: 'OUTPUT' });
     }
     const observedModel = result.response.metadata?.model;
     return { observedModel: typeof observedModel === 'string' ? observedModel : null, output: result.response.output };

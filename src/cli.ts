@@ -8,6 +8,7 @@ import { constants } from 'node:fs';
 
 import { authorEvaluationBlueprint, prepareAuthorInvocation, type AuthorInvoker } from './author/evaluation-author.js';
 import { createPromptfooAuthorInvoker } from './author/promptfoo-author-invoker.js';
+import type { AuthorProviderDiagnostic } from './author/provider-diagnostic.js';
 import { reserveAuthorInvocation } from './author/reservation.js';
 import { canonicalJson } from './canonical-json.js';
 import { createSkillSnapshot } from './intake/skill-snapshot.js';
@@ -26,12 +27,26 @@ export type AuthorCommandErrorCode =
 
 export class AuthorCommandError extends Error {
   readonly code: AuthorCommandErrorCode;
+  readonly diagnostic: AuthorProviderDiagnostic | undefined;
 
-  constructor(code: AuthorCommandErrorCode, message: string) {
+  constructor(code: AuthorCommandErrorCode, message: string, diagnostic?: AuthorProviderDiagnostic) {
     super(message);
     this.name = 'AuthorCommandError';
     this.code = code;
+    this.diagnostic = diagnostic;
   }
+}
+
+export function renderAuthorCommandError(error: unknown): string {
+  if (!(error instanceof AuthorCommandError)) {
+    return canonicalJson({ code: 'AUTHOR_UNEXPECTED_ERROR', message: 'Author command failed', status: 'ERROR' });
+  }
+  return canonicalJson({
+    code: error.code,
+    ...(error.diagnostic === undefined ? {} : { diagnostic: error.diagnostic }),
+    message: error.message,
+    status: 'ERROR',
+  });
 }
 
 interface AuthorCommandArguments {
@@ -173,7 +188,11 @@ export async function runAuthorCommand(args: string[], dependencies: AuthorComma
     const invoke = dependencies.invoke ?? createPromptfooAuthorInvoker({ codexHome, workingDirectory: workspace.path });
     const run = await authorEvaluationBlueprint({ campaignId: parsed.campaign, invoke, snapshot });
     if (run.status === 'ERROR') {
-      throw new AuthorCommandError('AUTHOR_RUN_ERROR', `Author invocation ended with ${run.error.code}`);
+      throw new AuthorCommandError(
+        'AUTHOR_RUN_ERROR',
+        `Author invocation ended with ${run.error.code}`,
+        run.error.code === 'PROVIDER_ERROR' ? run.error.diagnostic : undefined,
+      );
     }
     if (run.packetFingerprint !== prepared.packetFingerprint) {
       throw new AuthorCommandError('AUTHOR_RUN_ERROR', 'Author invocation ended with INVALID_RESULT');
@@ -195,7 +214,7 @@ async function main(): Promise<void> {
     const result = await runAuthorCommand(process.argv.slice(2));
     process.stdout.write(`${canonicalJson(result)}\n`);
   } catch (error) {
-    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.stderr.write(`${renderAuthorCommandError(error)}\n`);
     process.exitCode = 1;
   }
 }

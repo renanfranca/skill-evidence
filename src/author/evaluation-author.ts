@@ -10,6 +10,7 @@ import {
 import { canonicalJson, sha256 } from '../canonical-json.js';
 import type { SkillSnapshot } from '../intake/skill-snapshot.js';
 import { authorInstructions, authorProtocolVersion, theoryCommit, theoryPrinciples } from './instructions.js';
+import { AuthorProviderError, unknownProviderDiagnostic, type AuthorProviderDiagnostic } from './provider-diagnostic.js';
 
 export interface AuthorInvocationRequest {
   maxRetries: 0;
@@ -38,9 +39,12 @@ interface AuthorRunEvidence {
   packetFingerprint: string;
 }
 
+type AuthorRunError =
+  { code: 'CANDIDATE_STRUCTURALLY_INVALID' | 'INVALID_JSON' } | { code: 'PROVIDER_ERROR'; diagnostic: AuthorProviderDiagnostic };
+
 export type AuthorRunResult =
   | (AuthorRunEvidence & { blueprint: EvaluationBlueprint; error?: never; status: 'COMPLETED' })
-  | (AuthorRunEvidence & { blueprint?: never; error: { code: AuthorErrorCode }; status: 'ERROR' });
+  | (AuthorRunEvidence & { blueprint?: never; error: AuthorRunError; status: 'ERROR' });
 
 export interface PreparedAuthorInvocation {
   conditionFingerprint: string;
@@ -102,8 +106,12 @@ export function prepareAuthorInvocation(snapshot: SkillSnapshot): PreparedAuthor
   };
 }
 
-function errorResult(code: AuthorErrorCode, packetFingerprint: string): AuthorRunResult {
+function errorResult(code: 'CANDIDATE_STRUCTURALLY_INVALID' | 'INVALID_JSON', packetFingerprint: string): AuthorRunResult {
   return { error: { code }, invocationAttempts: 1, packetFingerprint, status: 'ERROR' };
+}
+
+function providerErrorResult(diagnostic: AuthorProviderDiagnostic, packetFingerprint: string): AuthorRunResult {
+  return { error: { code: 'PROVIDER_ERROR', diagnostic }, invocationAttempts: 1, packetFingerprint, status: 'ERROR' };
 }
 
 export async function authorEvaluationBlueprint(input: AuthorInput): Promise<AuthorRunResult> {
@@ -112,8 +120,8 @@ export async function authorEvaluationBlueprint(input: AuthorInput): Promise<Aut
   let response: AuthorInvocationResponse;
   try {
     response = await input.invoke(prepared.request);
-  } catch {
-    return errorResult('PROVIDER_ERROR', packetFingerprint);
+  } catch (error) {
+    return providerErrorResult(error instanceof AuthorProviderError ? error.diagnostic : unknownProviderDiagnostic(), packetFingerprint);
   }
   let parsed: unknown;
   try {
