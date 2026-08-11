@@ -33,13 +33,14 @@ export interface AuthorInput {
 
 export type AuthorErrorCode = 'CANDIDATE_STRUCTURALLY_INVALID' | 'INVALID_JSON' | 'PROVIDER_ERROR';
 
-export interface AuthorRunResult {
-  blueprint?: EvaluationBlueprint;
-  error?: { code: AuthorErrorCode };
+interface AuthorRunEvidence {
   invocationAttempts: 1;
   packetFingerprint: string;
-  status: 'COMPLETED' | 'ERROR';
 }
+
+export type AuthorRunResult =
+  | (AuthorRunEvidence & { blueprint: EvaluationBlueprint; error?: never; status: 'COMPLETED' })
+  | (AuthorRunEvidence & { blueprint?: never; error: { code: AuthorErrorCode }; status: 'ERROR' });
 
 export interface PreparedAuthorInvocation {
   conditionFingerprint: string;

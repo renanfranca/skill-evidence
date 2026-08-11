@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { access, mkdtemp, open, readFile, rm, stat } from 'node:fs/promises';
+import { access, mkdtemp, open, readFile, rm, stat, unlink, type FileHandle } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -104,21 +104,15 @@ async function assertCodexHome(environment: NodeJS.ProcessEnv): Promise<string> 
   return codexHome;
 }
 
-async function writeBlueprint(path: string, value: unknown): Promise<void> {
+async function claimBlueprintOutput(path: string): Promise<FileHandle> {
   await access(dirname(path), constants.W_OK);
-  let handle;
   try {
-    handle = await open(path, 'wx', 0o600);
+    return await open(path, 'wx', 0o600);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
       throw new AuthorCommandError('AUTHOR_OUTPUT_EXISTS', 'Blueprint output already exists');
     }
     throw error;
-  }
-  try {
-    await handle.writeFile(`${canonicalJson(value)}\n`, 'utf8');
-  } finally {
-    await handle.close();
   }
 }
 
@@ -159,9 +153,13 @@ export async function runAuthorCommand(args: string[], dependencies: AuthorComma
     throw new AuthorCommandError('AUTHOR_VERSION_MISMATCH', 'the Author canary requires Codex CLI 0.147.0');
   }
   const prepared = prepareAuthorInvocation(snapshot);
+  const outputPath = resolve(parsed.out);
+  const outputHandle = await claimBlueprintOutput(outputPath);
   const createWorkspace = dependencies.createWorkspace ?? defaultWorkspace;
-  const workspace = await createWorkspace();
+  let workspace: Awaited<ReturnType<typeof createWorkspace>> | undefined;
+  let outputCommitted = false;
   try {
+    workspace = await createWorkspace();
     await reserveAuthorInvocation({
       repositoryRoot,
       reservation: {
@@ -174,13 +172,21 @@ export async function runAuthorCommand(args: string[], dependencies: AuthorComma
     });
     const invoke = dependencies.invoke ?? createPromptfooAuthorInvoker({ codexHome, workingDirectory: workspace.path });
     const run = await authorEvaluationBlueprint({ campaignId: parsed.campaign, invoke, snapshot });
-    if (run.status !== 'COMPLETED' || run.blueprint === undefined || run.packetFingerprint !== prepared.packetFingerprint) {
-      throw new AuthorCommandError('AUTHOR_RUN_ERROR', `Author invocation ended with ${run.error?.code ?? 'INVALID_RESULT'}`);
+    if (run.status === 'ERROR') {
+      throw new AuthorCommandError('AUTHOR_RUN_ERROR', `Author invocation ended with ${run.error.code}`);
     }
-    await writeBlueprint(resolve(parsed.out), run.blueprint);
+    if (run.packetFingerprint !== prepared.packetFingerprint) {
+      throw new AuthorCommandError('AUTHOR_RUN_ERROR', 'Author invocation ended with INVALID_RESULT');
+    }
+    await outputHandle.writeFile(`${canonicalJson(run.blueprint)}\n`, 'utf8');
+    outputCommitted = true;
     return { blueprintId: run.blueprint.blueprintId, lifecycle: run.blueprint.lifecycle.state, status: 'COMPLETED' };
   } finally {
-    await workspace.cleanup();
+    await outputHandle.close();
+    if (!outputCommitted) {
+      await unlink(outputPath).catch(() => undefined);
+    }
+    await workspace?.cleanup();
   }
 }
 

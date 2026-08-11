@@ -533,4 +533,42 @@ describe('Evaluation Author v0', () => {
     expect(author).toBeGreaterThan(archaeological);
     expect(workflow).not.toContain('experiment:author --');
   });
+
+  it('rejects an unavailable output target before reserving or invoking the Author', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-output-preflight-repository-'));
+    const skillRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-output-preflight-skill-'));
+    const codexHome = await mkdtemp(join(tmpdir(), 'skill-evidence-output-preflight-codex-home-'));
+    const workspace = await mkdtemp(join(tmpdir(), 'skill-evidence-output-preflight-workspace-'));
+    const outputPath = join(repositoryRoot, 'existing-blueprint.json');
+    await Promise.all([
+      writeFile(join(skillRoot, 'SKILL.md'), '# Output preflight skill\n'),
+      writeFile(join(codexHome, 'auth.json'), '{"auth":"fixture"}\n'),
+      writeFile(outputPath, '{"existing":true}\n'),
+    ]);
+    let calls = 0;
+
+    await expect(
+      runAuthorCommand(
+        ['--skill', skillRoot, '--out', outputPath, '--campaign', 'e4-output-preflight', '--approve-provider-invocations', '1'],
+        {
+          codexCliVersion: () => Promise.resolve('0.147.0'),
+          createWorkspace: () => Promise.resolve({ cleanup: () => Promise.resolve(), path: workspace }),
+          currentCommit: () => Promise.resolve('a'.repeat(40)),
+          environment: { SKILL_EVIDENCE_AUTHOR_CODEX_HOME: codexHome },
+          invoke: () => {
+            calls += 1;
+            return Promise.resolve({ observedModel: null, output: JSON.stringify(completeCandidate()) });
+          },
+          repositoryRoot,
+          workingTreeClean: () => Promise.resolve(true),
+        },
+      ),
+    ).rejects.toMatchObject({ code: 'AUTHOR_OUTPUT_EXISTS' });
+    expect(calls).toBe(0);
+    await expect(
+      readFile(join(repositoryRoot, '.skill-evidence', 'author-reservations', 'e4-output-preflight.json')),
+    ).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+  });
 });
