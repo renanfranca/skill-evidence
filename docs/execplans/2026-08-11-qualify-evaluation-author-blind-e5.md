@@ -6,11 +6,12 @@ Safety boundary: E5 Milestones 1 through 3 were explicitly authorized on 2026-08
 
 The intended implementation executor is `gpt-5.6-terra` with `xhigh` reasoning. The E4 baseline is commit `916f8bbcc438d1b5aa30868fad4e4379fdf2ea43` on `feat/e4-evaluation-author-v0`. Authorized Milestone 1 implementation began on `feat/e5-blind-author-benchmark` from planning commit `973efba2e0b1d02afc1de550053cf6df914408a9`, which contains that E4 baseline. The normative THEORY was read in full at commit `572e963ea6f1207ab53c533592cb70a8239e221c`.
 
-Status: `MILESTONE 3 COMMIT-FREEZE HARDENING IN PROGRESS — SIXTEEN PROVIDER CALLS NOT AUTHORIZED`.
+Status: `MILESTONE 3 COMMIT-FREEZE HARDENED — SIXTEEN PROVIDER CALLS NOT AUTHORIZED`.
 
 Milestone 1 implementation is recorded at commit `46d83a9`.
 Milestone 2 implementation is recorded at commit `8a154f2`.
 Milestone 3 preparation is recorded at commit `f8dfe28`.
+Milestone 3 commit-freeze hardening is recorded at commit `0ed7c3d`.
 
 ## Purpose / Big Picture
 
@@ -316,7 +317,7 @@ git status --short
 - [x] Complete the post-green `refactor-design` review with no behavior-changing finding.
 - [x] Freeze the campaign manifest and pass the provider-free preflight from clean preparation commit `f8dfe28`.
 - [x] Complete Milestone 3 preparation with zero reservations and zero provider calls.
-- [ ] Require the clean campaign `HEAD` to equal an explicitly expected commit before requesting authorization.
+- [x] Require the clean campaign `HEAD` to equal an explicitly expected commit before requesting authorization.
 - [ ] Receive explicit authorization for exactly sixteen provider calls.
 - [ ] Complete Milestone 4 exactly once.
 - [ ] Complete Milestone 5.
@@ -326,7 +327,7 @@ Milestone 2 closed with 107 green tests, zero provider imports at the public che
 
 Milestone 3 closed with 110 green tests and campaign fingerprint `d4fa2011bcb04d9dfb4840ce5b5954c5bad630e8407f21223dca6834f343a860`. The clean-commit preflight returned `READY_FOR_AUTHORIZATION` with all ten checks passing, `providerInvocations: 0`, and `reservationCreated: false`. This state permits requesting authorization; it does not authorize collection.
 
-Post-milestone review found that `EXACT_CLEAN_COMMIT` originally proved only a clean worktree and a syntactically valid observed SHA. Hardening is in progress so a distinct expected SHA must be supplied and equal the observed `HEAD`; no reservation or provider access is authorized by this correction.
+Post-milestone review found that `EXACT_CLEAN_COMMIT` originally proved only a clean worktree and a syntactically valid observed SHA. Commit `0ed7c3d` hardened the contract so a distinct literal expected SHA is mandatory and must equal the clean observed `HEAD`. The focused suite, full 111-test suite, public provider-free checkpoint, and offline benchmark qualification passed; the clean preflight returned `READY_FOR_AUTHORIZATION` with both SHAs equal, zero provider calls, and no reservation. The final exact SHA remains an external authorization fact recorded by the ignored preflight report rather than a self-referential field in the versioned preparation.
 
 ## Decisions
 
