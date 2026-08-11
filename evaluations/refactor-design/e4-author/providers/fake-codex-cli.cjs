@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+/* global process */
+
 'use strict';
 
 const { appendFileSync } = require('node:fs');

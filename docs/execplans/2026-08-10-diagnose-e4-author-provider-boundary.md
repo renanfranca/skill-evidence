@@ -103,7 +103,7 @@ Acceptance requires every command green, zero external provider calls in the new
 - [x] Complete Milestone 2 through behavior TDD: real Promptfoo/SDK traversal, six local process calls, and zero external calls.
 - [x] Pass the post-GREEN design review with no behavior-preserving refactor required.
 - [x] Reconcile documentation and CI.
-- [ ] Complete final deterministic validation.
+- [x] Complete final deterministic validation: audit 0, 90 tests, all offline/local qualifiers green, and no real Author invocation.
 
 ## Decisions
 
@@ -162,3 +162,4 @@ There is no deployment or live collection. Commits can be reverted normally. If 
 - The local adapter qualifier reproduced the pre-provider failure from R1/R2: Promptfoo rejected `tests:[{}]` as structurally invalid, so those campaigns did not establish model difficulty or provider rejection.
 - After changing the test case to `{vars:{}}`, all six local scenarios traversed Promptfoo and Codex SDK exactly once; the success scenario produced `READY` and each failure reached the bounded diagnostic projection.
 - The post-GREEN design review found the qualifier cohesive and invocation-local: temporary paths, scenario state, and process ledgers do not escape a run. No refactor was justified beyond the existing typed adapter boundary.
+- Final validation exposed only fixture lint metadata and index formatting issues; declaring the Node `process` global and formatting the table resolved them without behavior changes. The complete deterministic sequence then passed.
