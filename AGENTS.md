@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-Product-owned intake, Evaluation Blueprint, and Evaluation Author modules live in `src/`; schema-1 lives in `schemas/`. The Promptfoo foundation and qualification harness remain in `experiments/`, and tests remain in `test/`. E4 authorizes only internal `experiment:*` commands, not a public product CLI. Evaluation cases, oracles, and fixtures are under `evaluations/refactor-design/`; ExecPlans belong in `docs/execplans/` and use `YYYY-MM-DD-<kebab-case-title>.md`. Never commit `dist/`, `.skill-evidence/`, or `coverage/`.
+Product-owned intake, Evaluation Blueprint, Evaluation Author, and qualification contracts live in `src/`; versioned Blueprint and qualification-report schemas live in `schemas/`. The Promptfoo foundation and qualification harness remain in `experiments/`, and tests remain in `test/`. E4 authorizes only internal `experiment:*` commands, not a public product CLI. E5 Milestone 1 authorizes condition and report contracts only; blind material and provider execution remain separately unauthorized. Evaluation cases, oracles, and fixtures are under `evaluations/refactor-design/`; ExecPlans belong in `docs/execplans/` and use `YYYY-MM-DD-<kebab-case-title>.md`. Never commit `dist/`, `.skill-evidence/`, or `coverage/`.
 
 ## Build, Test, and Development Commands
 

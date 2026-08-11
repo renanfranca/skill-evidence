@@ -4,9 +4,11 @@ This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mit
 
 Safety boundary: only this planning document is authorized on 2026-08-11. Creating benchmark material, changing product or experiment code, reserving campaigns, invoking providers, adjudicating results, qualifying an Author condition, or promoting any normal product path requires later explicit authorization. Planning does not expose blind material and does not itself satisfy Gate G5.
 
-The intended implementation executor is `gpt-5.6-terra` with `xhigh` reasoning. The E4 baseline is commit `916f8bbcc438d1b5aa30868fad4e4379fdf2ea43` on `feat/e4-evaluation-author-v0`. Before authorized implementation begins, create `feat/e5-blind-author-benchmark` from a clean commit containing that E4 baseline and this plan, then record the exact implementation baseline here. The normative THEORY was read in full at commit `572e963ea6f1207ab53c533592cb70a8239e221c`.
+The intended implementation executor is `gpt-5.6-terra` with `xhigh` reasoning. The E4 baseline is commit `916f8bbcc438d1b5aa30868fad4e4379fdf2ea43` on `feat/e4-evaluation-author-v0`. Authorized Milestone 1 implementation began on `feat/e5-blind-author-benchmark` from planning commit `973efba2e0b1d02afc1de550053cf6df914408a9`, which contains that E4 baseline. The normative THEORY was read in full at commit `572e963ea6f1207ab53c533592cb70a8239e221c`.
 
-Planning status: `COMPLETE — EXECUTION NOT AUTHORIZED`.
+Status: `MILESTONE 1 COMPLETE — BLIND MATERIAL AND PROVIDER EXECUTION NOT AUTHORIZED`.
+
+Milestone 1 implementation is recorded at commit `46d83a9`.
 
 ## Purpose / Big Picture
 
@@ -297,9 +299,9 @@ git status --short
 - [x] Verify that pinned/latest Codex SDK and Promptfoo do not expose an effective model field on this surface.
 - [x] Prespecify Terra/xhigh versus Luna/max, eight cases, and sixteen benchmark calls.
 - [x] Create this planning-only ExecPlan and index entry.
-- [ ] Receive explicit authorization to implement E5 code.
-- [ ] Create the E5 branch and record its exact baseline.
-- [ ] Complete Milestone 1.
+- [x] Receive explicit authorization to implement E5 Milestone 1 only.
+- [x] Create the E5 branch and record its exact baseline.
+- [x] Complete Milestone 1 with schema-1 compatibility, schema-2 explicit conditions, qualification-report contracts, 95 green tests, and provider-free checkpoints.
 - [ ] Receive explicit authorization to create blind material.
 - [ ] Complete Milestone 2.
 - [ ] Complete Milestone 3 and obtain explicit sixteen-call authorization.
@@ -330,6 +332,9 @@ git status --short
 - Decision: do not activate a successful qualification in the normal Author path during E5.
   Rationale: E5 produces evidence and a condition-specific qualification record; rollout and later compiler integration remain separate promotions.
   Date/Author: 2026-08-11 / planning agent.
+- Decision: preserve schema-1 byte-for-byte and introduce schema-2 for explicit E5 conditions.
+  Rationale: schema-1 fixes `reasoningEffort` to `xhigh`; changing it would invalidate E4's schema digest and condition fingerprint, while recording Luna/max under schema-1 would violate the normative schema. Omitted conditions therefore retain schema-1 and the exact E4 fingerprint; explicit Terra/xhigh or Luna/max conditions use schema-2.
+  Date/Author: 2026-08-11 / user and implementation agent.
 
 ## Risks and Mitigations
 
@@ -343,6 +348,7 @@ git status --short
 - Risk: incomplete collection is mistaken for a failed quality qualification. Mitigation: operational incompleteness yields `INSUFFICIENT`; complete evidence below thresholds yields `NOT_QUALIFIED`.
 - Risk: E5 silently expands into E6/E7 or production. Mitigation: no compiler, oracle generation, `FROZEN`, decision eligibility, public CLI, or normal-path activation.
 - Risk: API list prices are mistaken for actual ChatGPT cost. Mitigation: label token-price calculations API-equivalent and report actual account cost as unknown.
+- Risk: schema-2 accidentally changes the implicit E4 path. Mitigation: preserve schema-1 unchanged, select schema-2 only for explicit conditions, and assert the historical E4 condition fingerprint exactly.
 
 ## Validation Strategy
 
@@ -385,3 +391,4 @@ A qualified condition becomes `STALE` when any model/reasoning request, instruct
 - Breadth across paired behavioral strata is more useful than repeating one adaptable development canary.
 - A complete `BLOCKED` Blueprint is a success case for honest authorship, not an incomplete `DRAFT`.
 - Blindness is an enforceable data-flow property, not merely an instruction to the model or reviewer.
+- A new reasoning condition cannot be represented honestly by broadening a fingerprinted historical schema in place; versioned schema evolution preserves both provenance and compatibility.
