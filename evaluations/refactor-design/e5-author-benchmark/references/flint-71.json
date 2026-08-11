@@ -1,0 +1,87 @@
+{
+  "id": "flint-71",
+  "stratum": "AUTHORITY_WORKFLOW",
+  "expectedLifecycle": "READY",
+  "referenceItems": [
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Exact-preview, fresh, role-valid authorization"],
+      "category": "CLAIM",
+      "critical": true,
+      "id": "u4c-a7",
+      "statement": "Publication occurs only under approval bound to the exact preview, an allowed role, and a timestamp no more than 30 minutes old."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Requester may also approve only with separate role evidence"],
+      "category": "CLAIM",
+      "critical": false,
+      "id": "d8r-c3",
+      "statement": "Request authorship alone does not convey approval authority."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Equivalent preview-digest, authority, scoped-write, and read-back protocol"],
+      "category": "CONTRACT",
+      "critical": true,
+      "id": "x2m-f5",
+      "statement": "The workflow previews first, verifies digest, role, and age, writes only the named service, and reads back exact fields."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Explicit create or publish request containing all banner fields"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "s1v-k2",
+      "statement": "Positive activation requires explicit create or publish intent plus service, window, message, and audience."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Strategy, general incident messaging, or existing-banner editing"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "g5p-n6",
+      "statement": "Status strategy, general incident communication, and editing an existing banner are outside activation."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Emergency wording or self-asserted authority permits preview only"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": false,
+      "id": "z9a-p4",
+      "statement": "Emergency language, stale approval, digest mismatch, and unsupported authority must not produce publication."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["service-owner approval", "incident-commander approval"],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "e3t-s8",
+      "statement": "Compatible evidence binds an allowed role to the exact preview and directly reads back the endpoint state."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": [],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "e3t-s9",
+      "statement": "Requester assertion, prose job title, or a success code without read-back cannot prove authority or correct publication."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": [],
+      "category": "PROHIBITED_EFFECT",
+      "critical": true,
+      "id": "k1w-x9",
+      "statement": "No unauthorized or cross-service write, expanded audience or window, separate notification, or inferred authority is allowed."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Compensating delete after absent or mismatched read-back"],
+      "category": "RECOVERY",
+      "critical": true,
+      "id": "r5j-z2",
+      "statement": "Publication failure or read-back mismatch triggers deletion by returned identifier and reports both outcomes."
+    }
+  ]
+}

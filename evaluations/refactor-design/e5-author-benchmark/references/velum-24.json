@@ -1,0 +1,95 @@
+{
+  "id": "velum-24",
+  "stratum": "TRANSFORMATION",
+  "expectedLifecycle": "BLOCKED",
+  "referenceItems": [
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Deterministic serialization of unique valid symbols"],
+      "category": "CLAIM",
+      "critical": true,
+      "id": "v24-01",
+      "statement": "Distinct valid symbols are sorted in ASCII order and serialized deterministically."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Original invalid record plus all reasons"],
+      "category": "CLAIM",
+      "critical": false,
+      "id": "v24-02",
+      "statement": "Invalid records retain original values and violation reasons."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Equivalent exact-map and invalid-record contract"],
+      "category": "CONTRACT",
+      "critical": true,
+      "id": "v24-03",
+      "statement": "Unique uppercase symbols and boolean values yield the specified comma-separated map; invalid symbols and non-booleans remain visible."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Explicit compact-map request with supplied records"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "v24-05",
+      "statement": "Positive activation requires supplied records and compact-map serialization intent."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Deployment, configuration editing, or semantic flag management"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "v24-06",
+      "statement": "Real feature-flag changes, deployment, file editing, and semantic interpretation are outside activation."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Duplicate symbols expose the unresolved branch"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "v24-07",
+      "statement": "Repeated symbols form a near-boundary case whose required behavior is unresolved."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Parsed exact map plus preserved invalid records"],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "v24-08",
+      "statement": "Compatible evidence directly compares the parsed map and original invalid records."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": [],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "v24-09",
+      "statement": "An oracle that silently chooses rejection, first-record-wins, or last-record-wins is incompatible before policy selection."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["A structured unresolved requirement covering duplicate-symbol semantics"],
+      "category": "BLOCKER",
+      "critical": true,
+      "id": "v24-10",
+      "statement": "The unavailable duplicate-symbol policy blocks complete contracts, compatible oracle design, and decision evaluation."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": [],
+      "category": "PROHIBITED_EFFECT",
+      "critical": true,
+      "id": "v24-11",
+      "statement": "No case conversion, boolean coercion, invented meaning, or silent duplicate loss is allowed."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Preserve rejection, first-wins, and last-wins as unresolved alternatives"],
+      "category": "RECOVERY",
+      "critical": true,
+      "id": "v24-12",
+      "statement": "Nonduplicate behavior remains characterizable, but confirmatory evaluation waits for owner selection without privileging a proposal."
+    }
+  ]
+}

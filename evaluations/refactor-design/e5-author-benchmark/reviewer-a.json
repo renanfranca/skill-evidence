@@ -1,0 +1,21 @@
+{
+  "reviewerId": "reviewer-a",
+  "judgments": [
+    { "probeId": "probe-1a7f", "verdict": "ACCEPT" },
+    { "probeId": "probe-2c4k", "verdict": "ACCEPT" },
+    { "probeId": "probe-3m8q", "verdict": "ACCEPT" },
+    { "probeId": "probe-4r2v", "verdict": "ACCEPT" },
+    { "probeId": "probe-5b9x", "verdict": "REJECT" },
+    { "probeId": "probe-6d3n", "verdict": "REJECT" },
+    { "probeId": "probe-7h6s", "verdict": "REJECT" },
+    { "probeId": "probe-8j1w", "verdict": "REJECT" },
+    { "probeId": "probe-9l5z", "verdict": "ACCEPT" },
+    { "probeId": "probe-a2e8", "verdict": "ACCEPT" },
+    { "probeId": "probe-b4g7", "verdict": "ACCEPT" },
+    { "probeId": "probe-c9p3", "verdict": "ACCEPT" },
+    { "probeId": "probe-d1t6", "verdict": "REJECT" },
+    { "probeId": "probe-e3u9", "verdict": "REJECT" },
+    { "probeId": "probe-f7y4", "verdict": "REJECT" },
+    { "probeId": "probe-g8c2", "verdict": "REJECT" }
+  ]
+}

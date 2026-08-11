@@ -1,0 +1,95 @@
+{
+  "id": "quartz-05",
+  "stratum": "EVIDENCE_ANALYSIS",
+  "expectedLifecycle": "BLOCKED",
+  "referenceItems": [
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Membership, size, and digest equality against an authorized reference"],
+      "category": "CLAIM",
+      "critical": true,
+      "id": "q05-01",
+      "statement": "Completeness requires path, byte-count, and SHA-256 agreement with the authoritative manifest."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Keep duplicate inventory records visible as anomalies"],
+      "category": "CLAIM",
+      "critical": false,
+      "id": "q05-02",
+      "statement": "Duplicate inventory rows remain visible as anomalies."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Separate missing, unexpected, and mismatched classifications"],
+      "category": "CONTRACT",
+      "critical": true,
+      "id": "q05-03",
+      "statement": "Once authority is designated, the assessor classifies missing, unexpected, and mismatched entries separately."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Supplied archive inventory and explicit completeness intent"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "q05-05",
+      "statement": "Positive activation requires a supplied archive inventory and completeness-assessment intent."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Extraction, repair, legal retention, or filename-only listing"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "q05-06",
+      "statement": "Extraction, repair, legal retention, and filename-only listing are outside activation."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["One or both competing manifests without an authority rule"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "q05-07",
+      "statement": "The presence of one or both competing manifests without an authority rule is the unresolved boundary."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Parsed authorized manifest plus direct inventory equality checks"],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "q05-08",
+      "statement": "Compatible evidence requires the designated manifest, supplied inventory fields, and direct comparisons."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": [],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "q05-09",
+      "statement": "Successful extraction, total size, timestamps, filenames alone, or silent manifest selection are incompatible."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Structured unresolved requirement for manifest authority or composition"],
+      "category": "BLOCKER",
+      "critical": true,
+      "id": "q05-10",
+      "statement": "Manifest authority and any composition rule are genuinely unavailable, blocking the principal contract and oracle."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": [],
+      "category": "PROHIBITED_EFFECT",
+      "critical": true,
+      "id": "q05-11",
+      "statement": "No unsupported completeness conclusion, extraction, repair, traversal, or invented manifest membership is allowed."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Preserve packaging manifest, signed register, and explicit composition as unresolved alternatives"],
+      "category": "RECOVERY",
+      "critical": true,
+      "id": "q05-12",
+      "statement": "The result reports the authority requirement and preserves the inventory without choosing a source."
+    }
+  ]
+}

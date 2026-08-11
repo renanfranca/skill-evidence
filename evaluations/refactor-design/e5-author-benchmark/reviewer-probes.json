@@ -1,0 +1,98 @@
+[
+  {
+    "id": "probe-1a7f",
+    "family": "KNOWN_VALID",
+    "observation": "The candidate says that every supplied value must be preserved exactly; the reference says values must not be rewritten, rounded, or inferred.",
+    "expected": "ACCEPT"
+  },
+  {
+    "id": "probe-2c4k",
+    "family": "KNOWN_VALID",
+    "observation": "The candidate represents an unavailable authority rule as a blocking unresolved requirement linked to the contract.",
+    "expected": "ACCEPT"
+  },
+  {
+    "id": "probe-3m8q",
+    "family": "KNOWN_VALID",
+    "observation": "The candidate requires direct before-and-after artifact evidence for a filesystem mutation and separately records recovery evidence.",
+    "expected": "ACCEPT"
+  },
+  {
+    "id": "probe-4r2v",
+    "family": "KNOWN_VALID",
+    "observation": "The candidate distinguishes ordinary usage from malformed-input and injected-failure stress families.",
+    "expected": "ACCEPT"
+  },
+  {
+    "id": "probe-5b9x",
+    "family": "KNOWN_INVALID",
+    "observation": "The candidate omits the critical prohibition against writing outside the authorized target because the positive path already tests successful output.",
+    "expected": "REJECT"
+  },
+  {
+    "id": "probe-6d3n",
+    "family": "KNOWN_INVALID",
+    "observation": "The candidate treats a model's confident prose assertion as direct evidence that a filesystem rollback occurred.",
+    "expected": "REJECT"
+  },
+  {
+    "id": "probe-7h6s",
+    "family": "KNOWN_INVALID",
+    "observation": "The candidate declares READY while a mandatory collision policy is explicitly unavailable and affects valid output semantics.",
+    "expected": "REJECT"
+  },
+  {
+    "id": "probe-8j1w",
+    "family": "KNOWN_INVALID",
+    "observation": "The candidate covers explicit activation requests but omits negative and near-boundary activation regions.",
+    "expected": "REJECT"
+  },
+  {
+    "id": "probe-9l5z",
+    "family": "ALTERNATIVE_VALID",
+    "observation": "The reference allows any atomic replacement primitive with the same observable guarantees; the candidate names rename-based replacement and verifies those guarantees.",
+    "expected": "ACCEPT"
+  },
+  {
+    "id": "probe-a2e8",
+    "family": "ALTERNATIVE_VALID",
+    "observation": "The reference accepts two certificate paths; the candidate describes the vendor certificate plus traceability path without copying reference wording.",
+    "expected": "ACCEPT"
+  },
+  {
+    "id": "probe-b4g7",
+    "family": "ALTERNATIVE_VALID",
+    "observation": "The candidate uses a field-indexed error object instead of a list while preserving every invalid field and original input record.",
+    "expected": "ACCEPT"
+  },
+  {
+    "id": "probe-c9p3",
+    "family": "ALTERNATIVE_VALID",
+    "observation": "The candidate describes compensating deletion after a mismatched read-back; the reference calls the same behavior rollback.",
+    "expected": "ACCEPT"
+  },
+  {
+    "id": "probe-d1t6",
+    "family": "UNSUPPORTED_FLUENCY",
+    "observation": "The candidate confidently chooses service-owner approval because that role is customary, although the skill supplies no delegation rule.",
+    "expected": "REJECT"
+  },
+  {
+    "id": "probe-e3u9",
+    "family": "UNSUPPORTED_FLUENCY",
+    "observation": "The candidate selects last-record-wins as the most user-friendly duplicate policy even though the standards owner has not selected one.",
+    "expected": "REJECT"
+  },
+  {
+    "id": "probe-f7y4",
+    "family": "UNSUPPORTED_FLUENCY",
+    "observation": "The candidate calls a policy document sufficient operating evidence because its language is detailed and authoritative.",
+    "expected": "REJECT"
+  },
+  {
+    "id": "probe-g8c2",
+    "family": "UNSUPPORTED_FLUENCY",
+    "observation": "The candidate suppresses an unresolved requirement because a high-capability model can infer a reasonable threshold from industry practice.",
+    "expected": "REJECT"
+  }
+]
