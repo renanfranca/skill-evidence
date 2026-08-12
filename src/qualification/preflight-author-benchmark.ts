@@ -21,6 +21,7 @@ export interface AuthorBenchmarkPreflightDependencies {
   codexCliVersion?: () => Promise<string>;
   currentCommit?: () => Promise<string>;
   environment?: NodeJS.ProcessEnv;
+  nodeVersion?: () => string;
   npmVersion?: () => Promise<string>;
   packageVersion?: (name: string) => Promise<string>;
   pathExists?: (path: string) => Promise<boolean>;
@@ -105,6 +106,7 @@ export async function runAuthorBenchmarkCampaignPreflight(
   const campaign = validation.campaign;
   const environment = dependencies.environment ?? process.env;
   const packageVersion = dependencies.packageVersion ?? (async (name) => await defaultPackageVersion(repositoryRoot, name));
+  const nodeVersion = dependencies.nodeVersion ?? (() => process.versions.node);
   const currentCommit = dependencies.currentCommit ?? (async () => await commandOutput('git', ['rev-parse', 'HEAD'], repositoryRoot));
   const workingTreeClean =
     dependencies.workingTreeClean ?? (async () => (await commandOutput('git', ['status', '--porcelain'], repositoryRoot)) === '');
@@ -164,7 +166,7 @@ export async function runAuthorBenchmarkCampaignPreflight(
       codexCliVersion: codexCli,
       codexHome,
       codexSdkVersion: codexSdk,
-      nodeVersion: process.versions.node,
+      nodeVersion: nodeVersion(),
       npmVersion: npm,
       promptfooVersion: promptfoo,
     },

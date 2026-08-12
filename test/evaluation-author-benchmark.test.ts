@@ -714,6 +714,7 @@ describe('blind Evaluation Author benchmark', () => {
         codexCliVersion: () => Promise.resolve('0.147.0'),
         currentCommit: () => Promise.resolve('e'.repeat(40)),
         environment: { SKILL_EVIDENCE_AUTHOR_CODEX_HOME: '/home/renanfranca/.codex' },
+        nodeVersion: () => '24.16.0',
         npmVersion: () => Promise.resolve('11.13.0'),
         packageVersion: (name) => Promise.resolve(name === 'promptfoo' ? '0.122.0' : '0.147.0'),
         pathExists: () => Promise.resolve(false),
