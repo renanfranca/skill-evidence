@@ -9,7 +9,7 @@ This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mit
 - Intended branch: `feat/e5-author-lifecycle-remediation`
 - Normative THEORY consulted in full: commit `572e963ea6f1207ab53c533592cb70a8239e221c`
 
-Safety boundary: this plan implements an opt-in development protocol and deterministic offline qualification only. It does not invoke a real provider, create a formal campaign reservation, reuse E5 R1 blind material, qualify an Author condition, promote normal Author use, or authorize E6.
+Safety boundary: this plan implements an opt-in development protocol and deterministic offline qualification only. It does not invoke a real provider, create a formal campaign reservation, reuse E5 R1 blind material, diagnose Luna/max operability, qualify an Author condition, promote normal Author use, or authorize E6.
 
 ## Purpose / Big Picture
 
@@ -19,7 +19,7 @@ Teach the Evaluation Author to distinguish information that is genuinely require
 
 Included: version Author instructions and protocol identity; add an opt-in protocol-v2 input; clarify blocker semantics; add fresh adaptable development fixtures and a deterministic local qualifier; expose an internal protocol selector on `experiment:author`; preserve v1 by default; update tests and operational documentation.
 
-Excluded: Blueprint schema-3, changes to schema-1 or schema-2, semantic rescoring of E5, reuse of E5 cases or expected answers, model-backed calls, blind qualification, production promotion, E6 compiler work, oracle generation, decision execution, and claims of reliability.
+Excluded: Blueprint schema-3, changes to schema-1 or schema-2, semantic rescoring of E5, reuse of E5 cases or expected answers, model-backed calls, Luna/max timeout diagnosis, blind qualification, production promotion, E6 compiler work, oracle generation, decision execution, and claims of reliability. Luna/max operability is preserved as the separate planned work in `2026-08-12-diagnose-luna-max-author-operability.md`.
 
 ## Definitions
 
@@ -37,9 +37,11 @@ Excluded: Blueprint schema-3, changes to schema-1 or schema-2, semantic rescorin
 
 E5 R1 found high critical-reference recall but systematic over-blocking: all four `READY` references became `BLOCKED`, and one unsupported critical blocker required already-qualified mechanical oracles where the skill required only an oracle qualification plan. Those aggregate findings motivate development but the exposed E5 cases cannot become qualification fixtures.
 
+E5 R1 also found a distinct operational failure: all eight Luna/max calls ended as sanitized `TIMEOUT/ABORTED` results and produced no Blueprint. Seven reached the five-minute boundary and one ended after approximately 263 seconds. This evidence does not identify a semantic Author defect and is intentionally not investigated by this lifecycle plan. Official OpenAI documentation checked on 2026-08-12 states that GPT-5.6 Luna supports `max` reasoning and may be selected for Codex subagents. The E5 Author adapter also set `features.multi_agent: false`, so lack of Luna subagent support is not a supported explanation for these timeouts.
+
 ## Desired End State
 
-Protocol v1 remains the exact default and reproduces its historical packet and fingerprints. Protocol v2 is selected only through an explicit internal input and has distinct instruction, protocol, packet, and condition fingerprints. Its instructions distinguish genuine missing authoring inputs from planned downstream work. A new zero-external-call qualifier demonstrates the distinction on fresh development material and reports only `SUPPORTED_FOR_DEVELOPMENT`. No existing Blueprint schema or E5 artifact changes.
+Protocol v1 remains the exact default and reproduces its historical packet and fingerprints. Protocol v2 is selected only through an explicit internal input and has distinct instruction, protocol, packet, and condition fingerprints. Its instructions distinguish genuine missing authoring inputs from planned downstream work. A new zero-external-call qualifier demonstrates the distinction on fresh development material and reports only `SUPPORTED_FOR_DEVELOPMENT`. No existing Blueprint schema or E5 artifact changes. Completion records the stable protocol-v2 fingerprint as the input boundary for the separately authorized Luna/max operability investigation; it does not execute that investigation.
 
 Internal interface additions:
 
@@ -149,11 +151,14 @@ git status --short
 
 Acceptance: audit is zero; all tests and deterministic qualifiers pass; public provider imports remain zero; every new reservation or artifact exists only under temporary roots; `docs/experiments/e5-author-benchmark-20260811-r1*`, its bundle, preparation, schemas, and historical E4 artifacts are unchanged.
 
+At handoff, record the exact protocol-v2 instruction, protocol, schema, packet, and condition fingerprints needed by ExecPlan 18. Do not mark Luna/max operability resolved and do not authorize its diagnostic canary from this milestone.
+
 ## Progress
 
 - [x] Consult THEORY commit `572e963`, RFC 0001 E5/E6 boundaries, current Author protocol, schemas, lifecycle derivation, and E5 findings.
 - [x] Choose protocol v2 with unchanged schemas as the minimum remediation hypothesis.
 - [x] Create this planned ExecPlan and its index entry.
+- [x] Preserve Luna/max operability as separate ExecPlan 18 work and record that E5 disabled multi-agent.
 - [ ] Complete the E5 result-semantics reconciliation and record its exact clean baseline.
 - [ ] Create `feat/e5-author-lifecycle-remediation` from that baseline.
 - [ ] Complete Milestone 1 through behavior-focused TDD.
@@ -179,6 +184,10 @@ Acceptance: audit is zero; all tests and deterministic qualifiers pass; public p
   Rationale: observed cases are development evidence now, but tuning and approving against their expected answers would not establish generalization.
   Date/Author: 2026-08-11 / user and planning agent.
 
+- Decision: keep Luna/max operability separate and hand off only after protocol v2 has a stable fingerprint.
+  Rationale: lifecycle semantics and runtime completion are distinct claims, and protocol v2 changes the exact prompt condition whose operability matters for future use.
+  Date/Author: 2026-08-12 / user and planning agent.
+
 ## Risks and Mitigations
 
 - Risk: v2 silently changes historical v1 identities. Mitigation: default v1, exact digest/fingerprint regression assertions, and frozen-path diff checks.
@@ -188,6 +197,7 @@ Acceptance: audit is zero; all tests and deterministic qualifiers pass; public p
 - Risk: schema-3 is added speculatively. Mitigation: keep it out of scope until fresh evidence shows the existing representation remains inadequate.
 - Risk: an internal CLI option is interpreted as authorization. Mitigation: preserve approval/reservation checks and document that every real invocation remains separately authorized.
 - Risk: E6 begins despite an unqualified Author. Mitigation: this plan produces only `SUPPORTED_FOR_DEVELOPMENT`; E6 and fresh blind qualification remain separate gates.
+- Risk: completing lifecycle remediation is mistaken for resolving Luna/max's eight timeouts. Mitigation: keep timeout diagnosis out of this plan, record the protocol-v2 handoff fingerprints, and retain ExecPlan 18 as a separate authorization boundary.
 
 ## Validation Strategy
 
@@ -212,3 +222,4 @@ There is no deployment or normal-path promotion. Land the protocol and qualifier
 - A future oracle qualification requirement is part of a complete evaluation design, not proof that the Blueprint itself is incomplete.
 - Versioning instructions without rewriting schemas preserves historical evidence while allowing a falsifiable remediation hypothesis.
 - Offline packet and lifecycle qualification can establish implementation correctness, but only fresh model-backed evidence can establish Author improvement.
+- Official Luna subagent support does not explain E5 R1 because the Author adapter disabled multi-agent; timeout attribution remains open and requires separate observable evidence.
