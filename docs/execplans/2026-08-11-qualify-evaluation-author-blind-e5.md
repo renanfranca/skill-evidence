@@ -2,11 +2,11 @@
 
 This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mitigations`, and `Lessons Learned` current throughout execution.
 
-Safety boundary: E5 Milestones 1 through 5 were explicitly authorized on 2026-08-11, including the exact sixteen-call campaign and condition-blind adjudication by two isolated reviewers plus one resolver. Campaign `e5-author-benchmark-20260811-r1` has been consumed and must never be repeated. Milestone 5 authorizes no additional Author invocation. Normal-path promotion remains separately gated. Offline instrument or runner qualification does not itself satisfy Gate G5.
+Safety boundary: E5 Milestones 1 through 6 were explicitly authorized on 2026-08-11, including the exact sixteen-call campaign and condition-blind adjudication by two isolated reviewers plus one resolver. Campaign `e5-author-benchmark-20260811-r1` has been consumed and must never be repeated. E5 authorizes no additional Author invocation. Normal-path promotion remains separately gated. Offline instrument or runner qualification does not itself satisfy Gate G5.
 
 The intended implementation executor is `gpt-5.6-terra` with `xhigh` reasoning. The E4 baseline is commit `916f8bbcc438d1b5aa30868fad4e4379fdf2ea43` on `feat/e4-evaluation-author-v0`. Authorized Milestone 1 implementation began on `feat/e5-blind-author-benchmark` from planning commit `973efba2e0b1d02afc1de550053cf6df914408a9`, which contains that E4 baseline. The normative THEORY was read in full at commit `572e963ea6f1207ab53c533592cb70a8239e221c`.
 
-Status: `MILESTONE 5 COMPLETE — INSUFFICIENT; NO AUTHOR CONDITION SELECTED`.
+Status: `COMPLETE — INSUFFICIENT; NO AUTHOR CONDITION SELECTED`.
 
 Milestone 1 implementation is recorded at commit `46d83a9`.
 Milestone 2 implementation is recorded at commit `8a154f2`.
@@ -27,6 +27,8 @@ The valid terminal conclusion includes:
 AUTOMATIC_AUTHOR_NOT_DEFENSIBLE
 ```
 
+In the final E5 R1 report, this rationale means only that neither exact condition evaluated by this campaign has sufficient evidence for a defensible automatic-Author selection. It does not claim that automatic authorship is generally impossible or indefensible under every future condition.
+
 No adaptive retry, benchmark repair, threshold change, or case replacement may be used to obtain a favorable result.
 
 ## Existing Context
@@ -38,6 +40,8 @@ R3 did not qualify the Author. Its Blueprint remains `NOT_QUALIFIED`, `DEVELOPME
 Official OpenAI model guidance consulted on 2026-08-11 describes Terra as balancing intelligence and cost, Luna as optimized for cost-sensitive workloads, and both as supporting `xhigh` and `max` reasoning. Pricing is volatile and account billing through ChatGPT authentication is not established by API list prices. E5 may report a frozen API-equivalent estimate from observed token usage, but it must label that estimate as analytical rather than actual campaign cost.
 
 RFC 0001 sections 52–55 and 75 require a blind Author benchmark against adjudicated reference evaluations, explicit uncertainty, and rejection of fabricated context. ADR 0002 requires bounded execution, prespecified retries and stopping, immutable instrument conditions, and terminal inconclusive outcomes. Those documents remain normative and unchanged.
+
+Before collection, the qualification gate already required all eight scheduled invocations for a condition to complete with canonical Blueprints. The plan also treated timeout as an observed failure for its sample, distinguished incomplete operational evidence from semantic failure, and allowed campaign-level `INSUFFICIENT`. The pre-collection condition contract nevertheless exposed only `QUALIFIED`, `NOT_QUALIFIED`, or `STALE`. After Luna/max produced eight timeouts, qualification-report schema-2 represented that missing semantic evidence as condition-level `INSUFFICIENT`. This was a post-collection resolution of an existing mismatch between the intended missing-evidence policy and its condition-level schema, not a status placement fully prespecified before collection. The chronology is retained as a limitation; it does not authorize reclassification, rescoring, or repetition of E5 R1.
 
 ## Scope
 
@@ -73,6 +77,8 @@ E5 excludes:
 - A **qualified reviewer** has passed the frozen reviewer-qualification probes before seeing benchmark outputs.
 - A **campaign bundle** contains the eight cases, references, rubric, thresholds, counterbalanced schedule, software identities, budget, and canonical fingerprint frozen before collection.
 - A **campaign commit freeze** is the equality between an explicitly expected Git commit and the clean observed `HEAD` used by a formal qualification campaign. It identifies campaign infrastructure; it is not a per-skill requirement or a normal Author contract.
+- **Semantic sufficiency** means enough completed Blueprint content exists to judge Author quality. Luna/max did not provide it in E5 R1.
+- The **operational completion gate** requires eight completed canonical Blueprints for a condition to qualify. Luna/max failed this frozen gate with zero of eight completions, independently of its unknown semantic quality.
 
 ## Desired End State and Internal Interfaces
 
@@ -352,7 +358,7 @@ Milestone 4 collection ran exactly once from clean authorized commit `a2bf82c12e
 
 Milestone 5 reserved adjudication against collection fingerprint `a51c2c8da8d395e713a0f154ac1e33a02a753906e8a614a4c31efdb57c45fcf6` and generated eight condition-blind packets. Two fresh reviewers independently requalified at 100% critical accuracy, 100% noncritical accuracy, and 100% probe agreement before candidate exposure. Each then locked 243 judgments under fingerprints `73251a2e43215e7eccc7f5b44f3aa68b19f97c1a6e337756a6eb4d8546fbbbe1` and `ddd499fee4837ed5476c1ba1493f3c21dc9ede4b863bdb6f79985492512e0549`. A fresh resolver saw only three divergences and locked their resolutions under fingerprint `4ef5764a08bf5502c71a0a1bd385885d16afe278bc8e5d11efa4105509145655`.
 
-Mechanical scoring ran exactly once. Luna/max is `INSUFFICIENT` because all eight scheduled candidates timed out; no semantic failure is inferred. Terra/xhigh is `NOT_QUALIFIED`: lifecycle matched 3/8, all 72/72 critical reference items matched, activation coverage was 8/8 in each region, macro precision was 100%, macro recall was 87.5%, and one unsupported critical blocker was invented. Specifically, all four `READY` references became `BLOCKED`, one `BLOCKED` reference became `DRAFT`, the Author asserted that already-qualified mechanical oracles were required where the skill only required an oracle qualification plan, and it missed the noncritical requirement to preserve invalid-record values and reasons in one case. Noncompensatory precedence therefore yields campaign `INSUFFICIENT`, `selectedCondition: null`, and `AUTOMATIC_AUTHOR_NOT_DEFENSIBLE`. No normal Author path is promoted.
+Mechanical scoring ran exactly once. Luna/max is `INSUFFICIENT` because all eight scheduled candidates timed out; no semantic failure is inferred. Separately, the exact Luna/max condition failed the frozen operational completion gate because zero of eight scheduled invocations produced canonical Blueprints. Terra/xhigh is `NOT_QUALIFIED`: lifecycle matched 3/8, all 72/72 critical reference items matched, activation coverage was 8/8 in each region, macro precision was 100%, macro recall was 87.5%, and one unsupported critical blocker was invented. Specifically, all four `READY` references became `BLOCKED`, one `BLOCKED` reference became `DRAFT`, the Author asserted that already-qualified mechanical oracles were required where the skill only required an oracle qualification plan, and it missed the noncritical requirement to preserve invalid-record values and reasons in one case. Noncompensatory precedence therefore yields campaign `INSUFFICIENT`, `selectedCondition: null`, and `AUTOMATIC_AUTHOR_NOT_DEFENSIBLE`, meaning no condition from E5 R1 supports a defensible automatic-Author selection. It is not a general impossibility claim. No normal Author path is promoted.
 
 Milestone 6 closed with `npm ci`, audit zero, typecheck, lint, 140 tests, Prettier, build, the provider-free public checkpoint, archaeological/Author/provider/benchmark/runner/Codex-OTEL/tracing qualifiers, and loopback tracing verification all green. Archive verification recomputed every semantic component digest, validated the schema-2 consolidated report, and found zero forbidden raw-reasoning, raw-response, expected-lifecycle, temporary-path, or absolute-home fields. No real collection or scoring command was repeated during validation.
 
@@ -442,12 +448,16 @@ Milestone 6 closed with `npm ci`, audit zero, typecheck, lint, 140 tests, Pretti
   Date/Author: 2026-08-11 / user and implementation agent.
 
 - Decision: represent per-condition operational incompleteness explicitly as `INSUFFICIENT` in a new qualification-report schema version.
-  Rationale: schema-1 is already a versioned minimal contract and must remain stable; Luna's eight timeouts are missing evidence rather than semantic failures, so the complete adjudication contract requires a distinct condition status without rewriting schema-1.
+  Rationale: schema-1 is already a versioned minimal contract and must remain stable; Luna's eight timeouts are missing evidence rather than semantic failures, so the complete adjudication contract requires a distinct condition status without rewriting schema-1. This condition-level status was formalized after collection, resolving a pre-existing mismatch between the prespecified missing-evidence policy and the narrower pre-collection condition schema; it must not be described as fully prespecified at that level.
   Date/Author: 2026-08-11 / user and implementation agent.
 
 - Decision: select no Author condition from E5 campaign R1.
   Rationale: Luna/max lacks all eight candidates, while Terra/xhigh fails lifecycle, noncritical recall, and zero-critical-invention gates. Neither cost nor strong critical-reference recall may compensate for these failures.
   Date/Author: 2026-08-11 / mechanical scoring under the frozen policy.
+
+- Decision: interpret `AUTOMATIC_AUTHOR_NOT_DEFENSIBLE` only as the E5 R1 selection conclusion.
+  Rationale: Luna/max supplies evidence of failure to satisfy the operational completion gate but no Blueprint evidence about semantic quality; the campaign therefore supports selecting neither tested condition, not rejecting automatic authorship universally.
+  Date/Author: 2026-08-11 / user and documentation reconciliation.
 
 ## Risks and Mitigations
 
@@ -473,6 +483,8 @@ Milestone 6 closed with `npm ci`, audit zero, typecheck, lint, 140 tests, Pretti
 - Risk: a catchable output or infrastructure failure after the global reservation leaves no terminal campaign record. Mitigation: write a bounded canonical receipt beside the immutable reservation, independent of the normal output directory.
 - Risk: `SIGKILL`, power loss, or total filesystem failure prevents terminalization. Mitigation: the durable `RESERVED` artifact remains evidence that the campaign was consumed and still forbids rerun; recovery requires human classification, never reuse.
 - Risk: the eight Luna/max timeouts are misreported as eight semantic quality failures or are hidden by scoring only completed outputs. Mitigation: preserve timeout as missing operational evidence, keep completion and semantic metrics separate, and apply the frozen `INSUFFICIENT`/qualification precedence mechanically during Milestone 5 without retry.
+- Risk: condition-level `INSUFFICIENT` is retrospectively described as fully prespecified. Mitigation: record that the missing-evidence principle and 8/8 gate preceded collection while the condition-level schema status was formalized afterward to resolve their mismatch.
+- Risk: `AUTOMATIC_AUTHOR_NOT_DEFENSIBLE` is read as a universal conclusion. Mitigation: scope it explicitly to selection among the two exact E5 R1 conditions and preserve Luna's semantic quality as unknown.
 - Risk: a reviewer infers condition identity from provenance or another reviewer's work. Mitigation: generate opaque deterministic packets without condition, order, lifecycle expectation, provenance, identity digests, or telemetry; start both agents from empty context and expose neither submission until both are locked.
 - Risk: public preservation leaks raw execution material or turns a retrospective reconstruction into original evidence. Mitigation: retain immutable canonical inputs under `.skill-evidence`, publish separately fingerprinted sanitized packets/submissions/resolution/scoring, and exclude raw responses, reasoning, credentials, and absolute paths mechanically.
 
@@ -537,3 +549,6 @@ A qualified condition becomes `STALE` when any model/reasoning request, instruct
 - A formally complete schedule can still contain condition-asymmetric missing evidence: collection completeness, operational viability, and semantic quality are separate claims and must be reported separately.
 - High recall of critical reference content is insufficient when lifecycle is systematically over-blocked: a useful Author must distinguish missing decision authority from evaluation work that belongs in a future oracle qualification stage.
 - Persisting both independent submissions exposed only three disagreements across 243 targets and made the final negative conclusion auditable without preserving private reasoning.
+- A sound missing-evidence interpretation can still expose a protocol-timing limitation when its exact condition-level status was formalized only after collection; both facts must be reported.
+- Luna/max established failure of the exact campaign's operational completion gate, while its Blueprint quality remains unknown because no Blueprint completed.
+- `AUTOMATIC_AUTHOR_NOT_DEFENSIBLE` is defensible only as a bounded E5 R1 selection conclusion, not as a claim that automatic authorship is generally impossible.

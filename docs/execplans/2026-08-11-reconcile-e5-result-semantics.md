@@ -78,9 +78,11 @@ git status --short
 
 - [x] Consult THEORY commit `572e963` and the E5 pre-collection and final contracts.
 - [x] Create this planned ExecPlan and its index entry.
-- [ ] Complete Milestone 1 without changing frozen artifacts.
-- [ ] Complete Milestone 2 and final documentation validation.
-- [ ] Commit the reconciliation with `commit-the-changes`.
+- [x] Complete Milestone 1 without changing frozen artifacts.
+- [x] Complete Milestone 2 and final documentation validation.
+- [x] Commit the reconciliation with `commit-the-changes`.
+
+Validation completed on 2026-08-11: the path-scoped diff against baseline `2eb06211b449d3f149764948f0ae3e77f673099b` found no changes under `docs/experiments`, `schemas`, `src`, `test`, or `evaluations`; the required interpretation terms are present in the E5 ExecPlan; `npm run prettier:check` and `git diff --check` passed. No provider-facing command ran.
 
 ## Decisions
 
@@ -95,6 +97,10 @@ git status --short
 - Decision: scope `AUTOMATIC_AUTHOR_NOT_DEFENSIBLE` to selection from E5 R1.
   Rationale: Luna supplies operational but not semantic quality evidence, so E5 cannot support a universal impossibility claim.
   Date/Author: 2026-08-11 / user and planning agent.
+
+- Decision: correct the E5 plan status from Milestone 5 complete to fully complete.
+  Rationale: Milestone 6 validation was already recorded as complete, so the heading and index must reflect the executed state without changing the experimental result.
+  Date/Author: 2026-08-11 / implementation agent.
 
 ## Risks and Mitigations
 
@@ -124,3 +130,4 @@ There is no deployment. Land one documentation-only commit after validation. Rec
 - A status can express a scientifically sound distinction while still requiring transparent disclosure that its exact schema placement was decided after collection.
 - Operational noncompletion is evidence about the exact condition's usability, not evidence about the semantic quality of an output that was never produced.
 - Machine-readable rationale codes need an explicit claim scope when a broader reading would exceed the evidence.
+- The E5 plan and operating guide had small status and authorization contradictions even though the immutable experiment report was internally consistent; canonical documentation needs a separate reconciliation pass after terminal evidence is archived.

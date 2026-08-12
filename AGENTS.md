@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-Product-owned intake, Evaluation Blueprint, Evaluation Author, and qualification contracts live in `src/`; versioned Blueprint and qualification-report schemas live in `schemas/`. The Promptfoo foundation and qualification harness remain in `experiments/`, and tests remain in `test/`. E4 and E5 authorize only internal `experiment:*` commands, not a public product CLI. E5 authorizes the frozen blind instrument and provider-free final-runner qualification; the real campaign reservation and provider execution remain separately unauthorized. Evaluation cases, oracles, and fixtures are under `evaluations/refactor-design/`; ExecPlans belong in `docs/execplans/` and use `YYYY-MM-DD-<kebab-case-title>.md`. Never commit `dist/`, `.skill-evidence/`, or `coverage/`.
+Product-owned intake, Evaluation Blueprint, Evaluation Author, and qualification contracts live in `src/`; versioned Blueprint and qualification-report schemas live in `schemas/`. The Promptfoo foundation and qualification harness remain in `experiments/`, and tests remain in `test/`. E4 and E5 authorize only internal `experiment:*` commands, not a public product CLI. E5 campaign `e5-author-benchmark-20260811-r1` was consumed exactly once and must never be repeated; any future model-backed campaign requires separate authorization. Evaluation cases, oracles, and fixtures are under `evaluations/refactor-design/`; ExecPlans belong in `docs/execplans/` and use `YYYY-MM-DD-<kebab-case-title>.md`. Never commit `dist/`, `.skill-evidence/`, or `coverage/`.
 
 ## Build, Test, and Development Commands
 
