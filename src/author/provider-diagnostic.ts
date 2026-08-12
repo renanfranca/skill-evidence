@@ -12,13 +12,25 @@ export interface AuthorProviderDiagnostic {
   stage: AuthorProviderFailureStage;
 }
 
+export interface AuthorProviderObservation {
+  cancellationObserved: boolean | null;
+  cancellationRequested: boolean | null;
+  firstProgressAtMs: number | null;
+  lastObservedStage: 'ACTIVITY' | 'NONE' | 'PROCESS' | 'PROCESS_EXIT' | 'THREAD' | 'TURN' | 'TURN_COMPLETED' | 'TURN_FAILED' | 'UNKNOWN';
+  lastProgressAtMs: number | null;
+  progressObserved: boolean | null;
+  timeoutOwner: 'CODEX_TURN' | 'PROMPTFOO_EVALUATION' | 'PROMPTFOO_STEP' | 'UNKNOWN' | null;
+}
+
 export class AuthorProviderError extends Error {
   readonly diagnostic: AuthorProviderDiagnostic;
+  readonly providerObservation: AuthorProviderObservation | undefined;
 
-  constructor(diagnostic: AuthorProviderDiagnostic) {
+  constructor(diagnostic: AuthorProviderDiagnostic, providerObservation?: AuthorProviderObservation) {
     super('Author provider invocation failed');
     this.name = 'AuthorProviderError';
     this.diagnostic = diagnostic;
+    this.providerObservation = providerObservation;
   }
 }
 

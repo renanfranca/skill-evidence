@@ -11,7 +11,12 @@ import {
 import { canonicalJson, sha256 } from '../canonical-json.js';
 import type { SkillSnapshot } from '../intake/skill-snapshot.js';
 import { authorInstructions, authorInstructionsV2, authorProtocolVersion, theoryCommit, theoryPrinciples } from './instructions.js';
-import { AuthorProviderError, unknownProviderDiagnostic, type AuthorProviderDiagnostic } from './provider-diagnostic.js';
+import {
+  AuthorProviderError,
+  unknownProviderDiagnostic,
+  type AuthorProviderDiagnostic,
+  type AuthorProviderObservation,
+} from './provider-diagnostic.js';
 
 export type AuthorConditionSpec = { model: 'gpt-5.6-luna'; reasoningEffort: 'max' } | { model: 'gpt-5.6-terra'; reasoningEffort: 'xhigh' };
 export type AuthorProtocolVersion = 1 | 2;
@@ -43,6 +48,7 @@ export interface AuthorInvocationRequest {
 export interface AuthorInvocationResponse {
   observedModel: string | null;
   output: string;
+  providerObservation?: AuthorProviderObservation;
   providerLatencyMs?: number | null;
   tokenUsage?: AuthorTokenUsage | null;
 }
@@ -70,6 +76,7 @@ export type AuthorErrorCode = 'CANDIDATE_STRUCTURALLY_INVALID' | 'INVALID_JSON' 
 interface AuthorRunEvidence {
   invocationAttempts: 1;
   packetFingerprint: string;
+  providerObservation?: AuthorProviderObservation;
   providerLatencyMs: number | null;
   tokenUsage: AuthorTokenUsage | null;
 }
@@ -168,8 +175,17 @@ export function prepareAuthorInvocation(
   };
 }
 
-function responseEvidence(response: AuthorInvocationResponse | undefined): Pick<AuthorRunEvidence, 'providerLatencyMs' | 'tokenUsage'> {
-  return { providerLatencyMs: response?.providerLatencyMs ?? null, tokenUsage: response?.tokenUsage ?? null };
+function responseEvidence(
+  response: AuthorInvocationResponse | undefined,
+  providerObservation = response?.providerObservation,
+): Pick<AuthorRunEvidence, 'providerLatencyMs' | 'tokenUsage'> & {
+  providerObservation?: AuthorProviderObservation;
+} {
+  return {
+    ...(providerObservation === undefined ? {} : { providerObservation }),
+    providerLatencyMs: response?.providerLatencyMs ?? null,
+    tokenUsage: response?.tokenUsage ?? null,
+  };
 }
 
 function errorResult(
@@ -180,12 +196,16 @@ function errorResult(
   return { error: { code }, invocationAttempts: 1, packetFingerprint, ...responseEvidence(response), status: 'ERROR' };
 }
 
-function providerErrorResult(diagnostic: AuthorProviderDiagnostic, packetFingerprint: string): AuthorRunResult {
+function providerErrorResult(
+  diagnostic: AuthorProviderDiagnostic,
+  packetFingerprint: string,
+  providerObservation?: AuthorProviderObservation,
+): AuthorRunResult {
   return {
     error: { code: 'PROVIDER_ERROR', diagnostic },
     invocationAttempts: 1,
     packetFingerprint,
-    ...responseEvidence(undefined),
+    ...responseEvidence(undefined, providerObservation),
     status: 'ERROR',
   };
 }
@@ -197,7 +217,11 @@ export async function authorEvaluationBlueprint(input: AuthorInput): Promise<Aut
   try {
     response = await input.invoke(prepared.request);
   } catch (error) {
-    return providerErrorResult(error instanceof AuthorProviderError ? error.diagnostic : unknownProviderDiagnostic(), packetFingerprint);
+    return providerErrorResult(
+      error instanceof AuthorProviderError ? error.diagnostic : unknownProviderDiagnostic(),
+      packetFingerprint,
+      error instanceof AuthorProviderError ? error.providerObservation : undefined,
+    );
   }
   let parsed: unknown;
   try {

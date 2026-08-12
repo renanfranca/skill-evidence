@@ -7,6 +7,7 @@ import { canonicalJson } from '../canonical-json.js';
 import { createSkillSnapshot } from '../intake/skill-snapshot.js';
 import { authorEvaluationBlueprint, type AuthorRunResult } from './evaluation-author.js';
 import { createPromptfooAuthorInvoker } from './promptfoo-author-invoker.js';
+import { createCodexObservationSession } from './provider-observation.js';
 
 type ProviderBoundaryActual = string;
 
@@ -37,6 +38,45 @@ const scenarios: Array<{ expected: ProviderBoundaryCase['expected']; id: string 
   { expected: 'RESULT:PROCESS:EXIT_NONZERO', id: 'process' },
 ];
 
+const observationScenarios = [
+  {
+    expected: 'ERROR:PROMPTFOO_STEP:false:true:true:PROCESS_EXIT',
+    fixture: 'observation-no-progress',
+    id: 'observation-no-progress-timeout',
+    timeouts: { maxEvalTimeMs: 300, timeoutMs: 80 },
+  },
+  {
+    expected: 'ERROR:PROMPTFOO_STEP:true:true:true:PROCESS_EXIT',
+    fixture: 'observation-progress-timeout',
+    id: 'observation-progress-timeout',
+    timeouts: { maxEvalTimeMs: 300, timeoutMs: 80 },
+  },
+  {
+    expected: 'ERROR:UNKNOWN:false:false:false:PROCESS_EXIT',
+    fixture: 'observation-no-progress',
+    id: 'observation-evaluation-timeout-unresolved',
+    timeouts: { maxEvalTimeMs: 80, timeoutMs: 300 },
+  },
+  {
+    expected: 'ERROR:CODEX_TURN:true:false:false:TURN_FAILED',
+    fixture: 'observation-turn-timeout',
+    id: 'observation-codex-turn-timeout',
+    timeouts: { maxEvalTimeMs: 300, timeoutMs: 200 },
+  },
+  {
+    expected: 'ERROR:NONE:true:false:false:PROCESS_EXIT',
+    fixture: 'observation-process-after-progress',
+    id: 'observation-process-termination',
+    timeouts: { maxEvalTimeMs: 300, timeoutMs: 200 },
+  },
+  {
+    expected: 'COMPLETED:NONE:true:false:false:TURN_COMPLETED',
+    fixture: 'observation-complete',
+    id: 'observation-completion',
+    timeouts: { maxEvalTimeMs: 300, timeoutMs: 200 },
+  },
+] as const;
+
 async function packageVersion(root: string, packageName: string): Promise<string> {
   const manifest = JSON.parse(await readFile(join(root, 'node_modules', packageName, 'package.json'), 'utf8')) as unknown;
   if (manifest !== null && typeof manifest === 'object' && 'version' in manifest && typeof manifest.version === 'string') {
@@ -56,10 +96,25 @@ function projectResult(result: AuthorRunResult): ProviderBoundaryActual {
   return `${stage}:${category}:${code}`;
 }
 
+function projectObservation(result: AuthorRunResult): ProviderBoundaryActual {
+  const observation = result.providerObservation;
+  if (observation === undefined) return 'OBSERVATION_MISSING';
+  return [
+    result.status,
+    observation.timeoutOwner ?? 'NONE',
+    String(observation.progressObserved),
+    String(observation.cancellationRequested),
+    String(observation.cancellationObserved),
+    observation.lastObservedStage,
+  ].join(':');
+}
+
 function limitations(): string[] {
   return [
     'The local executable opens no network connection and does not prove live provider availability.',
     'Synthetic failures qualify bounded diagnostic projection, not their equivalence to an account-specific provider failure.',
+    'The opt-in proxy records event types and relative times only; it perturbs the process boundary and cannot prove remote cancellation.',
+    'Promptfoo global timeout remains UNKNOWN when its provider-abort result wins before max-duration projection.',
     'This development qualifier does not qualify Author semantics or authorize an E5 decision run.',
   ];
 }
@@ -101,6 +156,33 @@ export async function qualifyAuthorProviderBoundary(root = process.cwd()): Promi
       const result = await authorEvaluationBlueprint({ campaignId: `qualify-provider-${scenario.id}`, invoke, snapshot });
       cases.push({ actual: projectResult(result), expected: scenario.expected, id: scenario.id });
     }
+    for (const scenario of observationScenarios) {
+      const observationDirectory = join(temporaryRoot, scenario.id);
+      await mkdir(observationDirectory);
+      const observation = await createCodexObservationSession({
+        codexExecutable: fakeExecutable,
+        directory: observationDirectory,
+        environment: {
+          SKILL_EVIDENCE_FAKE_CODEX_LEDGER: ledger,
+          SKILL_EVIDENCE_FAKE_CODEX_OUTPUT: candidate,
+          SKILL_EVIDENCE_FAKE_CODEX_SCENARIO: scenario.fixture,
+        },
+      });
+      const invoke = createPromptfooAuthorInvoker({
+        codexHome,
+        observation,
+        timeouts: scenario.timeouts,
+        workingDirectory: workspace,
+      });
+      const result = await authorEvaluationBlueprint({
+        campaignId: `qualify-provider-${scenario.id}`,
+        condition: { model: 'gpt-5.6-luna', reasoningEffort: 'max' },
+        invoke,
+        protocolVersion: 2,
+        snapshot,
+      });
+      cases.push({ actual: projectObservation(result), expected: scenario.expected, id: scenario.id });
+    }
     localProcessCalls = (await readFile(ledger, 'utf8')).trim().split('\n').filter(Boolean).length;
   } catch {
     cases = [];
@@ -112,8 +194,9 @@ export async function qualifyAuthorProviderBoundary(root = process.cwd()): Promi
     packageVersion(root, 'promptfoo'),
     packageVersion(root, '@openai/codex-sdk'),
   ]);
-  const wellFormed = promptfooVersion === '0.122.0' && codexSdkVersion === '0.147.0' && localProcessCalls === scenarios.length;
-  const matches = wellFormed && cases.length === scenarios.length && cases.every((entry) => entry.actual === entry.expected);
+  const expectedCount = scenarios.length + observationScenarios.length;
+  const wellFormed = promptfooVersion === '0.122.0' && codexSdkVersion === '0.147.0' && localProcessCalls === expectedCount;
+  const matches = wellFormed && cases.length === expectedCount && cases.every((entry) => entry.actual === entry.expected);
   return {
     cases,
     codexSdkVersion,

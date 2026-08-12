@@ -1,10 +1,13 @@
 import type { AuthorInvocationRequest, AuthorInvocationResponse, AuthorInvoker, AuthorTokenUsage } from './evaluation-author.js';
 import { AuthorProviderError, diagnoseProviderFailure } from './provider-diagnostic.js';
+import { readCodexObservation, type CodexObservationSession } from './provider-observation.js';
 
 export interface CreateAuthorPromptfooInvocationInput {
   codexHome: string;
   localDiagnostic?: AuthorLocalDiagnosticOverride;
+  observation?: CodexObservationSession;
   request: AuthorInvocationRequest;
+  timeouts?: { maxEvalTimeMs: number; timeoutMs: number };
   workingDirectory: string;
 }
 
@@ -14,7 +17,7 @@ export interface AuthorLocalDiagnosticOverride {
 }
 
 export interface AuthorPromptfooInvocation {
-  options: { cache: false; maxConcurrency: 1; maxEvalTimeMs: 360000; silent: true; timeoutMs: 300000 };
+  options: { cache: false; maxConcurrency: 1; maxEvalTimeMs: number; silent: true; timeoutMs: number };
   suite: {
     prompts: [string];
     providers: Array<{
@@ -24,7 +27,7 @@ export interface AuthorPromptfooInvocation {
         cli_env: Record<string, string>;
         codex_path_override?: string;
         deep_tracing: false;
-        enable_streaming: false;
+        enable_streaming: boolean;
         inherit_process_env: false;
         maxRetries: 0;
         model: AuthorInvocationRequest['model'];
@@ -81,9 +84,13 @@ function normalizeTokenUsage(value: unknown): AuthorTokenUsage | null {
 }
 
 export function createAuthorPromptfooInvocation(input: CreateAuthorPromptfooInvocationInput): AuthorPromptfooInvocation {
-  const localDiagnostic = input.localDiagnostic;
+  const localDiagnostic =
+    input.observation === undefined
+      ? input.localDiagnostic
+      : { codexPathOverride: input.observation.codexPathOverride, environment: input.observation.environment };
+  const timeouts = input.timeouts ?? { maxEvalTimeMs: 360_000, timeoutMs: 300_000 };
   return {
-    options: { cache: false, maxConcurrency: 1, maxEvalTimeMs: 360_000, silent: true, timeoutMs: 300_000 },
+    options: { cache: false, maxConcurrency: 1, maxEvalTimeMs: timeouts.maxEvalTimeMs, silent: true, timeoutMs: timeouts.timeoutMs },
     suite: {
       prompts: [input.request.prompt],
       providers: [
@@ -94,7 +101,7 @@ export function createAuthorPromptfooInvocation(input: CreateAuthorPromptfooInvo
             cli_env: { CODEX_HOME: input.codexHome, ...(localDiagnostic?.environment ?? {}) },
             ...(localDiagnostic === undefined ? {} : { codex_path_override: localDiagnostic.codexPathOverride }),
             deep_tracing: false,
-            enable_streaming: false,
+            enable_streaming: input.observation !== undefined,
             inherit_process_env: false,
             maxRetries: 0,
             model: input.request.model,
@@ -120,13 +127,17 @@ export function createPromptfooAuthorInvoker(input: {
   codexHome: string;
   loadPromptfoo?: () => Promise<PromptfooModule>;
   localDiagnostic?: AuthorLocalDiagnosticOverride;
+  observation?: CodexObservationSession;
+  timeouts?: { maxEvalTimeMs: number; timeoutMs: number };
   workingDirectory: string;
 }): AuthorInvoker {
   return async (request): Promise<AuthorInvocationResponse> => {
     const invocation = createAuthorPromptfooInvocation({
       codexHome: input.codexHome,
       ...(input.localDiagnostic === undefined ? {} : { localDiagnostic: input.localDiagnostic }),
+      ...(input.observation === undefined ? {} : { observation: input.observation }),
       request,
+      ...(input.timeouts === undefined ? {} : { timeouts: input.timeouts }),
       workingDirectory: input.workingDirectory,
     });
     const promptfoo = input.loadPromptfoo === undefined ? ((await import('promptfoo')) as PromptfooModule) : await input.loadPromptfoo();
@@ -134,28 +145,46 @@ export function createPromptfooAuthorInvoker(input: {
     try {
       evaluation = (await promptfoo.evaluate(invocation.suite, invocation.options)) as PromptfooEvaluation;
     } catch (error) {
-      throw new AuthorProviderError(diagnoseProviderFailure('EVALUATION', error instanceof Error ? error.message : ''));
+      const message = error instanceof Error ? error.message : '';
+      throw new AuthorProviderError(
+        diagnoseProviderFailure('EVALUATION', message),
+        input.observation === undefined ? undefined : await readCodexObservation(input.observation, message),
+      );
     }
     let summary: Awaited<ReturnType<PromptfooEvaluation['toEvaluateSummary']>>;
     try {
       summary = await evaluation.toEvaluateSummary();
     } catch (error) {
-      throw new AuthorProviderError(diagnoseProviderFailure('RESULT', error instanceof Error ? error.message : ''));
+      const message = error instanceof Error ? error.message : '';
+      throw new AuthorProviderError(
+        diagnoseProviderFailure('RESULT', message),
+        input.observation === undefined ? undefined : await readCodexObservation(input.observation, message),
+      );
     }
     const result = summary.results[0];
     if (result === undefined) {
-      throw new AuthorProviderError({ category: 'UNKNOWN', code: 'NO_RESULT', stage: 'RESULT' });
+      throw new AuthorProviderError(
+        { category: 'UNKNOWN', code: 'NO_RESULT', stage: 'RESULT' },
+        input.observation === undefined ? undefined : await readCodexObservation(input.observation, null),
+      );
     }
     if (result.error) {
-      throw new AuthorProviderError(diagnoseProviderFailure('RESULT', result.error));
+      throw new AuthorProviderError(
+        diagnoseProviderFailure('RESULT', result.error),
+        input.observation === undefined ? undefined : await readCodexObservation(input.observation, result.error),
+      );
     }
     if (typeof result.response?.output !== 'string') {
-      throw new AuthorProviderError({ category: 'UNKNOWN', code: 'NO_TEXT', stage: 'OUTPUT' });
+      throw new AuthorProviderError(
+        { category: 'UNKNOWN', code: 'NO_TEXT', stage: 'OUTPUT' },
+        input.observation === undefined ? undefined : await readCodexObservation(input.observation, null),
+      );
     }
     const observedModel = result.response.metadata?.model;
     return {
       observedModel: typeof observedModel === 'string' ? observedModel : null,
       output: result.response.output,
+      ...(input.observation === undefined ? {} : { providerObservation: await readCodexObservation(input.observation, null) }),
       providerLatencyMs: finiteNumber(result.latencyMs),
       tokenUsage: normalizeTokenUsage(result.response.tokenUsage),
     };
