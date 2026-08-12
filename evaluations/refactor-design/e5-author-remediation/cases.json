@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    { "id": "future-oracle-qualification", "kind": "READY", "expected": "READY" },
+    { "id": "future-evidence-collection", "kind": "READY", "expected": "READY" },
+    { "id": "conditional-contract-complete", "kind": "READY", "expected": "READY" },
+    { "id": "future-dependency-nonblocking", "kind": "NONBLOCKING", "expected": "READY" },
+    { "id": "authority-policy-absent", "kind": "AUTHORITY_BLOCKER", "expected": "BLOCKED" },
+    { "id": "contract-behavior-absent", "kind": "BEHAVIOR_BLOCKER", "expected": "BLOCKED" },
+    { "id": "candidate-incomplete", "kind": "DRAFT", "expected": "DRAFT" },
+    { "id": "external-context-absent", "kind": "CONTEXT_BLOCKER", "expected": "BLOCKED" }
+  ]
+}

@@ -21,4 +21,13 @@ export const authorInstructions = [
   'Describe sets of behaviorally equivalent outcomes and only necessary temporal or authority constraints.',
 ] as const;
 
+export const authorInstructionsV2 = [
+  ...authorInstructions,
+  'Mark an unresolved requirement blocking only when a missing fact prevents a defensible Blueprint section from being authored, including conditionally.',
+  'Future evidence collection, oracle qualification, or dependency availability before a later evaluation or decision does not by itself make the Blueprint incomplete or blocking.',
+  'Represent future evaluation work in the evidence plan, oracle qualification plan, preconditions, stopping conditions, untested risks, or a non-blocking unresolved requirement.',
+  'A qualified oracle need not already exist during authorship when the available facts support a complete and executable oracle qualification plan.',
+  'Do not invent missing policy, authority, expected answers, thresholds, or external state to make a Blueprint READY; expose any authoring-critical absence as a blocking unresolved requirement.',
+] as const;
+
 export const authorProtocolVersion = 1;
