@@ -1,0 +1,87 @@
+{
+  "id": "nacre-71",
+  "stratum": "TRANSFORMATION",
+  "expectedLifecycle": "READY",
+  "referenceItems": [
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Exact equivalent signed fixed-width encoding relation"],
+      "category": "CLAIM",
+      "critical": true,
+      "id": "a71-01",
+      "statement": "Valid coordinates receive the specified fixed-width signed key."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Preserve optional metadata and stable input order"],
+      "category": "CLAIM",
+      "critical": false,
+      "id": "a71-02",
+      "statement": "Optional labels and input order are preserved."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["A semantically equivalent parsed-JSON contract"],
+      "category": "CONTRACT",
+      "critical": true,
+      "id": "a71-03",
+      "statement": "Integers in the inclusive range -999 through 999 produce exact encoded entries; invalid records preserve their supplied values and all violation reasons."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Encoding request with supplied coordinate records"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "a71-05",
+      "statement": "Positive activation requires supplied coordinate records and encoding intent."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Spatial interpretation or file-output request"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "a71-06",
+      "statement": "Geocoding, distance analysis, coordinate-system inference, filesystem output, and requests without encoding intent are outside activation."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Clarify absent records; process mixed valid and invalid records"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "a71-07",
+      "statement": "Missing records require one clarification, while mixed valid and invalid records remain processable."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Equivalent parser and structural assertions"],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "a71-08",
+      "statement": "Compatible direct evidence parses the JSON and compares exact keys, preserved records, and array order."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": [],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "a71-09",
+      "statement": "Prose-quality judgment, substring matching, or inferred intent cannot prove value preservation."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": [],
+      "category": "PROHIBITED_EFFECT",
+      "critical": true,
+      "id": "a71-11",
+      "statement": "The Author must preserve prohibitions on rounding, clamping, deduplication, reordering, dropping, or inventing coordinates."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Ask for absent records and isolate invalid records"],
+      "category": "RECOVERY",
+      "critical": true,
+      "id": "a71-12",
+      "statement": "Recovery requests absent input and isolates invalid records without corrupting valid output."
+    }
+  ]
+}

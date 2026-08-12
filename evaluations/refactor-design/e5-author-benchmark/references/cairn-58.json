@@ -1,0 +1,87 @@
+{
+  "id": "cairn-58",
+  "stratum": "FILESYSTEM",
+  "expectedLifecycle": "READY",
+  "referenceItems": [
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Only requested in-scope keys change to recomputed lowercase SHA-256"],
+      "category": "CLAIM",
+      "critical": true,
+      "id": "c58-01",
+      "statement": "Only requested in-scope seals change to correct lowercase SHA-256 values."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Unicode code-point key ordering"],
+      "category": "CLAIM",
+      "critical": false,
+      "id": "c58-02",
+      "statement": "All catalog keys are deterministically sorted."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Equivalent atomic-replacement mechanism with direct evidence"],
+      "category": "CONTRACT",
+      "critical": true,
+      "id": "c58-03",
+      "statement": "Valid named regular files cause one atomic catalog replacement while unnamed entries and fixture bytes remain unchanged."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Explicit seal-refresh request naming fixtures/data paths"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "c58-05",
+      "statement": "Positive activation requires an explicit seal-refresh request with named paths under fixtures/data."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["General checksum, test, Git, or implicit maintenance request"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "c58-06",
+      "statement": "General checksums, test execution, Git actions, and implicit maintenance are outside activation."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Mixed eligible and ineligible inputs refuse before any write"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "c58-07",
+      "statement": "A mixed request containing any ineligible path must be refused before mutation."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Direct before/after bytes, write trace, recomputed hashes, and fault state"],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "c58-08",
+      "statement": "Compatible evidence includes pre/post bytes, path-write logs, independent digest recomputation, temp-file absence, and exit status."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": [],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "c58-09",
+      "statement": "Final JSON alone cannot prove atomicity, absence of other writes, or rollback behavior."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": [],
+      "category": "PROHIBITED_EFFECT",
+      "critical": true,
+      "id": "c58-11",
+      "statement": "No symlink following, fixture edits, unrelated seal changes, Git operations, or writes outside the catalog are allowed."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Every injected phase failure preserves original catalog bytes"],
+      "category": "RECOVERY",
+      "critical": true,
+      "id": "c58-12",
+      "statement": "Read, validation, hash, write, fsync, and rename failures preserve original bytes and clean the temporary sibling when possible."
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import type { AuthorInvocationRequest, AuthorInvocationResponse, AuthorInvoker } from './evaluation-author.js';
+import type { AuthorInvocationRequest, AuthorInvocationResponse, AuthorInvoker, AuthorTokenUsage } from './evaluation-author.js';
 import { AuthorProviderError, diagnoseProviderFailure } from './provider-diagnostic.js';
 
 export interface CreateAuthorPromptfooInvocationInput {
@@ -27,8 +27,8 @@ export interface AuthorPromptfooInvocation {
         enable_streaming: false;
         inherit_process_env: false;
         maxRetries: 0;
-        model: 'gpt-5.6-terra';
-        model_reasoning_effort: 'xhigh';
+        model: AuthorInvocationRequest['model'];
+        model_reasoning_effort: AuthorInvocationRequest['reasoningEffort'];
         network_access_enabled: false;
         persist_threads: false;
         sandbox_mode: 'read-only';
@@ -46,7 +46,8 @@ export interface AuthorPromptfooInvocation {
 
 interface PromptfooResult {
   error?: string | null;
-  response?: { metadata?: Record<string, unknown>; output?: unknown };
+  latencyMs?: unknown;
+  response?: { metadata?: Record<string, unknown>; output?: unknown; tokenUsage?: unknown };
 }
 
 interface PromptfooEvaluation {
@@ -55,6 +56,28 @@ interface PromptfooEvaluation {
 
 interface PromptfooModule {
   evaluate: (suite: unknown, options: unknown) => Promise<unknown>;
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+}
+
+function finiteNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+function normalizeTokenUsage(value: unknown): AuthorTokenUsage | null {
+  const usage = record(value);
+  if (usage === null) return null;
+  const details = record(usage.completionDetails);
+  const normalized = {
+    cachedInputTokens: finiteNumber(usage.cached),
+    inputTokens: finiteNumber(usage.prompt),
+    outputTokens: finiteNumber(usage.completion),
+    reasoningOutputTokens: finiteNumber(details?.reasoning),
+    totalTokens: finiteNumber(usage.total),
+  };
+  return Object.values(normalized).every((entry) => entry === null) ? null : normalized;
 }
 
 export function createAuthorPromptfooInvocation(input: CreateAuthorPromptfooInvocationInput): AuthorPromptfooInvocation {
@@ -130,6 +153,11 @@ export function createPromptfooAuthorInvoker(input: {
       throw new AuthorProviderError({ category: 'UNKNOWN', code: 'NO_TEXT', stage: 'OUTPUT' });
     }
     const observedModel = result.response.metadata?.model;
-    return { observedModel: typeof observedModel === 'string' ? observedModel : null, output: result.response.output };
+    return {
+      observedModel: typeof observedModel === 'string' ? observedModel : null,
+      output: result.response.output,
+      providerLatencyMs: finiteNumber(result.latencyMs),
+      tokenUsage: normalizeTokenUsage(result.response.tokenUsage),
+    };
   };
 }

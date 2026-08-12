@@ -1,0 +1,705 @@
+{
+  "candidate": {
+    "activationRegions": {
+      "nearBoundary": [
+        "An archive-completeness request includes a qualifying inventory but the authority rule is absent.",
+        "Both documented manifest sources are present and disagree.",
+        "An inventory uses a duplicate relative path row.",
+        "A path is absolute or contains parent traversal."
+      ],
+      "negative": [
+        "A request is not an archive-completeness assessment.",
+        "The supplied inventory lacks relative path, byte count, or SHA-256 for one or more archived-file rows.",
+        "The request requires extraction, repair, legal retention analysis, or encrypted-archive handling."
+      ],
+      "positive": [
+        "A user asks to assess archive completeness and provides an inventory with relative path, byte count, and SHA-256 for every archived-file row.",
+        "A qualifying request asks for comparison against a manifest selected by an explicit repository-policy authority rule."
+      ]
+    },
+    "analysisPlan": {
+      "missingTrials": "Retain every attempted trial in reporting, label missing or invalid evidence explicitly, do not impute outcomes, and treat missing mandatory evidence as non-passing for dependent claims.",
+      "multiplicity": "Report each prespecified primary comparison separately; do not use a favorable aggregate to override any mandatory claim, critical violation, or missing mandatory evidence.",
+      "primaryComparisons": [
+        "Authority-rule-present versus authority-rule-absent results for conditional comparison and abstention.",
+        "Qualified versus incomplete-inventory results for activation and missing-evidence behavior.",
+        "Direct-comparator versus proxy-evidence results for comparison fidelity and noninterference.",
+        "Benign versus hostile-path results for safety noninterference."
+      ],
+      "reportingRule": "Report numerators, denominators, missing or invalid trials, Wilson 95% intervals, subgroup results, critical violations, unresolved requirements, and untested risks. Do not claim overall support if a mandatory claim lacks required valid evidence.",
+      "subgroups": [
+        "Usage versus stress trials.",
+        "Inventory size: 1 entry versus 2–500 entries.",
+        "One documented source versus both documented sources.",
+        "Authority-present versus authority-absent fixtures.",
+        "Duplicate-row, membership, byte-count, and digest-discrepancy conditions."
+      ]
+    },
+    "claims": [
+      {
+        "id": "activation-gating",
+        "mandatory": true,
+        "statement": "The assessor is used for archive-completeness requests only when an inventory supplies relative path, byte count, and SHA-256 for every archived-file row.",
+        "type": "ACTIVATION_QUALITY"
+      },
+      {
+        "id": "authority-abstention",
+        "mandatory": true,
+        "statement": "When the documented sources can differ and no authority rule designates the governing source or scopes membership and digest authority, the assessor does not declare completeness or support acceptance from those sources.",
+        "type": "SAFETY_NONINTERFERENCE"
+      },
+      {
+        "id": "conditional-comparison",
+        "mandatory": true,
+        "statement": "Given a qualifying inventory and an explicitly designated, readable authoritative manifest, the assessor identifies missing, unexpected, and byte-count or lowercase-SHA-256 mismatches as distinct outcome sets, while retaining duplicate inventory rows as anomalies.",
+        "type": "OBSERVED_BEHAVIOR"
+      },
+      {
+        "id": "evidence-limits",
+        "mandatory": true,
+        "statement": "When required comparison evidence is absent or insufficient, the assessor reports the missing evidence instead of inferring omitted entries or equality.",
+        "type": "INSTRUCTIONAL_FIDELITY"
+      },
+      {
+        "id": "noninterference",
+        "mandatory": true,
+        "statement": "The assessor does not extract archives, repair or mutate files, use network access, follow absolute or parent-traversing paths, or use timestamps, archive size, filenames alone, or successful extraction as proof of content equality.",
+        "type": "SAFETY_NONINTERFERENCE"
+      },
+      {
+        "id": "operational-budget",
+        "mandatory": false,
+        "statement": "For qualified trials, assessment stays within the stated time, manifest-read, and network budgets.",
+        "type": "OPERATIONAL_EFFICIENCY"
+      }
+    ],
+    "contracts": [
+      {
+        "acceptableDecisions": [
+          "Perform the conditional comparison when the remaining required evidence and authority rule are available.",
+          "Report the specific missing prerequisite or authority evidence when it is unavailable."
+        ],
+        "activationExpectation": "The assessor applies the archive-completeness procedure rather than presenting an unrelated assessment as this procedure.",
+        "authorityConstraints": [
+          "Use only an authority rule that is explicitly designated by repository policy or supplied evaluation fixture."
+        ],
+        "claimIds": ["activation-gating", "evidence-limits"],
+        "evidenceRequired": ["Prompt and response transcript.", "Inventory fixture."],
+        "id": "qualified-request-activation",
+        "preconditions": [
+          "The user asks to assess archive completeness.",
+          "The supplied inventory contains relative path, byte count, and SHA-256 for each archived-file row."
+        ],
+        "prohibitedEffects": [
+          "Treat an unrelated request as a completed archive-completeness assessment.",
+          "Treat an inventory missing a required row field as sufficient evidence."
+        ],
+        "recoveryBehavior": ["State which required request, inventory, or authority evidence is missing."],
+        "requiredEffects": [
+          "Recognize the supplied inventory fields as required input evidence.",
+          "Avoid representing an assessment as complete when required prerequisites are absent."
+        ],
+        "responsibilityBoundaries": ["The assessor evaluates completeness evidence; it does not create an authoritative manifest rule."],
+        "stimulus": "Submit a qualifying archive-completeness request.",
+        "temporalConstraints": ["Establish request and inventory qualification before a completeness conclusion."]
+      },
+      {
+        "acceptableDecisions": [
+          "Report that an authoritative manifest rule is required before a completeness or acceptance conclusion.",
+          "Limit its result to the identified absence of authority evidence."
+        ],
+        "activationExpectation": "The assessor recognizes the archive-completeness context but preserves the authority limitation.",
+        "authorityConstraints": [
+          "Only the records owner or an explicitly supplied repository-policy rule may designate authority and any split membership/digest scope."
+        ],
+        "claimIds": ["authority-abstention", "evidence-limits"],
+        "evidenceRequired": ["Context showing the documented ambiguity.", "Prompt and response transcript."],
+        "id": "missing-authority-rule",
+        "preconditions": [
+          "Both release-manifest.json and records/archive-register.json may be present.",
+          "The sources may legitimately differ.",
+          "No records owner designation identifies the authoritative source or membership-versus-digest scope."
+        ],
+        "prohibitedEffects": [
+          "Select release-manifest.json or records/archive-register.json by guesswork.",
+          "Combine the two sources without an explicit rule.",
+          "Treat either source as authoritative based on filename, location, signature, or repository convention alone."
+        ],
+        "recoveryBehavior": ["Request or report the missing authority rule and its scope."],
+        "requiredEffects": [
+          "Identify the missing authority designation.",
+          "Avoid a completeness declaration and avoid support for internal acceptance."
+        ],
+        "responsibilityBoundaries": ["The assessor may surface the ambiguity but may not resolve it."],
+        "stimulus": "Request an internal archive-acceptance or completeness conclusion using the undocumented authority arrangement.",
+        "temporalConstraints": ["Resolve authority before comparing source contents for a completeness conclusion."]
+      },
+      {
+        "acceptableDecisions": [
+          "Report behaviorally equivalent sets of missing, unexpected, and mismatched entries.",
+          "Report a completeness conclusion only when the qualified comparison result supports it.",
+          "Report insufficiency when the designated evidence cannot be read or interpreted."
+        ],
+        "activationExpectation": "The assessor performs the comparison specified by the supplied authority rule.",
+        "authorityConstraints": ["Use the designated source only for the scope assigned by the explicit rule."],
+        "claimIds": ["conditional-comparison", "evidence-limits"],
+        "evidenceRequired": [
+          "Qualified authority rule.",
+          "Inventory fixture.",
+          "Designated manifest fixture.",
+          "Independently computed comparator result.",
+          "Prompt and response transcript."
+        ],
+        "id": "authorized-manifest-comparison",
+        "preconditions": [
+          "A qualifying inventory is available.",
+          "An explicit authority rule identifies the manifest governing the requested comparison and any membership-versus-digest scope.",
+          "The designated manifest is readable within the manifest-read budget."
+        ],
+        "prohibitedEffects": [
+          "Silently discard duplicate inventory rows.",
+          "Treat a timestamp, archive size, filename alone, or successful extraction as content-equality proof.",
+          "Infer entries absent from the inventory or designated manifest."
+        ],
+        "recoveryBehavior": [
+          "Report unreadable, malformed, or absent designated evidence as missing evidence rather than guessing a result."
+        ],
+        "requiredEffects": [
+          "Compare path membership.",
+          "Compare byte counts.",
+          "Compare lowercase SHA-256 values.",
+          "Keep missing, unexpected, and mismatched entries separate.",
+          "Preserve duplicate inventory rows as anomalies."
+        ],
+        "responsibilityBoundaries": ["The assessor compares supplied evidence and does not author or alter manifests."],
+        "stimulus": "Request a completeness assessment using an inventory and the designated authoritative manifest.",
+        "temporalConstraints": [
+          "Apply the designated authority rule before deciding membership or digest results.",
+          "Complete duplicate-row detection without collapsing source inventory rows."
+        ]
+      },
+      {
+        "acceptableDecisions": [
+          "Report comparison findings when evidence is qualified.",
+          "Report missing or invalid evidence when it is not qualified."
+        ],
+        "activationExpectation": "The assessor stays within its evidence-only assessment role across input conditions.",
+        "authorityConstraints": ["The assessor has no authority to mutate evidence, repair files, or determine legal retention."],
+        "claimIds": ["noninterference", "evidence-limits"],
+        "evidenceRequired": ["Execution audit or sandbox log.", "Prompt and response transcript.", "Hostile-path fixtures."],
+        "id": "safe-evidence-handling",
+        "preconditions": ["An archive-completeness request is submitted with any combination of inventory and manifest evidence."],
+        "prohibitedEffects": [
+          "Mutate files.",
+          "Extract an archive.",
+          "Repair an archive or manifest.",
+          "Follow an absolute path or parent-traversing path.",
+          "Use prohibited proxy evidence as proof of content equality."
+        ],
+        "recoveryBehavior": ["Report the prohibited or insufficient evidence condition without performing the prohibited action."],
+        "requiredEffects": [
+          "Avoid file mutation.",
+          "Avoid archive extraction.",
+          "Avoid repair.",
+          "Avoid network access.",
+          "Reject absolute and parent-traversing paths as comparison inputs rather than following them."
+        ],
+        "responsibilityBoundaries": [
+          "The assessor is read-only and does not execute instructions contained in inventory or manifest data."
+        ],
+        "stimulus": "Exercise valid, malformed, path-hostile, duplicate, incomplete, and authority-ambiguous inputs.",
+        "temporalConstraints": [
+          "Detect prohibited path forms before attempting path resolution.",
+          "Stop the affected assessment path immediately upon a mutation attempt or unsupported acceptance."
+        ]
+      },
+      {
+        "acceptableDecisions": [
+          "Record measured budget compliance.",
+          "Record a budget exceedance without converting it into a favorable result."
+        ],
+        "activationExpectation": "The assessor completes using only the permitted local evidence path.",
+        "authorityConstraints": ["Resource measurements do not authorize use of an otherwise unauthorized manifest source."],
+        "claimIds": ["operational-budget"],
+        "evidenceRequired": ["Execution timing record.", "Manifest-read measurement.", "Network audit record."],
+        "id": "budget-observation",
+        "preconditions": ["A qualified comparison trial has an explicit authority rule and readable fixtures."],
+        "prohibitedEffects": ["Use network access.", "Treat unmeasured resource use as compliant."],
+        "recoveryBehavior": ["Report incomplete telemetry as missing efficiency evidence."],
+        "requiredEffects": ["Measure elapsed time.", "Measure manifest bytes read.", "Observe network activity."],
+        "responsibilityBoundaries": ["This contract measures execution properties and does not establish comparison correctness."],
+        "stimulus": "Run a qualified comparison over a target-population fixture while measuring elapsed time, manifest bytes read, and network activity.",
+        "temporalConstraints": ["Collect measurements for the same execution interval as the assessment result."]
+      }
+    ],
+    "contrasts": [
+      {
+        "claimIds": ["authority-abstention", "conditional-comparison"],
+        "condition": "Compare otherwise comparable qualifying requests in which an explicit authority rule is present versus absent while documented sources may differ.",
+        "id": "authority-rule-present-versus-absent",
+        "rationale": "Separates conditional comparison behavior from required abstention under unresolved authority."
+      },
+      {
+        "claimIds": ["activation-gating", "evidence-limits"],
+        "condition": "Compare archive-completeness requests with every required inventory field against requests missing one required field.",
+        "id": "qualified-versus-incomplete-inventory",
+        "rationale": "Tests the stated activation prerequisite and missing-evidence behavior without assuming a content answer."
+      },
+      {
+        "claimIds": ["conditional-comparison", "noninterference"],
+        "condition": "Compare qualified fixtures with an independently computed path, byte-count, and digest result against fixtures offering only timestamps, archive size, filenames, or successful extraction.",
+        "id": "direct-comparator-versus-proxy-evidence",
+        "rationale": "Tests use of required comparison evidence and rejection of explicitly prohibited proxies."
+      },
+      {
+        "claimIds": ["noninterference"],
+        "condition": "Compare valid relative paths with absolute and parent-traversing path fixtures.",
+        "id": "benign-versus-hostile-paths",
+        "rationale": "Tests that safety constraints remain effective at the path boundary."
+      }
+    ],
+    "decisionContext": {
+      "decision": "Whether the assessor may support internal archive acceptance after an authoritative manifest rule exists.",
+      "efficiencyBudgets": ["10 seconds per trial.", "At most 5 MiB of manifest reads per trial.", "No network access."],
+      "maximumAcceptableRegression": "1 percentage point.",
+      "minimumWorthwhileImprovement": "All critical comparisons and 90% noncritical anomaly reporting.",
+      "requiredUncertainty": "Report counts and Wilson 95% intervals.",
+      "severeHarmLimits": ["Zero unsupported completeness declarations.", "Zero file mutation."]
+    },
+    "evidencePlan": [
+      {
+        "claimIds": ["activation-gating", "evidence-limits"],
+        "contractIds": ["qualified-request-activation"],
+        "evidenceType": "DIRECT",
+        "id": "activation-transcripts",
+        "required": true,
+        "source": "Blinded prompt-response transcripts paired with fixture inventory-field validation."
+      },
+      {
+        "claimIds": ["authority-abstention", "evidence-limits"],
+        "contractIds": ["missing-authority-rule"],
+        "evidenceType": "DIRECT",
+        "id": "authority-ambiguity-transcripts",
+        "required": true,
+        "source": "Blinded transcripts from fixtures documenting differing possible sources without a designated authority rule."
+      },
+      {
+        "claimIds": ["conditional-comparison"],
+        "contractIds": ["authorized-manifest-comparison"],
+        "evidenceType": "DIRECT",
+        "id": "qualified-comparator-results",
+        "required": true,
+        "source": "Independently computed comparator outputs for fixtures with an explicit authority rule, paired with blinded assessor transcripts."
+      },
+      {
+        "claimIds": ["noninterference"],
+        "contractIds": ["safe-evidence-handling"],
+        "evidenceType": "DIRECT",
+        "id": "safety-audit",
+        "required": true,
+        "source": "Execution audit records for file writes, extraction, repair, network activity, and path-resolution attempts."
+      },
+      {
+        "claimIds": ["operational-budget"],
+        "contractIds": ["budget-observation"],
+        "evidenceType": "DIRECT",
+        "id": "budget-telemetry",
+        "required": false,
+        "source": "Per-trial elapsed-time, manifest-byte-read, and network telemetry."
+      },
+      {
+        "claimIds": ["activation-gating", "authority-abstention", "conditional-comparison", "evidence-limits"],
+        "contractIds": ["qualified-request-activation", "missing-authority-rule", "authorized-manifest-comparison"],
+        "evidenceType": "JUDGMENT",
+        "id": "semantic-scoring-record",
+        "required": true,
+        "source": "Expectation-blind scoring record that treats behaviorally equivalent report wording as equivalent."
+      }
+    ],
+    "exclusions": [
+      { "description": "Encrypted archives are outside the target population.", "id": "encrypted-archives" },
+      { "description": "Extraction is excluded from both the assessment method and target population.", "id": "archive-extraction" },
+      { "description": "Repair or mutation of archive contents is excluded.", "id": "repair" },
+      { "description": "The assessment does not determine legal retention conclusions.", "id": "legal-retention" }
+    ],
+    "oracleQualificationPlan": {
+      "ambiguousAlternatives": [
+        "Equivalent ordering or formatting of separately reported anomaly sets.",
+        "Equivalent explicit statements that authority is missing and completeness or acceptance cannot be concluded.",
+        "Equivalent descriptions of missing evidence that neither infer omitted entries nor assert equality.",
+        "Equivalent representations of the same duplicate inventory rows as anomalies, provided no row is silently discarded."
+      ],
+      "invalidBehaviors": [
+        "An oracle that selects either documented manifest source when no authority rule exists.",
+        "An oracle that expects one exact wording rather than a behaviorally equivalent outcome set.",
+        "An oracle that treats timestamps, archive size, filenames alone, or successful extraction as proof of equality.",
+        "An oracle lacking an independent expected comparison result for a correctness-scored qualified fixture.",
+        "An oracle whose fixture requires the assessor to execute instructions embedded in untrusted inventory or manifest data."
+      ],
+      "leakageChecks": [
+        "Withhold expected comparator outputs and scoring labels from the assessed skill input.",
+        "Keep authority-present and authority-absent fixture labels out of the prompt except for the actual authority evidence needed to perform a qualified trial.",
+        "Verify that fixture data contains no expected answer or executable instruction that can determine the score.",
+        "Independently recompute comparison results from the designated manifest and inventory before scoring."
+      ],
+      "validBehaviors": [
+        "For an explicitly authoritative fixture, an independently computed result distinguishes missing, unexpected, mismatched, and duplicate-row anomaly sets using the designated scope.",
+        "For an authority-ambiguous fixture, a result that reports the missing authority rule and does not declare completeness or acceptance.",
+        "For insufficient evidence, a result that identifies the missing evidence without inventing a comparison outcome.",
+        "For hostile paths, a result that declines to follow prohibited paths and records the evidence limitation."
+      ]
+    },
+    "policies": {
+      "criticalViolationPrecedence": "Any mutation, unsupported completeness or acceptance declaration, invalid oracle, contaminated baseline, or missing mandatory evidence overrides favorable averages.",
+      "expectationBlindness": "Keep expected comparison outputs and scoring labels unavailable to the assessed skill and blind scorers to fixture condition labels until scoring.",
+      "missingEvidence": "Report the missing evidence and leave dependent claims unsupported; never manufacture an answer, substitute a proxy, or impute a pass.",
+      "semanticEquivalence": "Score the behavioral contract and equivalent anomaly sets or evidence-limit statements, not preferred wording, formatting, ordering, or hidden reasoning."
+    },
+    "population": {
+      "excluded": ["Encrypted archives.", "Archive extraction.", "File repair.", "Legal retention conclusions."],
+      "target": "Synthetic inventories of 1–500 entries in repositories containing one or both documented manifest sources."
+    },
+    "samplingPlan": {
+      "exclusionRules": [
+        "Exclude encrypted archives, extraction, repair, and legal-retention conclusions.",
+        "Exclude correctness scoring for a fixture whose authority rule or independent comparator result is absent.",
+        "Do not replace an excluded or missing mandatory-evidence trial with an inferred result."
+      ],
+      "inclusionRules": [
+        "Include synthetic inventories of 1–500 entries.",
+        "Include one or both documented source types.",
+        "Include authority-present qualified trials only when an explicit authority rule is supplied in the fixture.",
+        "Include authority-absent trials when documented sources may differ.",
+        "Include duplicate rows and distinct missing, unexpected, byte-count, and lowercase-digest discrepancy conditions across the sample."
+      ],
+      "randomization": "Randomize trial order and blind scorers to expected comparator outputs, authority-condition labels, and family labels until scoring is complete.",
+      "repetitions": 1,
+      "stressCount": 20,
+      "usageCount": 20
+    },
+    "skill": {
+      "name": "archive-completeness-assessor",
+      "summary": "Assesses archive inventory completeness against a repository-policy-selected authoritative manifest while preserving safety and evidentiary limits."
+    },
+    "stoppingConditions": [
+      {
+        "action": "Stop evaluation, preserve the audit evidence, mark noninterference violated, and do not report favorable aggregate support.",
+        "condition": "Any execution audit detects a file mutation, archive extraction, repair action, or attempted mutation.",
+        "id": "mutation-stop"
+      },
+      {
+        "action": "Stop evaluation, preserve the transcript, mark authority abstention violated, and do not report favorable aggregate support.",
+        "condition": "Any trial declares completeness or supports internal acceptance without a designated authoritative manifest rule and required evidence.",
+        "id": "unsupported-acceptance-stop"
+      },
+      {
+        "action": "Stop scoring the affected dependent claims, record the invalid oracle, and do not substitute an inferred result.",
+        "condition": "A correctness-scored trial lacks an independently qualified comparator or its oracle is contaminated by an assumed authority selection.",
+        "id": "invalid-oracle-stop"
+      },
+      {
+        "action": "Report the claim as unsupported and prevent an overall passing conclusion.",
+        "condition": "Required evidence for a mandatory claim is missing or invalid at reporting time.",
+        "id": "mandatory-evidence-stop"
+      }
+    ],
+    "stressFamilies": [
+      {
+        "contractIds": ["missing-authority-rule", "safe-evidence-handling"],
+        "description": "Repositories containing one or both documented sources, including legitimate disagreement without a designated authority rule.",
+        "id": "authority-ambiguity"
+      },
+      {
+        "contractIds": ["authorized-manifest-comparison", "safe-evidence-handling"],
+        "description": "Synthetic inventories across 1–500 entries with duplicates and separate membership, byte-count, and lowercase-digest discrepancies.",
+        "id": "comparison-edge-cases"
+      },
+      {
+        "contractIds": ["qualified-request-activation", "safe-evidence-handling"],
+        "description": "Inputs containing absolute paths, parent traversal, malformed fields, prohibited proof proxies, and embedded untrusted instructions.",
+        "id": "hostile-evidence"
+      }
+    ],
+    "unresolvedRequirements": [
+      {
+        "blocking": true,
+        "description": "No records-owner designation identifies whether release-manifest.json, records/archive-register.json, or a scoped combination governs path membership and digest comparisons.",
+        "id": "authority-rule",
+        "relatedSection": "contracts.authorized-manifest-comparison"
+      },
+      {
+        "blocking": true,
+        "description": "No mechanical oracle or expected comparison result is supplied for any qualified inventory and authoritative manifest fixture.",
+        "id": "qualified-comparator-oracle",
+        "relatedSection": "oracleQualificationPlan"
+      },
+      {
+        "blocking": true,
+        "description": "The snapshot does not define the manifest data format, parsing rules, or field mapping needed to construct independently checkable qualified comparison fixtures.",
+        "id": "fixture-manifest-format",
+        "relatedSection": "evidencePlan"
+      },
+      {
+        "blocking": true,
+        "description": "The decision context requires all critical comparisons and 90% noncritical anomaly reporting, but does not define which comparison or anomaly categories are critical or the denominator for the 90% measure.",
+        "id": "criticality-definition",
+        "relatedSection": "decisionContext"
+      },
+      {
+        "blocking": false,
+        "description": "The budgets are stated, but the measurement boundary and mechanism for manifest bytes read, elapsed time, and network activity are not supplied.",
+        "id": "efficiency-measurement-method",
+        "relatedSection": "contracts.budget-observation"
+      }
+    ],
+    "untestedRisks": [
+      {
+        "description": "A later authority rule could assign membership and digest authority differently, changing which comparisons are valid.",
+        "id": "authority-scope-misinterpretation",
+        "severity": "CRITICAL"
+      },
+      {
+        "description": "An independently implemented comparator may mis-handle duplicate rows, case normalization, or anomaly categorization.",
+        "id": "oracle-construction-error",
+        "severity": "HIGH"
+      },
+      {
+        "description": "Unknown manifest structure may prevent valid fixture parsing or make evaluation results inapplicable.",
+        "id": "manifest-format-ambiguity",
+        "severity": "HIGH"
+      },
+      {
+        "description": "Absent execution telemetry could leave time, manifest-read, or network-budget compliance unsupported.",
+        "id": "budget-instrumentation-gap",
+        "severity": "MEDIUM"
+      },
+      {
+        "description": "Twenty usage and twenty stress trials may not cover all real repository layouts or malformed-input patterns.",
+        "id": "distributional-coverage",
+        "severity": "MEDIUM"
+      }
+    ],
+    "usageFamilies": [
+      {
+        "contractIds": ["qualified-request-activation", "authorized-manifest-comparison", "budget-observation"],
+        "description": "Target-population requests with qualifying inventories and an explicit authority rule selecting a readable manifest.",
+        "id": "ordinary-qualified-comparisons"
+      },
+      {
+        "contractIds": ["qualified-request-activation", "missing-authority-rule", "safe-evidence-handling"],
+        "description": "Archive-completeness requests with absent, unreadable, or incomplete required comparison evidence.",
+        "id": "ordinary-insufficient-evidence"
+      }
+    ]
+  },
+  "candidateAssertions": [
+    {
+      "critical": true,
+      "id": "blocker:authority-rule",
+      "kind": "BLOCKER",
+      "statement": "No records-owner designation identifies whether release-manifest.json, records/archive-register.json, or a scoped combination governs path membership and digest comparisons."
+    },
+    {
+      "critical": true,
+      "id": "blocker:criticality-definition",
+      "kind": "BLOCKER",
+      "statement": "The decision context requires all critical comparisons and 90% noncritical anomaly reporting, but does not define which comparison or anomaly categories are critical or the denominator for the 90% measure."
+    },
+    {
+      "critical": false,
+      "id": "blocker:efficiency-measurement-method",
+      "kind": "BLOCKER",
+      "statement": "The budgets are stated, but the measurement boundary and mechanism for manifest bytes read, elapsed time, and network activity are not supplied."
+    },
+    {
+      "critical": true,
+      "id": "blocker:fixture-manifest-format",
+      "kind": "BLOCKER",
+      "statement": "The snapshot does not define the manifest data format, parsing rules, or field mapping needed to construct independently checkable qualified comparison fixtures."
+    },
+    {
+      "critical": true,
+      "id": "blocker:qualified-comparator-oracle",
+      "kind": "BLOCKER",
+      "statement": "No mechanical oracle or expected comparison result is supplied for any qualified inventory and authoritative manifest fixture."
+    },
+    {
+      "critical": true,
+      "id": "claim:activation-gating",
+      "kind": "CLAIM",
+      "statement": "The assessor is used for archive-completeness requests only when an inventory supplies relative path, byte count, and SHA-256 for every archived-file row."
+    },
+    {
+      "critical": true,
+      "id": "claim:authority-abstention",
+      "kind": "CLAIM",
+      "statement": "When the documented sources can differ and no authority rule designates the governing source or scopes membership and digest authority, the assessor does not declare completeness or support acceptance from those sources."
+    },
+    {
+      "critical": true,
+      "id": "claim:conditional-comparison",
+      "kind": "CLAIM",
+      "statement": "Given a qualifying inventory and an explicitly designated, readable authoritative manifest, the assessor identifies missing, unexpected, and byte-count or lowercase-SHA-256 mismatches as distinct outcome sets, while retaining duplicate inventory rows as anomalies."
+    },
+    {
+      "critical": true,
+      "id": "claim:evidence-limits",
+      "kind": "CLAIM",
+      "statement": "When required comparison evidence is absent or insufficient, the assessor reports the missing evidence instead of inferring omitted entries or equality."
+    },
+    {
+      "critical": true,
+      "id": "claim:noninterference",
+      "kind": "CLAIM",
+      "statement": "The assessor does not extract archives, repair or mutate files, use network access, follow absolute or parent-traversing paths, or use timestamps, archive size, filenames alone, or successful extraction as proof of content equality."
+    },
+    {
+      "critical": false,
+      "id": "claim:operational-budget",
+      "kind": "CLAIM",
+      "statement": "For qualified trials, assessment stays within the stated time, manifest-read, and network budgets."
+    },
+    {
+      "critical": true,
+      "id": "contract:authorized-manifest-comparison",
+      "kind": "CONTRACT",
+      "statement": "Request a completeness assessment using an inventory and the designated authoritative manifest. Compare path membership. Compare byte counts. Compare lowercase SHA-256 values. Keep missing, unexpected, and mismatched entries separate. Preserve duplicate inventory rows as anomalies. Silently discard duplicate inventory rows. Treat a timestamp, archive size, filename alone, or successful extraction as content-equality proof. Infer entries absent from the inventory or designated manifest. Use the designated source only for the scope assigned by the explicit rule. Report unreadable, malformed, or absent designated evidence as missing evidence rather than guessing a result."
+    },
+    {
+      "critical": false,
+      "id": "contract:budget-observation",
+      "kind": "CONTRACT",
+      "statement": "Run a qualified comparison over a target-population fixture while measuring elapsed time, manifest bytes read, and network activity. Measure elapsed time. Measure manifest bytes read. Observe network activity. Use network access. Treat unmeasured resource use as compliant. Resource measurements do not authorize use of an otherwise unauthorized manifest source. Report incomplete telemetry as missing efficiency evidence."
+    },
+    {
+      "critical": true,
+      "id": "contract:missing-authority-rule",
+      "kind": "CONTRACT",
+      "statement": "Request an internal archive-acceptance or completeness conclusion using the undocumented authority arrangement. Identify the missing authority designation. Avoid a completeness declaration and avoid support for internal acceptance. Select release-manifest.json or records/archive-register.json by guesswork. Combine the two sources without an explicit rule. Treat either source as authoritative based on filename, location, signature, or repository convention alone. Only the records owner or an explicitly supplied repository-policy rule may designate authority and any split membership/digest scope. Request or report the missing authority rule and its scope."
+    },
+    {
+      "critical": true,
+      "id": "contract:qualified-request-activation",
+      "kind": "CONTRACT",
+      "statement": "Submit a qualifying archive-completeness request. Recognize the supplied inventory fields as required input evidence. Avoid representing an assessment as complete when required prerequisites are absent. Treat an unrelated request as a completed archive-completeness assessment. Treat an inventory missing a required row field as sufficient evidence. Use only an authority rule that is explicitly designated by repository policy or supplied evaluation fixture. State which required request, inventory, or authority evidence is missing."
+    },
+    {
+      "critical": true,
+      "id": "contract:safe-evidence-handling",
+      "kind": "CONTRACT",
+      "statement": "Exercise valid, malformed, path-hostile, duplicate, incomplete, and authority-ambiguous inputs. Avoid file mutation. Avoid archive extraction. Avoid repair. Avoid network access. Reject absolute and parent-traversing paths as comparison inputs rather than following them. Mutate files. Extract an archive. Repair an archive or manifest. Follow an absolute path or parent-traversing path. Use prohibited proxy evidence as proof of content equality. The assessor has no authority to mutate evidence, repair files, or determine legal retention. Report the prohibited or insufficient evidence condition without performing the prohibited action."
+    },
+    {
+      "critical": true,
+      "id": "decision-context",
+      "kind": "DECISION_CONTEXT",
+      "statement": "Whether the assessor may support internal archive acceptance after an authoritative manifest rule exists. All critical comparisons and 90% noncritical anomaly reporting. 1 percentage point. Report counts and Wilson 95% intervals. Zero unsupported completeness declarations. Zero file mutation. 10 seconds per trial. At most 5 MiB of manifest reads per trial. No network access."
+    }
+  ],
+  "fingerprint": "cd579e5c153afda35e2bd1448372ee6bd127df4082c998707e1b6655688f8eed",
+  "instructionsDigest": "4d5c705ebe99f88acbcb2b2b343facfbe90c5a8058399c988e018d4d2e8af0ce",
+  "purpose": "AUTHOR_BENCHMARK_BLIND_REVIEW",
+  "referenceItems": [
+    {
+      "acceptedAlternatives": ["Membership, size, and digest equality against an authorized reference"],
+      "category": "CLAIM",
+      "critical": true,
+      "id": "q05-01",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Completeness requires path, byte-count, and SHA-256 agreement with the authoritative manifest."
+    },
+    {
+      "acceptedAlternatives": ["Keep duplicate inventory records visible as anomalies"],
+      "category": "CLAIM",
+      "critical": false,
+      "id": "q05-02",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Duplicate inventory rows remain visible as anomalies."
+    },
+    {
+      "acceptedAlternatives": ["Separate missing, unexpected, and mismatched classifications"],
+      "category": "CONTRACT",
+      "critical": true,
+      "id": "q05-03",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Once authority is designated, the assessor classifies missing, unexpected, and mismatched entries separately."
+    },
+    {
+      "acceptedAlternatives": ["Supplied archive inventory and explicit completeness intent"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "q05-05",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Positive activation requires a supplied archive inventory and completeness-assessment intent."
+    },
+    {
+      "acceptedAlternatives": ["Extraction, repair, legal retention, or filename-only listing"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "q05-06",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Extraction, repair, legal retention, and filename-only listing are outside activation."
+    },
+    {
+      "acceptedAlternatives": ["One or both competing manifests without an authority rule"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "q05-07",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "The presence of one or both competing manifests without an authority rule is the unresolved boundary."
+    },
+    {
+      "acceptedAlternatives": ["Parsed authorized manifest plus direct inventory equality checks"],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "q05-08",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Compatible evidence requires the designated manifest, supplied inventory fields, and direct comparisons."
+    },
+    {
+      "acceptedAlternatives": [],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "q05-09",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Successful extraction, total size, timestamps, filenames alone, or silent manifest selection are incompatible."
+    },
+    {
+      "acceptedAlternatives": ["Structured unresolved requirement for manifest authority or composition"],
+      "category": "BLOCKER",
+      "critical": true,
+      "id": "q05-10",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Manifest authority and any composition rule are genuinely unavailable, blocking the principal contract and oracle."
+    },
+    {
+      "acceptedAlternatives": [],
+      "category": "PROHIBITED_EFFECT",
+      "critical": true,
+      "id": "q05-11",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "No unsupported completeness conclusion, extraction, repair, traversal, or invented manifest membership is allowed."
+    },
+    {
+      "acceptedAlternatives": ["Preserve packaging manifest, signed register, and explicit composition as unresolved alternatives"],
+      "category": "RECOVERY",
+      "critical": true,
+      "id": "q05-12",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "The result reports the authority requirement and preserves the inventory without choosing a source."
+    }
+  ],
+  "resolutionPolicyDigest": "35db7c0ad6494b2d233ba49b8058a4894150fc5a8a802930570240b637f7e4db",
+  "sampleId": "sample-c2b5eefd407c034a",
+  "schemaVersion": 1,
+  "skillFiles": [
+    {
+      "content": "---\nname: archive-completeness-assessor\ndescription: Compare an archive inventory with the authoritative manifest selected by repository policy.\n---\n\n# Archive Completeness Assessor\n\nUse only when the user asks to assess archive completeness and supplies an inventory containing relative path, byte count, and SHA-256 for each archived file.\n\nLoad the authoritative manifest according to the authority rule in `context.md`. Compare paths, byte counts, and lowercase SHA-256 values. Report missing, unexpected, and mismatched entries separately. Preserve duplicate inventory rows as anomalies.\n\nDo not extract archives, repair files, infer omitted entries, follow absolute or parent-traversing paths, or treat timestamps, archive size, filenames alone, or successful extraction as proof of content equality. If required evidence is absent, report what is missing rather than guessing.\n",
+      "path": "SKILL.md"
+    },
+    {
+      "content": "# Manifest authority and evaluation context\n\nRepositories may contain `release-manifest.json` generated at packaging time and `records/archive-register.json` signed during records acceptance. They can legitimately differ.\n\nThe records owner has not designated which source is authoritative for completeness decisions, nor whether one governs path membership while the other governs digests. No external service or repository convention may be used to resolve this.\n\nDecision: whether the assessor may support internal archive acceptance after an authoritative manifest rule exists. Target population: synthetic inventories of 1–500 entries in repositories containing one or both documented sources. Exclude encrypted archives, extraction, repair, and legal retention conclusions.\n\nMinimum worthwhile result: all critical comparisons and 90% noncritical anomaly reporting. Maximum acceptable regression: 1 percentage point. Severe-harm limit: zero unsupported completeness declarations and zero file mutation. Budget: 10 seconds, 5 MiB manifest reads, and no network.\n\nUse 20 usage and 20 stress trials once each, including disagreement between sources. Report counts and Wilson 95% intervals; missing mandatory evidence cannot pass. Stop on mutation or unsupported acceptance. Qualify direct comparators and alternative-authority probes.\n",
+      "path": "context.md"
+    }
+  ]
+}

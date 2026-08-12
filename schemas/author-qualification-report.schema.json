@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skill-evidence.local/schemas/author-qualification-report.schema-1.json",
+  "title": "AuthorQualificationReport schema-1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "purpose",
+    "campaignId",
+    "bundleFingerprint",
+    "qualificationConditions",
+    "samples",
+    "conditionResults",
+    "campaignResult",
+    "selectedCondition",
+    "selectionRationale",
+    "limitations",
+    "expirationConditions"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "purpose": { "const": "AUTHOR_QUALIFICATION" },
+    "campaignId": { "$ref": "#/$defs/nonEmptyString" },
+    "bundleFingerprint": { "$ref": "#/$defs/digest" },
+    "qualificationConditions": { "type": "array", "items": { "$ref": "#/$defs/qualificationCondition" } },
+    "samples": { "type": "array", "items": { "$ref": "#/$defs/sample" } },
+    "conditionResults": { "type": "array", "items": { "$ref": "#/$defs/conditionResult" } },
+    "campaignResult": { "enum": ["QUALIFIED", "NOT_QUALIFIED", "INSUFFICIENT", "INVALIDATED"] },
+    "selectedCondition": { "type": ["string", "null"] },
+    "selectionRationale": { "$ref": "#/$defs/nonEmptyString" },
+    "limitations": { "$ref": "#/$defs/stringArray" },
+    "expirationConditions": { "$ref": "#/$defs/stringArray" }
+  },
+  "$defs": {
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "stringArray": { "type": "array", "items": { "$ref": "#/$defs/nonEmptyString" } },
+    "qualificationCondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fingerprint",
+        "authorConditionFingerprint",
+        "authenticationMode",
+        "requestedModel",
+        "requestedReasoning",
+        "operationalAcceptance",
+        "effectiveModel",
+        "modelEvidenceKind",
+        "promptfooVersion",
+        "codexSdkVersion",
+        "codexCliVersion",
+        "nodeVersion",
+        "sandboxFingerprint"
+      ],
+      "properties": {
+        "fingerprint": { "$ref": "#/$defs/digest" },
+        "authorConditionFingerprint": { "$ref": "#/$defs/digest" },
+        "authenticationMode": { "const": "CHATGPT" },
+        "requestedModel": { "enum": ["gpt-5.6-terra", "gpt-5.6-luna"] },
+        "requestedReasoning": { "enum": ["xhigh", "max"] },
+        "operationalAcceptance": { "type": "boolean" },
+        "effectiveModel": { "type": ["string", "null"] },
+        "modelEvidenceKind": { "enum": ["REQUEST_CONFIGURATION_ACCEPTED", "PROVIDER_REPORTED"] },
+        "promptfooVersion": { "$ref": "#/$defs/nonEmptyString" },
+        "codexSdkVersion": { "$ref": "#/$defs/nonEmptyString" },
+        "codexCliVersion": { "$ref": "#/$defs/nonEmptyString" },
+        "nodeVersion": { "$ref": "#/$defs/nonEmptyString" },
+        "sandboxFingerprint": { "$ref": "#/$defs/digest" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "modelEvidenceKind": { "const": "REQUEST_CONFIGURATION_ACCEPTED" } } },
+          "then": { "properties": { "effectiveModel": { "type": "null" } } }
+        },
+        {
+          "if": { "properties": { "requestedModel": { "const": "gpt-5.6-terra" } } },
+          "then": { "properties": { "requestedReasoning": { "const": "xhigh" } } },
+          "else": { "properties": { "requestedReasoning": { "const": "max" } } }
+        }
+      ]
+    },
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "caseId", "conditionFingerprint", "status"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "caseId": { "$ref": "#/$defs/nonEmptyString" },
+        "conditionFingerprint": { "$ref": "#/$defs/digest" },
+        "status": { "enum": ["COMPLETED", "ERROR", "NOT_RUN"] }
+      }
+    },
+    "conditionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["conditionFingerprint", "status", "criticalViolations", "limitations"],
+      "properties": {
+        "conditionFingerprint": { "$ref": "#/$defs/digest" },
+        "status": { "enum": ["QUALIFIED", "NOT_QUALIFIED", "STALE"] },
+        "criticalViolations": { "type": "integer", "minimum": 0 },
+        "limitations": { "$ref": "#/$defs/stringArray" }
+      }
+    }
+  }
+}

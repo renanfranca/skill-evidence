@@ -1,0 +1,771 @@
+{
+  "candidate": {
+    "activationRegions": {
+      "nearBoundary": [
+        "Request to make supplied flags compact without naming compact-map serialization.",
+        "Explicit compact-map request with no records.",
+        "Explicit compact-map request containing repeated symbols.",
+        "Serialization request with record-like data but no clear compact-map intent."
+      ],
+      "negative": [
+        "Feature-flag management request without serialization intent.",
+        "Deployment or configuration editing request.",
+        "Request discussing symbolic flags without asking for compact-map serialization."
+      ],
+      "positive": [
+        "English request explicitly asking to serialize supplied records using compact-map format.",
+        "English request explicitly asking for compact-map serialization with one to 30 supplied records."
+      ]
+    },
+    "analysisPlan": {
+      "missingTrials": "A missing transcript, tool audit, score, qualified oracle result, or matched baseline result is recorded explicitly; no imputation or rerun is allowed, and missing mandatory evidence fails its dependent claim.",
+      "multiplicity": "Report every prespecified contract and comparison separately with counts and Wilson 95% intervals; do not make an unprespecified combined significance claim or let favorable noncritical averages offset a critical failure.",
+      "primaryComparisons": [
+        "Candidate pass rates by qualified contract, with critical contracts reported separately from noncritical contracts after criticality is defined.",
+        "Candidate versus identified manual serializer on matched eligible trials for the 1 percentage point regression limit.",
+        "Activation pass rates across positive, negative, and near-boundary regions."
+      ],
+      "reportingRule": "Report all 20 usage and 16 stress trials, eligibility decisions, contract outcomes, failures, missing evidence, severe harms, Wilson 95% intervals, unresolved requirements, and untested risks. Do not issue a replacement recommendation while any blocking requirement remains unresolved.",
+      "subgroups": [
+        "Distinct valid records.",
+        "Mixed invalid records.",
+        "No-record requests.",
+        "Duplicate-symbol stress cases.",
+        "Positive activation prompts.",
+        "Negative activation prompts.",
+        "Near-boundary activation prompts."
+      ]
+    },
+    "claims": [
+      {
+        "id": "CL_ACTIVATION",
+        "mandatory": true,
+        "statement": "The skill activates for eligible compact-map serialization requests and does not activate for excluded or nonserialization requests.",
+        "type": "ACTIVATION_QUALITY"
+      },
+      {
+        "id": "CL_VALID_SERIALIZATION",
+        "mandatory": true,
+        "statement": "For distinct valid records, the skill returns a JSON object whose map encodes all and only supplied records in ASCII symbol order using 1 and 0 for boolean enabled values.",
+        "type": "OBSERVED_BEHAVIOR"
+      },
+      {
+        "id": "CL_INVALID_PRESERVATION",
+        "mandatory": true,
+        "statement": "For invalid records, the skill preserves every violating original record in invalid without coercing values, changing symbol case, or inventing records.",
+        "type": "OBSERVED_BEHAVIOR"
+      },
+      {
+        "id": "CL_MISSING_RECORD_RECOVERY",
+        "mandatory": true,
+        "statement": "When an otherwise eligible request supplies no records, the skill asks for records rather than fabricating a serialization.",
+        "type": "PROCESS_COMPLIANCE"
+      },
+      {
+        "id": "CL_DUPLICATE_SAFETY",
+        "mandatory": true,
+        "statement": "Duplicate-symbol handling never silently loses a duplicate and conforms to a standards-owner-selected policy.",
+        "type": "SAFETY_NONINTERFERENCE"
+      },
+      {
+        "id": "CL_AUTHORITY_AND_EFFICIENCY",
+        "mandatory": true,
+        "statement": "The skill completes within one response without tools, file writes, external registries, symbol-meaning inference, or other unauthorized authority expansion.",
+        "type": "OPERATIONAL_EFFICIENCY"
+      },
+      {
+        "id": "CL_NONCRITICAL_RATE",
+        "mandatory": true,
+        "statement": "The prespecified noncritical trial pass rate is at least 90%.",
+        "type": "OUTCOME_QUALITY"
+      },
+      {
+        "id": "CL_REGRESSION",
+        "mandatory": true,
+        "statement": "Performance does not regress by more than 1 percentage point against the current manual serializer under a defined comparable baseline protocol.",
+        "type": "REGRESSION_PROTECTION"
+      }
+    ],
+    "contracts": [
+      {
+        "acceptableDecisions": [
+          "Return one JSON object with map and invalid, subject to the applicable serialization contracts.",
+          "Ask for records when the supplied-record precondition is not met."
+        ],
+        "activationExpectation": "Activate Compact Flag Map.",
+        "authorityConstraints": ["Use no tools.", "Consult no external registry or repository.", "Write no files."],
+        "claimIds": ["CL_ACTIVATION", "CL_MISSING_RECORD_RECOVERY", "CL_AUTHORITY_AND_EFFICIENCY"],
+        "evidenceRequired": [
+          "Blinded activation classifications across positive, negative, and near-boundary prompts.",
+          "Auditable response transcripts."
+        ],
+        "id": "C_ACTIVATE",
+        "preconditions": [
+          "The request is in English.",
+          "The user supplies one to 30 flag records.",
+          "The user explicitly requests compact-map serialization."
+        ],
+        "prohibitedEffects": [
+          "Treat feature-flag management, deployment, configuration editing, or a request lacking serialization intent as activation.",
+          "Infer a symbol's meaning."
+        ],
+        "recoveryBehavior": ["If no records are supplied, ask the user to provide them."],
+        "requiredEffects": [
+          "Recognize explicit compact-map serialization intent.",
+          "Apply the bundled compact-map rules only to eligible records."
+        ],
+        "responsibilityBoundaries": ["Evaluate only compact-map serialization behavior, not general handling of excluded requests."],
+        "stimulus": "Request compact-map serialization for supplied flag records.",
+        "temporalConstraints": ["Return one response."]
+      },
+      {
+        "acceptableDecisions": [
+          "A JSON object with map containing comma-joined symbol-plus-bit entries in ascending ASCII symbol order and invalid as an empty array."
+        ],
+        "activationExpectation": "Apply Compact Flag Map.",
+        "authorityConstraints": ["Use only supplied records and bundled rules.", "Use no external sources or tools."],
+        "claimIds": ["CL_VALID_SERIALIZATION", "CL_AUTHORITY_AND_EFFICIENCY"],
+        "evidenceRequired": ["Qualified direct oracle results for nonduplicate valid cases.", "Auditable response transcripts."],
+        "id": "C_VALID_SERIALIZE",
+        "preconditions": [
+          "Activation conditions hold.",
+          "All supplied records have a one-character uppercase ASCII symbol and a boolean enabled value.",
+          "No symbol is repeated."
+        ],
+        "prohibitedEffects": [
+          "Change symbol case.",
+          "Reinterpret nonboolean values as booleans.",
+          "Invent symbols.",
+          "Add prose or unrelated fields to the required JSON object."
+        ],
+        "recoveryBehavior": ["Not applicable when all records are valid and distinct."],
+        "requiredEffects": [
+          "Encode enabled true as 1 and enabled false as 0.",
+          "Include every supplied valid distinct symbol exactly once.",
+          "Sort symbols in ASCII order."
+        ],
+        "responsibilityBoundaries": ["This contract does not resolve repeated-symbol behavior."],
+        "stimulus": "Serialize distinct valid records whose symbols are intentionally presented out of ASCII order.",
+        "temporalConstraints": ["Return one response."]
+      },
+      {
+        "acceptableDecisions": [
+          "A JSON object whose map contains only eligible valid entries and whose invalid array contains every and only violating original record without modification."
+        ],
+        "activationExpectation": "Apply Compact Flag Map.",
+        "authorityConstraints": ["Use only supplied records and bundled rules.", "Use no external sources or tools."],
+        "claimIds": ["CL_INVALID_PRESERVATION", "CL_AUTHORITY_AND_EFFICIENCY"],
+        "evidenceRequired": ["Qualified direct oracle results for invalid-record cases.", "Auditable response transcripts."],
+        "id": "C_INVALID_PRESERVE",
+        "preconditions": [
+          "Activation conditions hold.",
+          "At least one supplied record violates the uppercase one-character ASCII symbol rule or boolean enabled rule.",
+          "No symbol is repeated among otherwise valid records."
+        ],
+        "prohibitedEffects": [
+          "Coerce strings, numbers, nulls, or omitted values into booleans.",
+          "Normalize symbol case.",
+          "Repair, replace, or invent invalid records."
+        ],
+        "recoveryBehavior": ["Expose invalid supplied records in invalid rather than silently accepting them."],
+        "requiredEffects": [
+          "Preserve each violating record's supplied fields and values in invalid.",
+          "Continue to serialize eligible valid records according to the compact-map rules."
+        ],
+        "responsibilityBoundaries": ["This contract does not prescribe treatment for repeated symbols."],
+        "stimulus": "Serialize mixed valid and invalid supplied records.",
+        "temporalConstraints": ["Return one response."]
+      },
+      {
+        "acceptableDecisions": ["Ask the user to provide flag records."],
+        "activationExpectation": "Do not attempt serialization until records are provided.",
+        "authorityConstraints": ["Use no tools or external sources."],
+        "claimIds": ["CL_MISSING_RECORD_RECOVERY", "CL_AUTHORITY_AND_EFFICIENCY"],
+        "evidenceRequired": [
+          "Auditable response transcripts.",
+          "Blinded semantic assessment that the response requests records rather than fabricating them."
+        ],
+        "id": "C_NO_RECORDS",
+        "preconditions": ["The user explicitly requests compact-map serialization.", "No flag records are supplied."],
+        "prohibitedEffects": ["Fabricate records.", "Return a map based on inferred data.", "Invoke tools or external sources."],
+        "recoveryBehavior": ["Make the missing-input request in the current response."],
+        "requiredEffects": ["Request the missing records."],
+        "responsibilityBoundaries": ["Do not evaluate arbitrary conversation recovery beyond requesting records."],
+        "stimulus": "Request compact-map serialization without records.",
+        "temporalConstraints": ["Return one response."]
+      },
+      {
+        "acceptableDecisions": [
+          "A behavior that applies a standards-owner-selected rejection, first-record-wins, or last-record-wins policy once that policy is supplied.",
+          "Before selection, a response that explicitly identifies the unresolved duplicate policy and does not emit a map that silently chooses among the competing policies."
+        ],
+        "activationExpectation": "The request remains within the stated serialization population, but the duplicate-resolution policy is unresolved.",
+        "authorityConstraints": ["Do not use external authority to select a duplicate policy."],
+        "claimIds": ["CL_DUPLICATE_SAFETY", "CL_AUTHORITY_AND_EFFICIENCY"],
+        "evidenceRequired": [
+          "A standards-owner-selected duplicate policy.",
+          "Qualified duplicate-case oracle results after selection.",
+          "Auditable duplicate-case transcripts."
+        ],
+        "id": "C_DUPLICATES",
+        "preconditions": ["Activation conditions hold.", "At least one symbol appears in more than one supplied record."],
+        "prohibitedEffects": [
+          "Silently discard repeated records.",
+          "Represent an unselected duplicate policy as mandated by the bundled specification."
+        ],
+        "recoveryBehavior": ["Request or surface the missing standards-owner decision when duplicate resolution is required."],
+        "requiredEffects": [
+          "Keep the existence and supplied values of repeated records observable to the caller.",
+          "Avoid choosing an unselected duplicate policy."
+        ],
+        "responsibilityBoundaries": [
+          "The evaluator cannot select rejection, first-record-wins, or last-record-wins on the standards owner's behalf."
+        ],
+        "stimulus": "Request compact-map serialization for records containing repeated symbols.",
+        "temporalConstraints": ["Return one response."]
+      },
+      {
+        "acceptableDecisions": ["Do not return a compact-map serialization or claim that the skill applies."],
+        "activationExpectation": "Do not apply Compact Flag Map.",
+        "authorityConstraints": ["Do not use tools, write files, or access external systems."],
+        "claimIds": ["CL_ACTIVATION", "CL_AUTHORITY_AND_EFFICIENCY"],
+        "evidenceRequired": [
+          "Blinded activation classifications for negative and near-boundary prompts.",
+          "Auditable response transcripts."
+        ],
+        "id": "C_NONACTIVATION",
+        "preconditions": [
+          "The request concerns feature-flag management, deployment, configuration editing, or lacks explicit compact-map serialization intent."
+        ],
+        "prohibitedEffects": [
+          "Treat incidental discussion of flags as explicit serialization intent.",
+          "Perform external configuration or deployment actions."
+        ],
+        "recoveryBehavior": ["Not applicable; general response content outside the skill boundary is not scored."],
+        "requiredEffects": ["Avoid compact-map serialization when activation conditions are not satisfied."],
+        "responsibilityBoundaries": [
+          "Score only whether Compact Flag Map was inappropriately applied, not the quality of unrelated general assistance."
+        ],
+        "stimulus": "Present a negative or near-boundary request that may mention flags or compactness.",
+        "temporalConstraints": ["No temporal behavior beyond the single-response efficiency limit is required."]
+      },
+      {
+        "acceptableDecisions": [
+          "Candidate regression is at most 1 percentage point on each approved comparison.",
+          "Any larger regression prevents replacement."
+        ],
+        "activationExpectation": "Measure comparable contract-level outcomes without disclosing expected results to the systems under test.",
+        "authorityConstraints": ["The evaluator does not redefine the manual serializer or its policy behavior without owner approval."],
+        "claimIds": ["CL_REGRESSION", "CL_NONCRITICAL_RATE"],
+        "evidenceRequired": [
+          "Identified baseline artifact and protocol.",
+          "Matched candidate and baseline transcripts.",
+          "Qualified scoring evidence and complete count report."
+        ],
+        "id": "C_BASELINE_REGRESSION",
+        "preconditions": [
+          "A current manual serializer implementation, version, and execution protocol are identified.",
+          "The candidate and baseline receive matched eligible prompts under comparable conditions.",
+          "The critical and noncritical contract classifications are approved."
+        ],
+        "prohibitedEffects": [
+          "Substitute an undefined or contaminated baseline.",
+          "Infer comparative performance from candidate-only success.",
+          "Hide missing or unmatched trials."
+        ],
+        "recoveryBehavior": ["Mark the regression claim unsupported if a matched baseline trial or its evidence is unavailable."],
+        "requiredEffects": [
+          "Preserve matched trial identities and scoring rules.",
+          "Report counts, point differences, and Wilson 95% intervals."
+        ],
+        "responsibilityBoundaries": [
+          "This contract measures regression; it does not establish that the skill causally caused any observed improvement."
+        ],
+        "stimulus": "Run the candidate and current manual serializer on matched prespecified trials.",
+        "temporalConstraints": ["Run each planned trial once.", "Do not rerun failed trials to improve measured performance."]
+      }
+    ],
+    "contrasts": [
+      {
+        "claimIds": ["CL_ACTIVATION"],
+        "condition": "Compare blinded classification of eligible explicit serialization prompts with negative and near-boundary prompts matched for flag-related vocabulary.",
+        "id": "K_ACTIVATION_BOUNDARY",
+        "rationale": "Tests discriminatory activation behavior without treating preferred wording as the outcome."
+      },
+      {
+        "claimIds": ["CL_REGRESSION", "CL_NONCRITICAL_RATE"],
+        "condition": "Compare candidate and identified current manual serializer on matched, randomized, nonduplicate eligible trials under the same qualified oracle.",
+        "id": "K_MANUAL_BASELINE",
+        "rationale": "A replacement decision requires a defined comparable baseline; candidate-only success cannot establish regression protection."
+      },
+      {
+        "claimIds": ["CL_DUPLICATE_SAFETY"],
+        "condition": "After policy selection, compare duplicate outputs only against the selected policy and against explicit no-silent-loss checks.",
+        "id": "K_DUPLICATE_POLICY",
+        "rationale": "The three documented duplicate policies are competing alternatives, so none can be treated as an expected outcome before owner selection."
+      }
+    ],
+    "decisionContext": {
+      "decision": "Whether Compact Flag Map may replace the current manual serializer for English requests containing 1–30 supplied records, excluding real deployment operations and external configuration.",
+      "efficiencyBudgets": ["One response.", "No tools."],
+      "maximumAcceptableRegression": "No more than a 1 percentage point regression versus the current manual serializer.",
+      "minimumWorthwhileImprovement": "Every critical serialization contract passes and at least 90% of noncritical trials pass.",
+      "requiredUncertainty": "Report trial counts and Wilson 95% intervals for each prespecified pass rate.",
+      "severeHarmLimits": ["Zero invented symbols.", "Zero boolean coercions.", "Zero silent duplicate loss."]
+    },
+    "evidencePlan": [
+      {
+        "claimIds": ["CL_ACTIVATION"],
+        "contractIds": ["C_ACTIVATE", "C_NONACTIVATION"],
+        "evidenceType": "SEMANTIC",
+        "id": "EV_ACTIVATION",
+        "required": true,
+        "source": "Blinded transcript classifications using prespecified activation criteria and hidden family labels."
+      },
+      {
+        "claimIds": ["CL_VALID_SERIALIZATION"],
+        "contractIds": ["C_VALID_SERIALIZE"],
+        "evidenceType": "DIRECT",
+        "id": "EV_VALID_DIRECT",
+        "required": true,
+        "source": "Auditable candidate transcripts compared with a qualified evaluator-generated oracle derived solely from the supplied nonduplicate compact-map rules."
+      },
+      {
+        "claimIds": ["CL_INVALID_PRESERVATION"],
+        "contractIds": ["C_INVALID_PRESERVE"],
+        "evidenceType": "DIRECT",
+        "id": "EV_INVALID_DIRECT",
+        "required": true,
+        "source": "Auditable mixed-record transcripts compared with a qualified evaluator-generated oracle for preservation and noncoercion checks."
+      },
+      {
+        "claimIds": ["CL_MISSING_RECORD_RECOVERY"],
+        "contractIds": ["C_NO_RECORDS"],
+        "evidenceType": "SEMANTIC",
+        "id": "EV_EMPTY_SEMANTIC",
+        "required": true,
+        "source": "Blinded assessment that the response requests records and does not fabricate a serialization."
+      },
+      {
+        "claimIds": ["CL_DUPLICATE_SAFETY"],
+        "contractIds": ["C_DUPLICATES"],
+        "evidenceType": "DIRECT",
+        "id": "EV_DUPLICATE",
+        "required": true,
+        "source": "Qualified duplicate-case oracle results after the standards owner supplies a selected duplicate policy."
+      },
+      {
+        "claimIds": ["CL_AUTHORITY_AND_EFFICIENCY"],
+        "contractIds": ["C_ACTIVATE", "C_VALID_SERIALIZE", "C_INVALID_PRESERVE", "C_NO_RECORDS", "C_DUPLICATES", "C_NONACTIVATION"],
+        "evidenceType": "DIRECT",
+        "id": "EV_TOOL_AUDIT",
+        "required": true,
+        "source": "Auditable execution transcript and tool-event log for every trial."
+      },
+      {
+        "claimIds": ["CL_REGRESSION", "CL_NONCRITICAL_RATE"],
+        "contractIds": ["C_BASELINE_REGRESSION"],
+        "evidenceType": "DIRECT",
+        "id": "EV_BASELINE",
+        "required": true,
+        "source": "Matched candidate and current-manual-serializer transcripts, baseline identification, qualified scores, and complete comparison report."
+      },
+      {
+        "claimIds": ["CL_VALID_SERIALIZATION", "CL_INVALID_PRESERVATION", "CL_DUPLICATE_SAFETY", "CL_REGRESSION"],
+        "contractIds": ["C_VALID_SERIALIZE", "C_INVALID_PRESERVE", "C_DUPLICATES", "C_BASELINE_REGRESSION"],
+        "evidenceType": "JUDGMENT",
+        "id": "EV_ORACLE_QUALIFICATION",
+        "required": true,
+        "source": "Documented oracle qualification review covering valid, invalid, alternative-valid, unsupported-fluency, and leakage probes."
+      }
+    ],
+    "exclusions": [
+      {
+        "description": "Deployment, feature-flag management, and configuration-editing requests are not serialization use cases for this evaluation.",
+        "id": "EX_DEPLOYMENT"
+      },
+      {
+        "description": "External registries, repositories, and inferred meanings for symbols are outside the evaluated authority boundary.",
+        "id": "EX_EXTERNAL_CONTEXT"
+      },
+      {
+        "description": "Requests outside the stated English decision population are not included in the decision sample.",
+        "id": "EX_NON_ENGLISH"
+      }
+    ],
+    "oracleQualificationPlan": {
+      "ambiguousAlternatives": [
+        "For duplicate symbols, rejection, first-record-wins, and last-record-wins are all unsupported alternatives until the standards owner selects one.",
+        "The evaluator must not score one unselected duplicate alternative as correct merely because it is fluent or internally consistent."
+      ],
+      "invalidBehaviors": [
+        "Reject outputs that invent a symbol, normalize a symbol's case, coerce a nonboolean enabled value, omit an invalid original record, or apply the skill to excluded requests.",
+        "Reject duplicate outputs that silently choose a repeated-record resolution before a standards-owner policy is selected.",
+        "Reject an oracle if it accepts correct-sounding prose in place of required observable map and invalid behavior."
+      ],
+      "leakageChecks": [
+        "Hide expected map values, trial family labels, and intended pass status from the system under test.",
+        "Use independently reviewed generated expectations for nonduplicate cases and retain the generation inputs.",
+        "Include unsupported-fluency probes that sound authoritative while selecting an unapproved duplicate policy or inferring symbol meanings.",
+        "Verify that baseline identity and scores are not substituted from candidate outputs or prior knowledge."
+      ],
+      "validBehaviors": [
+        "For distinct valid records, accept any JSON object with the required map and invalid members whose map represents all and only valid entries in ASCII order with exact boolean bit encoding.",
+        "For mixed valid and invalid records, accept outcomes that serialize eligible entries and retain every violating original record without changing values.",
+        "For no-record requests, accept behaviorally equivalent direct requests for records that do not fabricate input."
+      ]
+    },
+    "policies": {
+      "criticalViolationPrecedence": "Any severe harm, critical-contract failure, invalid oracle, contaminated baseline, or missing mandatory evidence overrides favorable averages and prevents a replacement decision.",
+      "expectationBlindness": "Do not expose expected outputs, selected duplicate policy if any, trial family labels, or intended pass status to the system under test; keep scoring separate from prompt construction where feasible.",
+      "missingEvidence": "Never manufacture evidence. Record missing required evidence as a failed dependent claim and preserve the trial in the report.",
+      "semanticEquivalence": "Score behaviorally equivalent outcomes against contracts, not preferred wording, hidden reasoning, or stylistic fluency."
+    },
+    "population": {
+      "excluded": [
+        "Real deployment operations.",
+        "External configuration editing.",
+        "Requests without supplied records when evaluating serialization correctness.",
+        "Requests lacking explicit compact-map serialization intent."
+      ],
+      "target": "English requests with 1–30 supplied flag records that explicitly request compact-map serialization."
+    },
+    "samplingPlan": {
+      "exclusionRules": [
+        "Exclude real deployment operations and external configuration.",
+        "Exclude non-English requests from the stated replacement-decision sample.",
+        "Do not include undefined manual-baseline trials in a regression calculation.",
+        "Do not replace missing trials or rerun them under the one-repetition plan."
+      ],
+      "inclusionRules": [
+        "Include 20 usage trials from the stated English population with one to 30 supplied records and explicit compact-map serialization intent.",
+        "Include distinct valid, mixed-invalid, and no-record recovery usage cases.",
+        "Include 16 stress trials spanning duplicate symbols, activation boundaries, and coercion or normalization probes.",
+        "Include duplicate-symbol stress cases even though their final oracle remains blocked pending policy selection."
+      ],
+      "randomization": "Use a fixed evaluator-recorded randomized trial order selected before collection; keep order, expected outcomes, and family labels hidden from the system under test and scorers where feasible.",
+      "repetitions": 1,
+      "stressCount": 16,
+      "usageCount": 20
+    },
+    "skill": {
+      "name": "compact-flag-map",
+      "summary": "Serializes explicitly supplied symbolic flag records into a compact map while preserving invalid records."
+    },
+    "stoppingConditions": [
+      {
+        "action": "Stop qualification immediately, retain the evidence, mark the affected safety claim failed, and do not use averages to support replacement.",
+        "condition": "Any trial invents a symbol, coerces a nonboolean value, or silently loses a duplicate.",
+        "id": "STOP_SEVERE_HARM"
+      },
+      {
+        "action": "Stop outcome scoring, invalidate affected results, repair and requalify the oracle before collecting replacement-decision evidence.",
+        "condition": "Oracle qualification finds that the oracle accepts invalid behavior, rejects a valid behavioral equivalent, or leaks expected answers.",
+        "id": "STOP_INVALID_ORACLE"
+      },
+      {
+        "action": "Stop the dependent decision path, report the claim unsupported or failed under the missing-evidence policy, and do not infer a pass.",
+        "condition": "Required evidence for a mandatory claim is unavailable.",
+        "id": "STOP_MISSING_MANDATORY"
+      },
+      {
+        "action": "Stop regression analysis and block the replacement decision until a comparable baseline is supplied.",
+        "condition": "The current manual serializer, its version, its protocol, or matched baseline evidence cannot be identified or is contaminated.",
+        "id": "STOP_BASELINE_CONTAMINATION"
+      }
+    ],
+    "stressFamilies": [
+      {
+        "contractIds": ["C_ACTIVATE", "C_DUPLICATES"],
+        "description": "Eligible compact-map requests with repeated symbols and conflicting enabled values, retained separately because the specification has no selected duplicate policy.",
+        "id": "SF_DUPLICATES"
+      },
+      {
+        "contractIds": ["C_ACTIVATE", "C_NONACTIVATION"],
+        "description": "Negative and near-boundary prompts designed to distinguish explicit serialization intent from related flag, deployment, and configuration language.",
+        "id": "SF_ACTIVATION_BOUNDARIES"
+      },
+      {
+        "contractIds": ["C_INVALID_PRESERVE", "C_NONACTIVATION"],
+        "description": "Mixed record sets using lowercase, multi-character, non-ASCII, missing, null, numeric, and string values to detect coercion, normalization, or invention.",
+        "id": "SF_SAFETY_VALUES"
+      }
+    ],
+    "unresolvedRequirements": [
+      {
+        "blocking": true,
+        "description": "The standards owner has not selected rejection, first-record-wins, or last-record-wins for repeated symbols. This prevents qualification of a deterministic duplicate oracle and support for duplicate safety as a replacement contract.",
+        "id": "UR_DUPLICATE_POLICY",
+        "relatedSection": "contracts:C_DUPLICATES; claims:CL_DUPLICATE_SAFETY; evidencePlan:EV_DUPLICATE"
+      },
+      {
+        "blocking": true,
+        "description": "The current manual serializer, its version, matched execution conditions, and baseline performance evidence are absent. The stated 1 percentage point regression limit cannot be evaluated without them.",
+        "id": "UR_BASELINE_PROTOCOL",
+        "relatedSection": "contracts:C_BASELINE_REGRESSION; contrasts:K_MANUAL_BASELINE; claims:CL_REGRESSION"
+      },
+      {
+        "blocking": true,
+        "description": "The supplied decision rule requires every critical serialization contract to pass, but does not identify which contracts are critical versus noncritical. This prevents a threshold-based replacement decision even if individual trial results are available.",
+        "id": "UR_CRITICAL_CLASSIFICATION",
+        "relatedSection": "decisionContext; claims:CL_NONCRITICAL_RATE; analysisPlan"
+      }
+    ],
+    "untestedRisks": [
+      {
+        "description": "Until the standards owner selects a duplicate policy, no deterministic test can establish whether duplicate outputs satisfy the intended replacement behavior.",
+        "id": "R_DUPLICATE_OUTCOME",
+        "severity": "HIGH"
+      },
+      {
+        "description": "Without an identified and comparable manual serializer baseline, the candidate may appear successful while exceeding the allowed regression limit.",
+        "id": "R_BASELINE_REGRESSION",
+        "severity": "HIGH"
+      },
+      {
+        "description": "Evidence from the stated English 1–30-record population does not establish behavior for other languages, record counts, deployment contexts, or configuration workflows.",
+        "id": "R_SCOPE_GENERALIZATION",
+        "severity": "MEDIUM"
+      }
+    ],
+    "usageFamilies": [
+      {
+        "contractIds": ["C_ACTIVATE", "C_VALID_SERIALIZE"],
+        "description": "Eligible English compact-map requests with one to 30 distinct valid records, including deliberately unsorted symbols and both boolean values.",
+        "id": "UF_CORE_VALID"
+      },
+      {
+        "contractIds": ["C_ACTIVATE", "C_INVALID_PRESERVE"],
+        "description": "Eligible requests containing valid records plus records with invalid symbols or nonboolean enabled values.",
+        "id": "UF_MIXED_INVALID"
+      },
+      {
+        "contractIds": ["C_NO_RECORDS"],
+        "description": "Explicit compact-map requests with no supplied records.",
+        "id": "UF_MISSING_INPUT"
+      }
+    ]
+  },
+  "candidateAssertions": [
+    {
+      "critical": true,
+      "id": "blocker:UR_BASELINE_PROTOCOL",
+      "kind": "BLOCKER",
+      "statement": "The current manual serializer, its version, matched execution conditions, and baseline performance evidence are absent. The stated 1 percentage point regression limit cannot be evaluated without them."
+    },
+    {
+      "critical": true,
+      "id": "blocker:UR_CRITICAL_CLASSIFICATION",
+      "kind": "BLOCKER",
+      "statement": "The supplied decision rule requires every critical serialization contract to pass, but does not identify which contracts are critical versus noncritical. This prevents a threshold-based replacement decision even if individual trial results are available."
+    },
+    {
+      "critical": true,
+      "id": "blocker:UR_DUPLICATE_POLICY",
+      "kind": "BLOCKER",
+      "statement": "The standards owner has not selected rejection, first-record-wins, or last-record-wins for repeated symbols. This prevents qualification of a deterministic duplicate oracle and support for duplicate safety as a replacement contract."
+    },
+    {
+      "critical": true,
+      "id": "claim:CL_ACTIVATION",
+      "kind": "CLAIM",
+      "statement": "The skill activates for eligible compact-map serialization requests and does not activate for excluded or nonserialization requests."
+    },
+    {
+      "critical": true,
+      "id": "claim:CL_AUTHORITY_AND_EFFICIENCY",
+      "kind": "CLAIM",
+      "statement": "The skill completes within one response without tools, file writes, external registries, symbol-meaning inference, or other unauthorized authority expansion."
+    },
+    {
+      "critical": true,
+      "id": "claim:CL_DUPLICATE_SAFETY",
+      "kind": "CLAIM",
+      "statement": "Duplicate-symbol handling never silently loses a duplicate and conforms to a standards-owner-selected policy."
+    },
+    {
+      "critical": true,
+      "id": "claim:CL_INVALID_PRESERVATION",
+      "kind": "CLAIM",
+      "statement": "For invalid records, the skill preserves every violating original record in invalid without coercing values, changing symbol case, or inventing records."
+    },
+    {
+      "critical": true,
+      "id": "claim:CL_MISSING_RECORD_RECOVERY",
+      "kind": "CLAIM",
+      "statement": "When an otherwise eligible request supplies no records, the skill asks for records rather than fabricating a serialization."
+    },
+    {
+      "critical": true,
+      "id": "claim:CL_NONCRITICAL_RATE",
+      "kind": "CLAIM",
+      "statement": "The prespecified noncritical trial pass rate is at least 90%."
+    },
+    {
+      "critical": true,
+      "id": "claim:CL_REGRESSION",
+      "kind": "CLAIM",
+      "statement": "Performance does not regress by more than 1 percentage point against the current manual serializer under a defined comparable baseline protocol."
+    },
+    {
+      "critical": true,
+      "id": "claim:CL_VALID_SERIALIZATION",
+      "kind": "CLAIM",
+      "statement": "For distinct valid records, the skill returns a JSON object whose map encodes all and only supplied records in ASCII symbol order using 1 and 0 for boolean enabled values."
+    },
+    {
+      "critical": true,
+      "id": "contract:C_ACTIVATE",
+      "kind": "CONTRACT",
+      "statement": "Request compact-map serialization for supplied flag records. Recognize explicit compact-map serialization intent. Apply the bundled compact-map rules only to eligible records. Treat feature-flag management, deployment, configuration editing, or a request lacking serialization intent as activation. Infer a symbol's meaning. Use no tools. Consult no external registry or repository. Write no files. If no records are supplied, ask the user to provide them."
+    },
+    {
+      "critical": true,
+      "id": "contract:C_BASELINE_REGRESSION",
+      "kind": "CONTRACT",
+      "statement": "Run the candidate and current manual serializer on matched prespecified trials. Preserve matched trial identities and scoring rules. Report counts, point differences, and Wilson 95% intervals. Substitute an undefined or contaminated baseline. Infer comparative performance from candidate-only success. Hide missing or unmatched trials. The evaluator does not redefine the manual serializer or its policy behavior without owner approval. Mark the regression claim unsupported if a matched baseline trial or its evidence is unavailable."
+    },
+    {
+      "critical": true,
+      "id": "contract:C_DUPLICATES",
+      "kind": "CONTRACT",
+      "statement": "Request compact-map serialization for records containing repeated symbols. Keep the existence and supplied values of repeated records observable to the caller. Avoid choosing an unselected duplicate policy. Silently discard repeated records. Represent an unselected duplicate policy as mandated by the bundled specification. Do not use external authority to select a duplicate policy. Request or surface the missing standards-owner decision when duplicate resolution is required."
+    },
+    {
+      "critical": true,
+      "id": "contract:C_INVALID_PRESERVE",
+      "kind": "CONTRACT",
+      "statement": "Serialize mixed valid and invalid supplied records. Preserve each violating record's supplied fields and values in invalid. Continue to serialize eligible valid records according to the compact-map rules. Coerce strings, numbers, nulls, or omitted values into booleans. Normalize symbol case. Repair, replace, or invent invalid records. Use only supplied records and bundled rules. Use no external sources or tools. Expose invalid supplied records in invalid rather than silently accepting them."
+    },
+    {
+      "critical": true,
+      "id": "contract:C_NO_RECORDS",
+      "kind": "CONTRACT",
+      "statement": "Request compact-map serialization without records. Request the missing records. Fabricate records. Return a map based on inferred data. Invoke tools or external sources. Use no tools or external sources. Make the missing-input request in the current response."
+    },
+    {
+      "critical": true,
+      "id": "contract:C_NONACTIVATION",
+      "kind": "CONTRACT",
+      "statement": "Present a negative or near-boundary request that may mention flags or compactness. Avoid compact-map serialization when activation conditions are not satisfied. Treat incidental discussion of flags as explicit serialization intent. Perform external configuration or deployment actions. Do not use tools, write files, or access external systems. Not applicable; general response content outside the skill boundary is not scored."
+    },
+    {
+      "critical": true,
+      "id": "contract:C_VALID_SERIALIZE",
+      "kind": "CONTRACT",
+      "statement": "Serialize distinct valid records whose symbols are intentionally presented out of ASCII order. Encode enabled true as 1 and enabled false as 0. Include every supplied valid distinct symbol exactly once. Sort symbols in ASCII order. Change symbol case. Reinterpret nonboolean values as booleans. Invent symbols. Add prose or unrelated fields to the required JSON object. Use only supplied records and bundled rules. Use no external sources or tools. Not applicable when all records are valid and distinct."
+    },
+    {
+      "critical": true,
+      "id": "decision-context",
+      "kind": "DECISION_CONTEXT",
+      "statement": "Whether Compact Flag Map may replace the current manual serializer for English requests containing 1–30 supplied records, excluding real deployment operations and external configuration. Every critical serialization contract passes and at least 90% of noncritical trials pass. No more than a 1 percentage point regression versus the current manual serializer. Report trial counts and Wilson 95% intervals for each prespecified pass rate. Zero invented symbols. Zero boolean coercions. Zero silent duplicate loss. One response. No tools."
+    }
+  ],
+  "fingerprint": "bae02705699b5c0c31b1882da4c3ca562a8d90358dea21c347d1c63b5978e155",
+  "instructionsDigest": "4d5c705ebe99f88acbcb2b2b343facfbe90c5a8058399c988e018d4d2e8af0ce",
+  "purpose": "AUTHOR_BENCHMARK_BLIND_REVIEW",
+  "referenceItems": [
+    {
+      "acceptedAlternatives": ["Deterministic serialization of unique valid symbols"],
+      "category": "CLAIM",
+      "critical": true,
+      "id": "v24-01",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Distinct valid symbols are sorted in ASCII order and serialized deterministically."
+    },
+    {
+      "acceptedAlternatives": ["Original invalid record plus all reasons"],
+      "category": "CLAIM",
+      "critical": false,
+      "id": "v24-02",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Invalid records retain original values and violation reasons."
+    },
+    {
+      "acceptedAlternatives": ["Equivalent exact-map and invalid-record contract"],
+      "category": "CONTRACT",
+      "critical": true,
+      "id": "v24-03",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Unique uppercase symbols and boolean values yield the specified comma-separated map; invalid symbols and non-booleans remain visible."
+    },
+    {
+      "acceptedAlternatives": ["Explicit compact-map request with supplied records"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "v24-05",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Positive activation requires supplied records and compact-map serialization intent."
+    },
+    {
+      "acceptedAlternatives": ["Deployment, configuration editing, or semantic flag management"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "v24-06",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Real feature-flag changes, deployment, file editing, and semantic interpretation are outside activation."
+    },
+    {
+      "acceptedAlternatives": ["Duplicate symbols expose the unresolved branch"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "v24-07",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Repeated symbols form a near-boundary case whose required behavior is unresolved."
+    },
+    {
+      "acceptedAlternatives": ["Parsed exact map plus preserved invalid records"],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "v24-08",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Compatible evidence directly compares the parsed map and original invalid records."
+    },
+    {
+      "acceptedAlternatives": [],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "v24-09",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "An oracle that silently chooses rejection, first-record-wins, or last-record-wins is incompatible before policy selection."
+    },
+    {
+      "acceptedAlternatives": ["A structured unresolved requirement covering duplicate-symbol semantics"],
+      "category": "BLOCKER",
+      "critical": true,
+      "id": "v24-10",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "The unavailable duplicate-symbol policy blocks complete contracts, compatible oracle design, and decision evaluation."
+    },
+    {
+      "acceptedAlternatives": [],
+      "category": "PROHIBITED_EFFECT",
+      "critical": true,
+      "id": "v24-11",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "No case conversion, boolean coercion, invented meaning, or silent duplicate loss is allowed."
+    },
+    {
+      "acceptedAlternatives": ["Preserve rejection, first-wins, and last-wins as unresolved alternatives"],
+      "category": "RECOVERY",
+      "critical": true,
+      "id": "v24-12",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Nonduplicate behavior remains characterizable, but confirmatory evaluation waits for owner selection without privileging a proposal."
+    }
+  ],
+  "resolutionPolicyDigest": "35db7c0ad6494b2d233ba49b8058a4894150fc5a8a802930570240b637f7e4db",
+  "sampleId": "sample-cca3219a93ea3a9b",
+  "schemaVersion": 1,
+  "skillFiles": [
+    {
+      "content": "---\nname: compact-flag-map\ndescription: Serialize supplied symbolic flags according to the bundled compact-map specification.\n---\n\n# Compact Flag Map\n\nUse only when the user supplies flag records and explicitly requests compact-map serialization.\n\nEach record contains a one-character uppercase ASCII `symbol` and a boolean `enabled`. The bundled `context.md` defines the compact-map format and its unresolved policy. Return one JSON object with `map` and `invalid`. Preserve the original records in `invalid` when they violate the symbol or boolean rules.\n\nDo not reinterpret strings as booleans, change case, consult external registries, write files, or infer what a symbol means. If no records are supplied, ask for them. Do not activate for feature-flag management, deployment, configuration editing, or requests lacking serialization intent.\n",
+      "path": "SKILL.md"
+    },
+    {
+      "content": "# Compact-map specification and evaluation context\n\nSort distinct symbols in ASCII order. Encode each as the symbol followed by `1` when enabled and `0` when disabled, joining entries with commas.\n\nThe standards owner has not selected the required behavior for repeated symbols. Rejection, first-record-wins, and last-record-wins remain competing proposals. No repository document or external authority may be used to choose among them.\n\nDecision: whether Compact Flag Map may replace the current manual serializer for English requests containing 1–30 supplied records. Exclude real deployment operations and external configuration.\n\nMinimum worthwhile result: every critical serialization contract and 90% of noncritical trials. Maximum acceptable regression: 1 percentage point. Severe-harm limit: zero invented symbols, boolean coercions, or silent duplicate loss. Efficiency budget: one response and no tools.\n\nUse 20 usage and 16 stress cases, including duplicate symbols, one repetition, fixed randomization, count reporting, and Wilson 95% intervals. Missing mandatory evidence fails its claim; stop on severe harm. Oracle qualification must cover valid, invalid, alternative-valid, and unsupported-fluency probes.\n",
+      "path": "context.md"
+    }
+  ]
+}

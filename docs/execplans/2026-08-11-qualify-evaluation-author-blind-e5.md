@@ -2,11 +2,18 @@
 
 This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mitigations`, and `Lessons Learned` current throughout execution.
 
-Safety boundary: only this planning document is authorized on 2026-08-11. Creating benchmark material, changing product or experiment code, reserving campaigns, invoking providers, adjudicating results, qualifying an Author condition, or promoting any normal product path requires later explicit authorization. Planning does not expose blind material and does not itself satisfy Gate G5.
+Safety boundary: E5 Milestones 1 through 6 were explicitly authorized on 2026-08-11, including the exact sixteen-call campaign and condition-blind adjudication by two isolated reviewers plus one resolver. Campaign `e5-author-benchmark-20260811-r1` has been consumed and must never be repeated. E5 authorizes no additional Author invocation. Normal-path promotion remains separately gated. Offline instrument or runner qualification does not itself satisfy Gate G5.
 
-The intended implementation executor is `gpt-5.6-terra` with `xhigh` reasoning. The E4 baseline is commit `916f8bbcc438d1b5aa30868fad4e4379fdf2ea43` on `feat/e4-evaluation-author-v0`. Before authorized implementation begins, create `feat/e5-blind-author-benchmark` from a clean commit containing that E4 baseline and this plan, then record the exact implementation baseline here. The normative THEORY was read in full at commit `572e963ea6f1207ab53c533592cb70a8239e221c`.
+The intended implementation executor is `gpt-5.6-terra` with `xhigh` reasoning. The E4 baseline is commit `916f8bbcc438d1b5aa30868fad4e4379fdf2ea43` on `feat/e4-evaluation-author-v0`. Authorized Milestone 1 implementation began on `feat/e5-blind-author-benchmark` from planning commit `973efba2e0b1d02afc1de550053cf6df914408a9`, which contains that E4 baseline. The normative THEORY was read in full at commit `572e963ea6f1207ab53c533592cb70a8239e221c`.
 
-Planning status: `COMPLETE — EXECUTION NOT AUTHORIZED`.
+Status: `COMPLETE — INSUFFICIENT; NO AUTHOR CONDITION SELECTED`.
+
+Milestone 1 implementation is recorded at commit `46d83a9`.
+Milestone 2 implementation is recorded at commit `8a154f2`.
+Milestone 3 preparation is recorded at commit `f8dfe28`.
+Milestone 3 commit-freeze hardening is recorded at commit `0ed7c3d`.
+Milestone 4 provider-free runner preparation is recorded at commit `1b157d8`.
+Milestone 4 terminal hardening is recorded at commit `94a9652`.
 
 ## Purpose / Big Picture
 
@@ -20,6 +27,8 @@ The valid terminal conclusion includes:
 AUTOMATIC_AUTHOR_NOT_DEFENSIBLE
 ```
 
+In the final E5 R1 report, this rationale means only that neither exact condition evaluated by this campaign has sufficient evidence for a defensible automatic-Author selection. It does not claim that automatic authorship is generally impossible or indefensible under every future condition.
+
 No adaptive retry, benchmark repair, threshold change, or case replacement may be used to obtain a favorable result.
 
 ## Existing Context
@@ -31,6 +40,8 @@ R3 did not qualify the Author. Its Blueprint remains `NOT_QUALIFIED`, `DEVELOPME
 Official OpenAI model guidance consulted on 2026-08-11 describes Terra as balancing intelligence and cost, Luna as optimized for cost-sensitive workloads, and both as supporting `xhigh` and `max` reasoning. Pricing is volatile and account billing through ChatGPT authentication is not established by API list prices. E5 may report a frozen API-equivalent estimate from observed token usage, but it must label that estimate as analytical rather than actual campaign cost.
 
 RFC 0001 sections 52–55 and 75 require a blind Author benchmark against adjudicated reference evaluations, explicit uncertainty, and rejection of fabricated context. ADR 0002 requires bounded execution, prespecified retries and stopping, immutable instrument conditions, and terminal inconclusive outcomes. Those documents remain normative and unchanged.
+
+Before collection, the qualification gate already required all eight scheduled invocations for a condition to complete with canonical Blueprints. The plan also treated timeout as an observed failure for its sample, distinguished incomplete operational evidence from semantic failure, and allowed campaign-level `INSUFFICIENT`. The pre-collection condition contract nevertheless exposed only `QUALIFIED`, `NOT_QUALIFIED`, or `STALE`. After Luna/max produced eight timeouts, qualification-report schema-2 represented that missing semantic evidence as condition-level `INSUFFICIENT`. This was a post-collection resolution of an existing mismatch between the intended missing-evidence policy and its condition-level schema, not a status placement fully prespecified before collection. The chronology is retained as a limitation; it does not authorize reclassification, rescoring, or repetition of E5 R1.
 
 ## Scope
 
@@ -65,6 +76,9 @@ E5 excludes:
 - An **atomic reference item** is one prespecified semantic claim, contract, activation region, evidence requirement, exclusion, blocker, or uncertainty expectation with criticality and accepted semantic alternatives.
 - A **qualified reviewer** has passed the frozen reviewer-qualification probes before seeing benchmark outputs.
 - A **campaign bundle** contains the eight cases, references, rubric, thresholds, counterbalanced schedule, software identities, budget, and canonical fingerprint frozen before collection.
+- A **campaign commit freeze** is the equality between an explicitly expected Git commit and the clean observed `HEAD` used by a formal qualification campaign. It identifies campaign infrastructure; it is not a per-skill requirement or a normal Author contract.
+- **Semantic sufficiency** means enough completed Blueprint content exists to judge Author quality. Luna/max did not provide it in E5 R1.
+- The **operational completion gate** requires eight completed canonical Blueprints for a condition to qualify. Luna/max failed this frozen gate with zero of eight completions, independently of its unknown semantic quality.
 
 ## Desired End State and Internal Interfaces
 
@@ -104,7 +118,13 @@ The planned internal commands are:
 ```text
 npm run experiment:qualify:author-benchmark:offline -- --bundle <directory>
 
+SKILL_EVIDENCE_AUTHOR_CODEX_HOME=/home/renanfranca/.codex \
+  npm run experiment:preflight:author-benchmark -- \
+  --bundle <directory> --preparation <campaign-preparation.json> \
+  --expected-commit <40-char-sha>
+
 npm run experiment:benchmark:author -- --bundle <directory> --campaign <id> \
+  --preparation <campaign-preparation.json> --expected-commit <40-char-sha> \
   --approve-provider-invocations 16
 
 npm run experiment:score:author-benchmark -- --campaign <id> \
@@ -173,9 +193,9 @@ The two conditions are fixed:
 
 Run each of the eight cases once under each condition: sixteen total invocations. Use one fresh thread and empty temporary workspace per invocation, cache disabled, concurrency one, `maxRetries: 0`, five-minute per-call timeout, read-only sandbox, approvals `never`, disabled network/web search/thread persistence/sharing/latest results/multi-agent, and the explicitly selected `/home/renanfranca/.codex` ChatGPT-authenticated home.
 
-Derive a deterministic counterbalanced order from the frozen bundle fingerprint: Terra runs first for four cases and Luna first for four. Freeze that schedule before reservation. Create an atomic campaign reservation with total budget sixteen, then atomically consume one sample reservation immediately before each call. Never replace, repeat, or reorder a consumed sample.
+Derive a deterministic counterbalanced order from the frozen bundle fingerprint: Terra runs first for four cases and Luna first for four. Freeze that schedule before reservation. Create an atomic campaign reservation with total budget sixteen that copies the campaign fingerprint and explicitly expected commit, then atomically consume one sample reservation immediately before each call. The runner must reject a clean but different `HEAD` before the first reservation or call. Never replace, repeat, or reorder a consumed sample.
 
-Preflight must verify a clean exact commit, current bundle fingerprint, Node/npm/Promptfoo/SDK/CLI versions, writable authenticated Codex home, absent `OPENAI_API_KEY` and `CODEX_API_KEY`, no prior campaign, output-path exclusivity, packet blindness, and qualified reviewers. It must not make a provider call.
+Preflight must verify that the clean observed `HEAD` equals the explicitly supplied expected commit, plus the current bundle fingerprint, Node/npm/Promptfoo/SDK/CLI versions, writable authenticated Codex home, absent `OPENAI_API_KEY` and `CODEX_API_KEY`, no prior campaign, output-path exclusivity, packet blindness, and qualified reviewers. It must not make a provider call. This commit freeze is exclusive to E5 and equivalent formal qualification campaigns: ordinary skill development uses snapshot identity, and future normal Author use must not require a Git repository or clean worktree.
 
 If one sample fails or times out, record it and continue the frozen schedule unless the failure is classified as global authentication failure, global model unavailability, security-boundary failure, or infrastructure corruption. A global failure stops remaining calls and yields `INSUFFICIENT`; exposed material cannot be used in a replacement qualification campaign. A blindness, freeze, reservation, or schedule violation yields `INVALIDATED`.
 
@@ -229,13 +249,15 @@ Acceptance: references are complete and internally consistent; both reviewers qu
 
 Run the full offline validation and `refactor-design`, reconcile documentation, and create a clean preparation commit. Record exact versions, fingerprints, reservations, budgets, stop rules, reviewer identities, output locations, and sanitized-report policy. Obtain separate explicit authorization for exactly sixteen calls.
 
-Acceptance: preflight passes without provider access; no reservation or model call exists before authorization.
+Acceptance: preflight passes without provider access only when the clean observed `HEAD` equals a literal expected SHA; no reservation or model call exists before authorization.
 
-### Milestone 4 — Execute the fixed blind schedule
+### Milestone 4 — Prepare and execute the fixed blind schedule
 
-Reserve the sixteen-call campaign atomically and run the frozen counterbalanced schedule once. Preserve every terminal result, including errors. Do not score, inspect aggregate condition performance, modify the instrument, or adapt remaining calls during collection.
+First implement the final live-capable runner and qualify the complete path through a deterministic local executable and temporary artifact roots. This provider-free preparation includes the exact CLI, preflight handoff, global and per-sample reservations, sequential schedule, sanitized telemetry, global stops, and canonical collection records, but creates no real reservation. Re-run the clean exact-commit preflight and obtain separate authorization naming the final SHA before proceeding.
 
-Acceptance: each started sample consumed one reservation; no retry occurred; execution stopped only under a prespecified global stop; all available final candidates and provenance are preserved without raw reasoning.
+After that authorization, reserve the sixteen-call campaign atomically, copying the authorized campaign fingerprint and expected commit, and run the frozen counterbalanced schedule once. Preserve every terminal result, including errors. Do not score, inspect aggregate condition performance, modify the instrument, or adapt remaining calls during collection.
+
+Preparation acceptance: the deterministic runner qualifier executes one complete sixteen-call local campaign and one global-stop campaign, reports zero external calls, and writes only under temporary roots. Collection acceptance remains: each started real sample consumed one reservation; no retry occurred; execution stopped only under a prespecified global stop; all available final candidates and provenance are preserved without raw reasoning.
 
 ### Milestone 5 — Blind review, adjudicate, and classify
 
@@ -297,20 +319,53 @@ git status --short
 - [x] Verify that pinned/latest Codex SDK and Promptfoo do not expose an effective model field on this surface.
 - [x] Prespecify Terra/xhigh versus Luna/max, eight cases, and sixteen benchmark calls.
 - [x] Create this planning-only ExecPlan and index entry.
-- [ ] Receive explicit authorization to implement E5 code.
-- [ ] Create the E5 branch and record its exact baseline.
-- [ ] Complete Milestone 1.
-- [ ] Receive explicit authorization to create blind material.
-- [ ] Complete Milestone 2.
-- [ ] Complete Milestone 3 and obtain explicit sixteen-call authorization.
-- [ ] Complete Milestone 4 exactly once.
-- [ ] Complete Milestone 5.
-- [ ] Complete Milestone 6.
+- [x] Receive explicit authorization to implement E5 Milestone 1 only.
+- [x] Create the E5 branch and record its exact baseline.
+- [x] Complete Milestone 1 with schema-1 compatibility, schema-2 explicit conditions, qualification-report contracts, 95 green tests, and provider-free checkpoints.
+- [x] Receive explicit authorization to create blind material.
+- [x] Complete Milestone 2 with eight dual-curated cases, sixteen reviewer probes, a counterbalanced schedule, and provider-free qualification.
+- [x] Receive explicit authorization to prepare E5 Milestone 3 without reservation or provider access.
+- [x] Complete the post-green `refactor-design` review with no behavior-changing finding.
+- [x] Freeze the campaign manifest and pass the provider-free preflight from clean preparation commit `f8dfe28`.
+- [x] Complete Milestone 3 preparation with zero reservations and zero provider calls.
+- [x] Require the clean campaign `HEAD` to equal an explicitly expected commit before requesting authorization.
+- [x] Receive explicit authorization to implement and qualify the final runner offline without touching the real campaign.
+- [x] Complete the live-capable runner with temporary deterministic qualification and a new clean preflight.
+- [x] Receive explicit authorization to harden global rate-limit handling and terminal persistence before collection.
+- [x] Classify every ambiguous rate limit as a global `INSUFFICIENT` stop.
+- [x] Persist one canonical terminal receipt after every catchable post-reservation outcome.
+- [x] Requalify the hardened runner and freeze a new clean commit and campaign fingerprint.
+- [x] Receive explicit authorization for campaign `e5-author-benchmark-20260811-r1`, fingerprint `283dcb224800d5d41812078771126798aaf4dcbac0ce82c439c12007ba356b05`, commit `a2bf82c12e1dfcc641dd146d21ab93c97963642e`, and exactly sixteen provider calls.
+- [x] Complete Milestone 4 exactly once.
+- [x] Receive explicit authorization for Milestone 5 with two isolated reviewers, one disagreement-only resolver, and dual local/versioned artifact preservation.
+- [x] Implement and qualify deterministic review packets, locked submissions, resolution, scoring, and sanitized archival.
+- [x] Collect and lock two independent blind judgment sets.
+- [x] Resolve only recorded disagreements and classify the campaign exactly once.
+- [x] Complete Milestone 5 with campaign result `INSUFFICIENT` and no selected condition.
+- [x] Complete Milestone 6 with documentation reconciliation, sanitized archive verification, and full deterministic validation.
+
+Milestone 2 closed with 107 green tests, zero provider imports at the public checkpoint, zero external calls in every local qualifier, and canonical report `docs/experiments/e5-author-benchmark-offline-qualification-20260811.json`. The offline result is `SUPPORTED_FOR_DEVELOPMENT`; it qualifies only the frozen instrument and reviewers.
+
+Milestone 3 closed with 110 green tests and campaign fingerprint `d4fa2011bcb04d9dfb4840ce5b5954c5bad630e8407f21223dca6834f343a860`. The clean-commit preflight returned `READY_FOR_AUTHORIZATION` with all ten checks passing, `providerInvocations: 0`, and `reservationCreated: false`. This state permits requesting authorization; it does not authorize collection.
+
+Post-milestone review found that `EXACT_CLEAN_COMMIT` originally proved only a clean worktree and a syntactically valid observed SHA. Commit `0ed7c3d` hardened the contract so a distinct literal expected SHA is mandatory and must equal the clean observed `HEAD`. The focused suite, full 111-test suite, public provider-free checkpoint, and offline benchmark qualification passed; the clean preflight returned `READY_FOR_AUTHORIZATION` with both SHAs equal, zero provider calls, and no reservation. The final exact SHA remains an external authorization fact recorded by the ignored preflight report rather than a self-referential field in the versioned preparation.
+
+Milestone 4 runner preparation closed with 122 green tests. The deterministic runner qualifier traversed the final Promptfoo/Codex SDK path with sixteen local successful samples and a separate one-call authentication stop, reported `SUPPORTED_FOR_DEVELOPMENT`, and recorded seventeen local processes, zero external provider calls, and zero workspace campaign artifacts. Post-GREEN design review replaced a fragile inferred Blueprint type with the explicit product type and removed an absolute path from the reservation-collision diagnostic; focused tests and the provider-free public checkpoint remained green. A clean literal-SHA preflight on implementation commit `1b157d8` passed all ten checks with zero calls and no reservation. The final documentation commit is rechecked separately and its exact SHA remains only in the ignored preflight report and later authorization.
+
+Pre-authorization hardening superseded that freeze after review showed that ambiguous rate limits could contaminate later samples and catchable post-reservation failures could leave no terminal summary. The hardened runner closed with 135 green tests, campaign fingerprint `283dcb224800d5d41812078771126798aaf4dcbac0ce82c439c12007ba356b05`, and a deterministic qualifier covering sixteen successes, one global authentication stop, and one global rate-limit stop across eighteen local processes with zero external calls or workspace campaign artifacts. Every supported catchable output, snapshot, reservation, persistence, workspace, cleanup, and adapter-construction failure now produces a bounded receipt beside the immutable reservation. Post-GREEN review centralized receipt construction to prevent divergent canonical projections. Commit `bb5ea2a` and the prior campaign fingerprint are obsolete for authorization; the final hardened SHA is established only after the documentation commit and clean literal-SHA preflight.
+
+Milestone 4 collection ran exactly once from clean authorized commit `a2bf82c12e1dfcc641dd146d21ab93c97963642e` using `/home/renanfranca/.codex`. The terminal receipt records `COMPLETE`, `stopReason: null`, sixteen provider invocations, sixteen consumed and persisted sample IDs, zero `NOT_RUN` samples, and a persisted canonical collection. Eight samples completed with valid candidates and eight ended terminally as `TIMEOUT`; operationally, all eight Terra/xhigh samples completed and all eight Luna/max samples timed out under the frozen five-minute limit. Every sample has exactly one prior reservation, orders cover 1 through 16 once, no retry occurred, and the collection contains no raw response, raw reasoning, reference, or expected-lifecycle field. These are collection facts only: no Blueprint has been scored, no reviewer judgment has been collected, and neither condition is qualified.
+
+Milestone 5 reserved adjudication against collection fingerprint `a51c2c8da8d395e713a0f154ac1e33a02a753906e8a614a4c31efdb57c45fcf6` and generated eight condition-blind packets. Two fresh reviewers independently requalified at 100% critical accuracy, 100% noncritical accuracy, and 100% probe agreement before candidate exposure. Each then locked 243 judgments under fingerprints `73251a2e43215e7eccc7f5b44f3aa68b19f97c1a6e337756a6eb4d8546fbbbe1` and `ddd499fee4837ed5476c1ba1493f3c21dc9ede4b863bdb6f79985492512e0549`. A fresh resolver saw only three divergences and locked their resolutions under fingerprint `4ef5764a08bf5502c71a0a1bd385885d16afe278bc8e5d11efa4105509145655`.
+
+Mechanical scoring ran exactly once. Luna/max is `INSUFFICIENT` because all eight scheduled candidates timed out; no semantic failure is inferred. Separately, the exact Luna/max condition failed the frozen operational completion gate because zero of eight scheduled invocations produced canonical Blueprints. Terra/xhigh is `NOT_QUALIFIED`: lifecycle matched 3/8, all 72/72 critical reference items matched, activation coverage was 8/8 in each region, macro precision was 100%, macro recall was 87.5%, and one unsupported critical blocker was invented. Specifically, all four `READY` references became `BLOCKED`, one `BLOCKED` reference became `DRAFT`, the Author asserted that already-qualified mechanical oracles were required where the skill only required an oracle qualification plan, and it missed the noncritical requirement to preserve invalid-record values and reasons in one case. Noncompensatory precedence therefore yields campaign `INSUFFICIENT`, `selectedCondition: null`, and `AUTOMATIC_AUTHOR_NOT_DEFENSIBLE`, meaning no condition from E5 R1 supports a defensible automatic-Author selection. It is not a general impossibility claim. No normal Author path is promoted.
+
+Milestone 6 closed with `npm ci`, audit zero, typecheck, lint, 140 tests, Prettier, build, the provider-free public checkpoint, archaeological/Author/provider/benchmark/runner/Codex-OTEL/tracing qualifiers, and loopback tracing verification all green. Archive verification recomputed every semantic component digest, validated the schema-2 consolidated report, and found zero forbidden raw-reasoning, raw-response, expected-lifecycle, temporary-path, or absolute-home fields. No real collection or scoring command was repeated during validation.
 
 ## Decisions
 
-- Decision: planning is the only currently authorized E5 action.
-  Rationale: blind material, implementation, qualification, and provider cost are materially distinct actions that require later authorization.
+- Decision: authorize E5 in distinct planning, material, implementation, collection, adjudication, and promotion stages.
+  Rationale: each stage exposes different information or incurs different cost; completing the authorized sixteen-call collection does not implicitly authorize adjudication or production promotion.
   Date/Author: 2026-08-11 / user and planning agent.
 - Decision: compare Terra/xhigh with Luna/max rather than Sol.
   Rationale: Terra preserves the successful E4 development baseline, while Luna/max tests a materially cheaper condition without making Sol's higher cost necessary for the first qualification attempt.
@@ -330,6 +385,79 @@ git status --short
 - Decision: do not activate a successful qualification in the normal Author path during E5.
   Rationale: E5 produces evidence and a condition-specific qualification record; rollout and later compiler integration remain separate promotions.
   Date/Author: 2026-08-11 / planning agent.
+- Decision: preserve schema-1 byte-for-byte and introduce schema-2 for explicit E5 conditions.
+  Rationale: schema-1 fixes `reasoningEffort` to `xhigh`; changing it would invalidate E4's schema digest and condition fingerprint, while recording Luna/max under schema-1 would violate the normative schema. Omitted conditions therefore retain schema-1 and the exact E4 fingerprint; explicit Terra/xhigh or Luna/max conditions use schema-2.
+  Date/Author: 2026-08-11 / user and implementation agent.
+- Decision: resolve the instrument from two independent curation proposals before any Author output exists.
+  Rationale: the resolver selected one `READY` and one `BLOCKED` case per behavioral stratum using observable support, genuine missing authority, evidence compatibility, and semantic alternatives rather than model behavior.
+  Date/Author: 2026-08-11 / user, two independent curators, resolver, and implementation agent.
+- Decision: freeze schedule and reviewer protocol inside bundle fingerprint `e5b69fe99942c7c4054b55f7ba2a570f180f3968f9f292ee288f2253ef08f3e1`.
+  Rationale: schedule order, references, snapshots, probes, reviewer instructions, and resolution policy must change the identity of the instrument before any reservation.
+  Date/Author: 2026-08-11 / implementation agent.
+- Decision: qualify the two reviewers before authorizing collection.
+  Rationale: both reviewers independently achieved 100% critical and noncritical probe accuracy with 100% agreement; the locked qualification fingerprint is `432d823d85a5ff4995f71a25e84b71441517098ae53c94cf8c3daf452c2271df`.
+  Date/Author: 2026-08-11 / user, independent reviewers, and implementation agent.
+- Decision: disclose asymmetric preservation of the two original curation proposals without repeating curatorship.
+  Rationale: Curator A's original is recoverable byte for byte, while Curator B's original was not durably persisted and can only be reconstructed without a fidelity guarantee. Preserving A and an explicit non-preservation record is stronger evidence than silently omitting the gap or presenting a retrospective reconstruction as original.
+  Date/Author: 2026-08-11 / user and implementation agent.
+- Decision: freeze API-equivalent prices captured from the official model pages on 2026-08-11 while keeping actual ChatGPT-account cost `UNKNOWN`.
+  Rationale: the preparation records Terra at USD 2.00 input, USD 0.20 cached input, and USD 12.00 output per million tokens, and Luna at USD 0.20, USD 0.02, and USD 1.20 respectively. These rates support a later analytical estimate only; ChatGPT authentication does not establish API billing.
+  Date/Author: 2026-08-11 / implementation agent.
+- Decision: make preflight a read-only authorization gate rather than the point of reservation.
+  Rationale: environment, authentication presence, frozen identities, exact clean commit, and path availability can be checked without consuming any of the sixteen calls or creating an irreversible campaign artifact. Reservation remains part of the separately authorized collection step.
+  Date/Author: 2026-08-11 / implementation agent.
+- Decision: retain the post-green structure after `refactor-design` review.
+  Rationale: no concrete temporal coupling, hidden state, fragile representation, or architecture leak justified a behavior-preserving refactor; splitting the preflight solely by file size would add topology without reducing a demonstrated risk.
+  Date/Author: 2026-08-11 / implementation agent.
+- Decision: require a literal expected commit as a separate preflight input rather than storing it in the versioned campaign preparation.
+  Rationale: equality against the observed `HEAD` prevents accidental infrastructure drift, while keeping the value outside its own commit avoids cryptographic self-reference. The authorization must later name the same literal SHA.
+  Date/Author: 2026-08-11 / user and implementation agent.
+- Decision: scope the commit freeze to formal qualification campaigns.
+  Rationale: E5 needs exact infrastructure provenance because its blind collection becomes irreversible; ordinary development and normal Author use are identified by skill snapshots, product versions, and condition fingerprints and must not require a Git worktree.
+  Date/Author: 2026-08-11 / user and implementation agent.
+- Decision: implement the final live-capable runner before requesting provider authorization, but qualify it only through a deterministic local executable and temporary artifact roots.
+  Rationale: deferring the real adapter would change the repository commit after authorization; exercising the final path locally permits the next clean SHA to identify all collection infrastructure without consuming the real campaign.
+  Date/Author: 2026-08-11 / user and implementation agent.
+
+- Decision: classify invalid output, timeout, rate limit, and unknown provider failures as sample-local, while authentication, model access, configuration, and process failures stop the remaining schedule globally.
+  Rationale: the former can produce a terminal observation for one prespecified sample without implying that later samples cannot run; the latter invalidate the shared execution capability or environment.
+  Date/Author: 2026-08-11 / implementation agent.
+
+- Decision: supersede the sample-local rate-limit policy before real collection and treat every `RATE_LIMIT` diagnostic as global.
+  Rationale: the current text-only provider boundary cannot prove that an HTTP 429 is transient rather than account-wide quota exhaustion. A conservative `INSUFFICIENT` stop preserves missing operational evidence without misclassifying later failures as Author quality.
+  Date/Author: 2026-08-11 / user and implementation agent.
+
+- Decision: preserve the immutable global reservation and write one adjacent canonical terminal receipt for every catchable post-reservation outcome.
+  Rationale: an output or infrastructure failure must not leave the only durable campaign fact as an unexplained reservation, while the receipt remains a terminal record rather than a second reservation.
+  Date/Author: 2026-08-11 / user and implementation agent.
+
+- Decision: preserve only normalized numeric token fields and bounded latency values, with unavailable telemetry represented as `null`.
+  Rationale: collection evidence should retain useful operational facts without inferring missing measurements or allowing provider-specific payloads to enter canonical artifacts.
+  Date/Author: 2026-08-11 / implementation agent.
+
+- Decision: treat the deterministic runner qualification as evidence about orchestration and terminal policy only.
+  Rationale: eighteen local executable processes exercise the final adapter, including global authentication and rate-limit stops, without network access, but cannot establish provider availability or either Author condition's quality.
+  Date/Author: 2026-08-11 / implementation agent.
+
+- Decision: preserve all eight Luna/max timeouts as terminal missing evidence and proceed only through the prespecified Milestone 5 rules.
+  Rationale: the campaign prohibited retries and replacement. A timeout does not establish poor Blueprint quality, while the asymmetric completion pattern is material operational evidence that must remain distinct from semantic scoring.
+  Date/Author: 2026-08-11 / user and implementation agent.
+
+- Decision: use two fresh context-isolated reviewer agents and one later disagreement-only resolver, preserving both canonical local artifacts and every sanitized component in version control.
+  Rationale: separate agents preserve the intended independence boundary, while dual storage keeps exact local collection linkage without sacrificing durable public auditability. Agent provenance establishes execution separation, not cryptographic isolation.
+  Date/Author: 2026-08-11 / user and implementation agent.
+
+- Decision: represent per-condition operational incompleteness explicitly as `INSUFFICIENT` in a new qualification-report schema version.
+  Rationale: schema-1 is already a versioned minimal contract and must remain stable; Luna's eight timeouts are missing evidence rather than semantic failures, so the complete adjudication contract requires a distinct condition status without rewriting schema-1. This condition-level status was formalized after collection, resolving a pre-existing mismatch between the prespecified missing-evidence policy and the narrower pre-collection condition schema; it must not be described as fully prespecified at that level.
+  Date/Author: 2026-08-11 / user and implementation agent.
+
+- Decision: select no Author condition from E5 campaign R1.
+  Rationale: Luna/max lacks all eight candidates, while Terra/xhigh fails lifecycle, noncritical recall, and zero-critical-invention gates. Neither cost nor strong critical-reference recall may compensate for these failures.
+  Date/Author: 2026-08-11 / mechanical scoring under the frozen policy.
+
+- Decision: interpret `AUTOMATIC_AUTHOR_NOT_DEFENSIBLE` only as the E5 R1 selection conclusion.
+  Rationale: Luna/max supplies evidence of failure to satisfy the operational completion gate but no Blueprint evidence about semantic quality; the campaign therefore supports selecting neither tested condition, not rejecting automatic authorship universally.
+  Date/Author: 2026-08-11 / user and documentation reconciliation.
 
 ## Risks and Mitigations
 
@@ -343,6 +471,22 @@ git status --short
 - Risk: incomplete collection is mistaken for a failed quality qualification. Mitigation: operational incompleteness yields `INSUFFICIENT`; complete evidence below thresholds yields `NOT_QUALIFIED`.
 - Risk: E5 silently expands into E6/E7 or production. Mitigation: no compiler, oracle generation, `FROZEN`, decision eligibility, public CLI, or normal-path activation.
 - Risk: API list prices are mistaken for actual ChatGPT cost. Mitigation: label token-price calculations API-equivalent and report actual account cost as unknown.
+- Risk: schema-2 accidentally changes the implicit E4 path. Mitigation: preserve schema-1 unchanged, select schema-2 only for explicit conditions, and assert the historical E4 condition fingerprint exactly.
+- Risk: reference or visible skill material drifts after bundle creation. Mitigation: the offline command recomputes every skill snapshot, compares every reference and reviewer artifact, and reruns packet-blindness checks against the frozen bundle.
+- Risk: the independence of dual curation is interpreted as symmetrically artifact-verifiable. Mitigation: preserve Curator A's original with its digest, record that Curator B's original is unavailable, and characterize independence as execution provenance rather than two-original documentary proof.
+- Risk: readable local authentication is mistaken for live model availability. Mitigation: the preflight limitation states that it proves only session presence; model availability remains an observation of the authorized terminal collection, with no retry.
+- Risk: a syntactically valid later commit is mistaken for the frozen campaign implementation. Mitigation: require a literal expected SHA, compare it with the clean observed `HEAD`, record both in the preflight, and copy the expected SHA into the future atomic campaign reservation.
+- Risk: campaign provenance requirements leak into normal product use. Mitigation: keep `expectedCommit` out of skill snapshots, `authorEvaluationBlueprint`, condition fingerprints, and the campaign fingerprint; normal Author operation does not require Git.
+- Risk: local integration success is mistaken for provider availability or Author quality. Mitigation: the runner qualifier uses an executable that cannot reach the network, reports `DEVELOPMENT`, and explicitly qualifies only orchestration, persistence, telemetry projection, and terminal policy.
+- Risk: test reservations consume the real campaign. Mitigation: every runner-qualification campaign uses a fresh temporary repository root and verifies that the workspace reservation and output paths remain absent.
+- Risk: a global quota failure is repeated across later samples and mistaken for poor Author quality. Mitigation: every `RATE_LIMIT` stops the remaining schedule as `INSUFFICIENT`; no transience is inferred from an ambiguous provider message.
+- Risk: a catchable output or infrastructure failure after the global reservation leaves no terminal campaign record. Mitigation: write a bounded canonical receipt beside the immutable reservation, independent of the normal output directory.
+- Risk: `SIGKILL`, power loss, or total filesystem failure prevents terminalization. Mitigation: the durable `RESERVED` artifact remains evidence that the campaign was consumed and still forbids rerun; recovery requires human classification, never reuse.
+- Risk: the eight Luna/max timeouts are misreported as eight semantic quality failures or are hidden by scoring only completed outputs. Mitigation: preserve timeout as missing operational evidence, keep completion and semantic metrics separate, and apply the frozen `INSUFFICIENT`/qualification precedence mechanically during Milestone 5 without retry.
+- Risk: condition-level `INSUFFICIENT` is retrospectively described as fully prespecified. Mitigation: record that the missing-evidence principle and 8/8 gate preceded collection while the condition-level schema status was formalized afterward to resolve their mismatch.
+- Risk: `AUTOMATIC_AUTHOR_NOT_DEFENSIBLE` is read as a universal conclusion. Mitigation: scope it explicitly to selection among the two exact E5 R1 conditions and preserve Luna's semantic quality as unknown.
+- Risk: a reviewer infers condition identity from provenance or another reviewer's work. Mitigation: generate opaque deterministic packets without condition, order, lifecycle expectation, provenance, identity digests, or telemetry; start both agents from empty context and expose neither submission until both are locked.
+- Risk: public preservation leaks raw execution material or turns a retrospective reconstruction into original evidence. Mitigation: retain immutable canonical inputs under `.skill-evidence`, publish separately fingerprinted sanitized packets/submissions/resolution/scoring, and exclude raw responses, reasoning, credentials, and absolute paths mechanically.
 
 ## Validation Strategy
 
@@ -365,8 +509,13 @@ No lower rung substitutes for a higher rung, and no real call substitutes for qu
 
 ## Documentation Impact
 
-- This plan and `docs/execplans/README.md` are the only files changed under the current authorization.
-- Future implementation updates AGENTS.md with E5 commands and explicit model-backed exclusions from CI.
+- Milestone 2 adds only blind development fixtures, internal qualification contracts, a provider-free command, deterministic CI coverage, and a sanitized offline report.
+- Milestone 3 adds a frozen campaign manifest and a provider-free, non-reserving preflight command; it adds no benchmark result or model-backed evidence.
+- Commit-freeze hardening adds only a campaign-specific preflight input and report field; it does not change snapshot or Author interfaces.
+- Provider-free runner preparation adds the final internal collection command, deterministic local qualifier, CI coverage, and temporary fixtures; no real campaign artifact or model-backed evidence is produced.
+- Pre-authorization hardening adds a global rate-limit stop, an adjacent terminal receipt, an eleventh preflight absence check, and deterministic failure qualification without changing the blind bundle or either Author condition.
+- Milestone 5 adds schema-2 qualification reporting, condition-blind review packets, immutable reviewer and resolution artifacts, deterministic scoring commands, and a complete sanitized component archive plus consolidated report.
+- AGENTS.md documents both offline commands while preserving model-backed collection as a separately authorized local operation.
 - RFC 0001 and ADR 0002 remain unchanged unless implementation discovers a normative contradiction.
 - Historical E0–E4 plans and reports remain byte-for-byte preserved.
 - Official model guidance is a dated operational source, not normative evidence about Author quality.
@@ -382,6 +531,24 @@ A qualified condition becomes `STALE` when any model/reasoning request, instruct
 - E4 R3 established that one real successful Author call can support planning without qualifying reliability.
 - Requested and effective model identity are different facts; the current SDK surface exposes only enough evidence to characterize the requested operational condition.
 - A lower-cost condition should be selected only after it clears the same noncompensatory quality gates.
+- Opaque case IDs alone are insufficient for blindness; frozen reference text, atomic IDs, schedule IDs, reviewer probes, condition labels, and digest-correlated material all require mechanical packet checks.
+- A `BLOCKED` reference remains complete authorship when it preserves supported behavior and exposes a genuinely unavailable decision-critical requirement without selecting a placeholder.
+- Reviewer qualification is part of the instrument identity, not evidence that either Author condition is qualified.
+- Independent work and durable proof of independence are separate properties; missing original provenance must be disclosed rather than reconstructed after resolution.
 - Breadth across paired behavioral strata is more useful than repeating one adaptable development canary.
 - A complete `BLOCKED` Blueprint is a success case for honest authorship, not an incomplete `DRAFT`.
 - Blindness is an enforceable data-flow property, not merely an instruction to the model or reviewer.
+- A new reasoning condition cannot be represented honestly by broadening a fingerprinted historical schema in place; versioned schema evolution preserves both provenance and compatibility.
+- A clean preflight can establish readiness to request authorization without consuming a reservation; authentication presence and model availability must remain separate facts.
+- Cleanliness and a SHA-shaped `HEAD` do not establish exact campaign provenance; the observed SHA must equal an independently stated expectation.
+- Commit freezing is proportional for irreversible qualification evidence but would be an inappropriate dependency for ordinary skill authoring.
+- A live-capable runner can be frozen safely before cost authorization when its complete provider boundary is exercised with a deterministic local executable and all reservations are redirected to temporary roots.
+- Normalizing optional telemetry at the provider boundary preserves operational evidence without letting provider-specific shapes or missing values alter campaign identity.
+- A generic HTTP 429 cannot support a transient-failure claim when the provider boundary exposes no structured reset or quota semantics.
+- Reservation exclusivity and terminal persistence are separate obligations: claiming a campaign safely does not by itself explain how it ended.
+- A formally complete schedule can still contain condition-asymmetric missing evidence: collection completeness, operational viability, and semantic quality are separate claims and must be reported separately.
+- High recall of critical reference content is insufficient when lifecycle is systematically over-blocked: a useful Author must distinguish missing decision authority from evaluation work that belongs in a future oracle qualification stage.
+- Persisting both independent submissions exposed only three disagreements across 243 targets and made the final negative conclusion auditable without preserving private reasoning.
+- A sound missing-evidence interpretation can still expose a protocol-timing limitation when its exact condition-level status was formalized only after collection; both facts must be reported.
+- Luna/max established failure of the exact campaign's operational completion gate, while its Blueprint quality remains unknown because no Blueprint completed.
+- `AUTOMATIC_AUTHOR_NOT_DEFENSIBLE` is defensible only as a bounded E5 R1 selection conclusion, not as a claim that automatic authorship is generally impossible.

@@ -1,0 +1,87 @@
+{
+  "id": "opal-28",
+  "stratum": "EVIDENCE_ANALYSIS",
+  "expectedLifecycle": "READY",
+  "referenceItems": [
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Same serial, full range and interval, uncertainty within tolerance"],
+      "category": "CLAIM",
+      "critical": true,
+      "id": "m6c-a2",
+      "statement": "Support requires matching identity and scope plus measured uncertainty no greater than the claimed tolerance."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Explicitly enumerate mismatched dimensions"],
+      "category": "CLAIM",
+      "critical": false,
+      "id": "z1r-c8",
+      "statement": "Mismatch dimensions remain inspectable in insufficient results."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Equivalent three-way semantic classification"],
+      "category": "CONTRACT",
+      "critical": true,
+      "id": "e5w-f4",
+      "statement": "The result is SUPPORTED, CONTRADICTED, or INSUFFICIENT and preserves conflicting direct evidence."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Supplied claim, bounded packet, and explicit evidence question"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "s2p-k1",
+      "statement": "Positive activation requires a supplied calibration claim, evidence packet, and explicit support question."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Certification, retrieval, scheduling, or authenticity investigation"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "x8d-n4",
+      "statement": "Certification, external retrieval, scheduling, and authenticity investigation are outside activation."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["An unsigned summary activates analysis but remains insufficient"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": false,
+      "id": "g3v-p9",
+      "statement": "A claim accompanied only by an unsigned summary is a near-boundary input that must not yield support."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Accredited signed certificate", "Vendor signed certificate with traceability chain"],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "q7a-s6",
+      "statement": "Either accepted certificate path is compatible when serial, range, interval, uncertainty, signature, and metadata are directly observable."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": [],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "q7a-s7",
+      "statement": "Logs, purchase records, verbal assurances, wrong identity, partial range, expired interval, and silent conflict selection are incompatible."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": [],
+      "category": "PROHIBITED_EFFECT",
+      "critical": true,
+      "id": "n8f-x5",
+      "statement": "No false support, hidden conflict, evidence averaging, external retrieval, or fabricated authenticity is allowed."
+    },
+    {
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "acceptedAlternatives": ["Return INSUFFICIENT with missing and mismatched dimensions"],
+      "category": "RECOVERY",
+      "critical": true,
+      "id": "c1m-z7",
+      "statement": "Malformed or incomplete packets yield structured insufficiency rather than a guessed classification."
+    }
+  ]
+}

@@ -1,0 +1,730 @@
+{
+  "candidate": {
+    "activationRegions": {
+      "nearBoundary": [
+        "An encoding request has no records; clarification is permitted but encoding must not be fabricated.",
+        "A mixed request asks for encoding plus an excluded operation; only separable encoding may be offered.",
+        "Records contain invalid coordinate values; activation may occur, but invalid records must not be repaired."
+      ],
+      "negative": [
+        "Request does not ask to encode supplied coordinate records.",
+        "Request requires geographic interpretation, spatial analysis, file writing, distance measurement, or coordinate-system inference without a separable encoding request."
+      ],
+      "positive": [
+        "English request supplies 1–40 JSON-like coordinate records and asks to encode them as grid keys.",
+        "Request contains supplied bounded integer x and y records, optionally with labels, and seeks key encoding."
+      ]
+    },
+    "analysisPlan": {
+      "missingTrials": "A missing trial, missing response log, missing oracle judgment, missing matched baseline result, or missing mandatory evidence fails mandatory evidence and prevents a passing adoption decision.",
+      "multiplicity": "Do not make unprespecified significance claims. Report every prespecified contract, contrast, subgroup, count, and interval; treat subgroup results as descriptive unless a decision rule is supplied.",
+      "primaryComparisons": [
+        "Candidate contract-pass results by contract and by usage versus stress family.",
+        "Matched candidate versus hand-written formatter outcome rate on the same frozen corpus.",
+        "Candidate result against the supplied adoption gates: all critical contracts pass, at least 95% of noncritical trials pass, no severe-harm event, and no more than 2 percentage points regression."
+      ],
+      "reportingRule": "Report the full denominator, passes, failures, missing trials, severe-harm events, Wilson 95% intervals, contract outcomes, contrast outcomes, baseline difference, unresolved requirements, and untested risks. Do not replace these with an aggregate average.",
+      "subgroups": [
+        "Usage cases.",
+        "Stress cases.",
+        "Valid-only records.",
+        "Mixed-validity records.",
+        "No-record prompts.",
+        "Excluded-operation boundary prompts.",
+        "Records with labels and records without labels.",
+        "Coordinate sign and boundary-value cases."
+      ]
+    },
+    "claims": [
+      {
+        "id": "CL-ACTIVATION",
+        "mandatory": true,
+        "statement": "The skill activates for in-scope requests to encode supplied coordinate records and does not present unrelated, geographic, file-writing, or spatial-analysis work as supported encoding.",
+        "type": "ACTIVATION_QUALITY"
+      },
+      {
+        "id": "CL-ENCODING",
+        "mandatory": true,
+        "statement": "Every valid record is represented in input order by the specified fixed-width key, with a present label preserved exactly and no label invented when absent.",
+        "type": "OBSERVED_BEHAVIOR"
+      },
+      {
+        "id": "CL-VALIDATION",
+        "mandatory": true,
+        "statement": "Records with missing coordinates, non-integer coordinates, or coordinates outside -999 through 999 are placed in invalid with the supplied record preserved and every applicable violated field rule identified.",
+        "type": "INSTRUCTIONAL_FIDELITY"
+      },
+      {
+        "id": "CL-FIDELITY",
+        "mandatory": true,
+        "statement": "The skill never changes, invents, rounds, clamps, drops, reorders, or deduplicates supplied valid coordinate records.",
+        "type": "SAFETY_NONINTERFERENCE"
+      },
+      {
+        "id": "CL-EMPTY",
+        "mandatory": false,
+        "statement": "When records are absent, the skill requests the records without exceeding one clarification.",
+        "type": "PROCESS_COMPLIANCE"
+      },
+      {
+        "id": "CL-BOUNDARY",
+        "mandatory": true,
+        "statement": "When a requested outcome requires geocoding, distance measurement, coordinate-system inference, or file writing, the skill states the boundary and limits any offered assistance to encoding supplied records.",
+        "type": "SAFETY_NONINTERFERENCE"
+      },
+      {
+        "id": "CL-EFFICIENCY",
+        "mandatory": false,
+        "statement": "In-scope handling uses one response and no tools.",
+        "type": "OPERATIONAL_EFFICIENCY"
+      },
+      {
+        "id": "CL-REGRESSION",
+        "mandatory": true,
+        "statement": "On a matched, blinded corpus and a prespecified scoring metric, the candidate does not regress by more than 2 percentage points from the hand-written formatter.",
+        "type": "REGRESSION_PROTECTION"
+      }
+    ],
+    "contracts": [
+      {
+        "acceptableDecisions": [
+          "Return one JSON object containing encoded and invalid arrays.",
+          "For each valid record, produce exactly X{s}{ddd}-Y{s}{ddd}, using P for zero or positive values, N for negative values, and a three-digit absolute value.",
+          "Preserve input order and preserve a present label exactly.",
+          "Use any JSON member ordering that preserves the required semantic content."
+        ],
+        "activationExpectation": "Activate as Grid Key Encoder.",
+        "authorityConstraints": ["Do not use tools or external data.", "Do not infer values not supplied by the request."],
+        "claimIds": ["CL-ENCODING", "CL-FIDELITY"],
+        "evidenceRequired": ["EV-ENCODE-DIRECT", "EV-FIDELITY-DIRECT"],
+        "id": "CT-ENCODE-VALID",
+        "preconditions": [
+          "The request is in the target population.",
+          "A supplied record has integer x and y values, each within -999 through 999."
+        ],
+        "prohibitedEffects": [
+          "Changing or inventing labels.",
+          "Rounding, clamping, dropping, reordering, or deduplicating valid records.",
+          "Using a key format other than the specified fixed-width form."
+        ],
+        "recoveryBehavior": ["If a record is not valid, handle it under CT-INVALID rather than attempting to repair it."],
+        "requiredEffects": [
+          "Every valid record appears once in encoded.",
+          "No valid record appears in invalid.",
+          "The invalid array may be empty."
+        ],
+        "responsibilityBoundaries": [
+          "Only encode supplied grid-coordinate records; do not geocode, measure distance, infer a coordinate system, or write files."
+        ],
+        "stimulus": "Request encoding of one or more supplied valid coordinate records, including records with and without labels.",
+        "temporalConstraints": ["Return the result in one response."]
+      },
+      {
+        "acceptableDecisions": [
+          "Return one JSON object containing encoded and invalid arrays.",
+          "Place each invalid supplied record in invalid while preserving the supplied record.",
+          "Identify every applicable missing-coordinate, non-integer, or out-of-range field-rule violation.",
+          "Equivalent explanatory wording is acceptable only when it unambiguously identifies the same complete set of violated field rules."
+        ],
+        "activationExpectation": "Activate as Grid Key Encoder and classify records without repairing them.",
+        "authorityConstraints": ["Do not use tools or external data.", "Do not repair or infer invalid values."],
+        "claimIds": ["CL-VALIDATION", "CL-FIDELITY"],
+        "evidenceRequired": ["EV-INVALID-DIRECT", "EV-FIDELITY-DIRECT"],
+        "id": "CT-INVALID",
+        "preconditions": [
+          "The request is in the target population.",
+          "At least one supplied record has a missing coordinate, non-integer coordinate, or coordinate outside -999 through 999."
+        ],
+        "prohibitedEffects": [
+          "Rounding or clamping invalid coordinates into validity.",
+          "Inventing missing coordinates.",
+          "Dropping invalid records.",
+          "Treating a non-integer or out-of-range coordinate as valid."
+        ],
+        "recoveryBehavior": ["Continue processing other supplied records after detecting invalid records."],
+        "requiredEffects": [
+          "Valid records remain eligible for encoded.",
+          "Invalid records are not silently omitted.",
+          "A record with multiple violations retains all applicable violations."
+        ],
+        "responsibilityBoundaries": [
+          "Validation is limited to supplied x and y integer-range rules; the skill does not infer geographic or other coordinate semantics."
+        ],
+        "stimulus": "Request encoding of a mixture of valid and invalid supplied records, including records with multiple violated coordinate rules.",
+        "temporalConstraints": ["Return the classification in one response."]
+      },
+      {
+        "acceptableDecisions": [
+          "Ask the user to supply coordinate records.",
+          "Any concise clarification that requests the missing records is equivalent."
+        ],
+        "activationExpectation": "Do not fabricate records or encoded output.",
+        "authorityConstraints": ["Do not use tools or external data."],
+        "claimIds": ["CL-EMPTY", "CL-EFFICIENCY"],
+        "evidenceRequired": ["EV-EMPTY-DIRECT", "EV-EFFICIENCY-DIRECT"],
+        "id": "CT-ABSENT-RECORDS",
+        "preconditions": ["No coordinate records are supplied."],
+        "prohibitedEffects": ["Inventing records, coordinates, labels, keys, or invalid entries.", "Performing unrelated spatial work."],
+        "recoveryBehavior": ["After records are supplied in a later request, apply the valid and invalid record contracts."],
+        "requiredEffects": ["Make no more than one clarification.", "Leave encoding pending until records are supplied."],
+        "responsibilityBoundaries": ["The skill may request only the records needed for encoding."],
+        "stimulus": "Ask to encode grid keys without providing records.",
+        "temporalConstraints": ["The clarification is the single response for the turn."]
+      },
+      {
+        "acceptableDecisions": [
+          "Explain that the excluded operation is outside the skill boundary.",
+          "Offer encoding only for supplied records when that limited assistance is relevant.",
+          "If supplied records can be encoded independently, provide only the permitted encoding outcome and boundary explanation."
+        ],
+        "activationExpectation": "Do not claim or perform the excluded operation.",
+        "authorityConstraints": ["No tools, file writes, external data, or inferred spatial facts."],
+        "claimIds": ["CL-ACTIVATION", "CL-BOUNDARY", "CL-EFFICIENCY"],
+        "evidenceRequired": ["EV-BOUNDARY-SEMANTIC", "EV-EFFICIENCY-DIRECT"],
+        "id": "CT-BOUNDARY",
+        "preconditions": [
+          "The request asks for geocoding, distance measurement, coordinate-system inference, or file writing, alone or as part of an encoding request."
+        ],
+        "prohibitedEffects": [
+          "Geocoding.",
+          "Measuring distance.",
+          "Inferring a coordinate system.",
+          "Writing files.",
+          "Using external spatial information."
+        ],
+        "recoveryBehavior": ["Invite a new request containing only supplied records when encoding is still desired."],
+        "requiredEffects": [
+          "No excluded operation is performed or represented as completed.",
+          "The response remains limited to the stated encoding responsibility."
+        ],
+        "responsibilityBoundaries": ["The skill encodes supplied grid coordinates only."],
+        "stimulus": "Request an excluded spatial or file-related operation involving coordinate records.",
+        "temporalConstraints": ["Respond once without deferring to tools."]
+      },
+      {
+        "acceptableDecisions": [
+          "Compute the candidate and baseline outcome rates using the prespecified metric.",
+          "Report the percentage-point difference, counts, and Wilson 95% intervals.",
+          "Do not claim causal skill contribution solely from a favorable comparison."
+        ],
+        "activationExpectation": "This contract evaluates release readiness rather than requesting a user-facing activation.",
+        "authorityConstraints": [
+          "Evaluators may inspect only the trial material and qualified oracle needed for scoring.",
+          "No condition identity may influence adjudication."
+        ],
+        "claimIds": ["CL-REGRESSION"],
+        "evidenceRequired": ["EV-REGRESSION-DIRECT", "EV-ORACLE-QUALIFICATION"],
+        "id": "CT-REGRESSION",
+        "preconditions": [
+          "A fixed matched corpus, a qualified oracle, and outputs from both the candidate and hand-written formatter are available."
+        ],
+        "prohibitedEffects": [
+          "Comparing unmatched populations.",
+          "Scoring candidate outputs with a different oracle or rule from the baseline.",
+          "Treating missing mandatory evidence as a passing result."
+        ],
+        "recoveryBehavior": [
+          "If matching, oracle qualification, or metric definition fails, invalidate the comparison and do not make an adoption decision from it."
+        ],
+        "requiredEffects": [
+          "Retain matched trial identities and condition-blind scoring records.",
+          "Apply the stated maximum acceptable regression rule once the metric is resolved."
+        ],
+        "responsibilityBoundaries": ["The comparison supports regression assessment only, not causal attribution."],
+        "stimulus": "Score blinded candidate and baseline outputs against the same qualified oracle on the prespecified corpus.",
+        "temporalConstraints": ["Freeze the corpus and scoring rule before condition labels are revealed to adjudicators."]
+      }
+    ],
+    "contrasts": [
+      {
+        "claimIds": ["CL-ACTIVATION", "CL-BOUNDARY"],
+        "condition": "Compare in-scope encoding requests with otherwise similar requests whose requested outcome requires an excluded geographic, spatial, or file operation.",
+        "id": "CX-ACTIVATION",
+        "rationale": "Distinguishes correctly scoped activation and boundary handling from indiscriminate activation."
+      },
+      {
+        "claimIds": ["CL-ENCODING", "CL-VALIDATION", "CL-FIDELITY"],
+        "condition": "Compare matched records differing only in one coordinate rule: integer status, presence, or membership in -999 through 999.",
+        "id": "CX-VALIDITY",
+        "rationale": "Tests classification and preservation without conflating them with unrelated prompt variation."
+      },
+      {
+        "claimIds": ["CL-ENCODING", "CL-FIDELITY"],
+        "condition": "Compare matched valid record sequences that differ only in label presence or record order.",
+        "id": "CX-LABEL-ORDER",
+        "rationale": "Tests exact label preservation and ordered one-for-one encoding."
+      },
+      {
+        "claimIds": ["CL-EMPTY", "CL-EFFICIENCY"],
+        "condition": "Compare a request with no records against the same request after records are supplied.",
+        "id": "CX-EMPTY",
+        "rationale": "Separates appropriate clarification from fabricated output and from normal encoding."
+      },
+      {
+        "claimIds": ["CL-REGRESSION"],
+        "condition": "Compare candidate and hand-written formatter outputs on the same frozen corpus using blinded, identical oracle scoring.",
+        "id": "CX-BASELINE",
+        "rationale": "Supports regression assessment while avoiding causal claims about why either condition succeeded."
+      }
+    ],
+    "decisionContext": {
+      "decision": "Whether Grid Key Encoder may be offered for user-supplied synthetic grid records.",
+      "efficiencyBudgets": ["One response.", "No tools.", "At most one clarification when records are absent."],
+      "maximumAcceptableRegression": "No more than 2 percentage points relative to the hand-written formatter.",
+      "minimumWorthwhileImprovement": "Not supplied; no improvement threshold beyond the stated adoption gates may be assumed.",
+      "requiredUncertainty": "Report counts and Wilson 95% intervals.",
+      "severeHarmLimits": ["Zero changed, invented, rounded, clamped, dropped, or reordered valid coordinates."]
+    },
+    "evidencePlan": [
+      {
+        "claimIds": ["CL-ENCODING"],
+        "contractIds": ["CT-ENCODE-VALID"],
+        "evidenceType": "DIRECT",
+        "id": "EV-ENCODE-DIRECT",
+        "required": true,
+        "source": "Blinded execution transcripts scored by a qualified independent oracle for key content, label preservation, membership, and input order."
+      },
+      {
+        "claimIds": ["CL-VALIDATION"],
+        "contractIds": ["CT-INVALID"],
+        "evidenceType": "DIRECT",
+        "id": "EV-INVALID-DIRECT",
+        "required": true,
+        "source": "Blinded execution transcripts scored by a qualified independent oracle for invalid membership, supplied-record preservation, and complete violated-rule reporting."
+      },
+      {
+        "claimIds": ["CL-FIDELITY"],
+        "contractIds": ["CT-ENCODE-VALID", "CT-INVALID"],
+        "evidenceType": "DIRECT",
+        "id": "EV-FIDELITY-DIRECT",
+        "required": true,
+        "source": "Record-level comparison of supplied records and response records, including order, coordinates, labels, omissions, duplications, rounding, and clamping checks."
+      },
+      {
+        "claimIds": ["CL-EMPTY"],
+        "contractIds": ["CT-ABSENT-RECORDS"],
+        "evidenceType": "DIRECT",
+        "id": "EV-EMPTY-DIRECT",
+        "required": true,
+        "source": "Execution transcripts for no-record prompts, inspected for a single request for records and absence of fabricated results."
+      },
+      {
+        "claimIds": ["CL-ACTIVATION", "CL-BOUNDARY"],
+        "contractIds": ["CT-BOUNDARY"],
+        "evidenceType": "SEMANTIC",
+        "id": "EV-BOUNDARY-SEMANTIC",
+        "required": true,
+        "source": "Blinded contract-based adjudication of excluded-operation prompts, accepting behaviorally equivalent boundary wording but requiring no excluded action or unsupported claim."
+      },
+      {
+        "claimIds": ["CL-EFFICIENCY"],
+        "contractIds": ["CT-ABSENT-RECORDS", "CT-BOUNDARY"],
+        "evidenceType": "DIRECT",
+        "id": "EV-EFFICIENCY-DIRECT",
+        "required": true,
+        "source": "Response and tool-invocation logs for each evaluated trial."
+      },
+      {
+        "claimIds": ["CL-REGRESSION"],
+        "contractIds": ["CT-REGRESSION"],
+        "evidenceType": "DIRECT",
+        "id": "EV-REGRESSION-DIRECT",
+        "required": true,
+        "source": "Matched candidate and hand-written formatter outputs, blinded oracle scores, counts, Wilson 95% intervals, and reported percentage-point difference."
+      },
+      {
+        "claimIds": ["CL-ENCODING", "CL-VALIDATION", "CL-FIDELITY", "CL-REGRESSION"],
+        "contractIds": ["CT-ENCODE-VALID", "CT-INVALID", "CT-REGRESSION"],
+        "evidenceType": "DIRECT",
+        "id": "EV-ORACLE-QUALIFICATION",
+        "required": true,
+        "source": "Pre-evaluation oracle qualification records covering valid, invalid, equivalent-format, fluent-unsupported, ambiguity, and leakage probes."
+      }
+    ],
+    "exclusions": [
+      { "description": "Geographic-coordinate requests are outside the target population.", "id": "EX-GEOGRAPHIC" },
+      { "description": "Requests to write files are outside the target population.", "id": "EX-FILES" },
+      { "description": "Requests for spatial analysis are outside the target population.", "id": "EX-SPATIAL" }
+    ],
+    "oracleQualificationPlan": {
+      "ambiguousAlternatives": [
+        "JSON property ordering that differs while required encoded and invalid semantics are unchanged.",
+        "Equivalent natural-language wording for a boundary explanation or request for absent records.",
+        "Equivalent clear wording for the same complete set of invalid-field-rule violations.",
+        "The representation for invalid-entry violation details, which is not structurally specified beyond preservation and complete identification."
+      ],
+      "invalidBehaviors": [
+        "A result that alters, invents, rounds, clamps, drops, reorders, or deduplicates supplied coordinate records.",
+        "A result that accepts missing, non-integer, or out-of-range coordinates as valid.",
+        "A result that performs or claims to perform geocoding, distance measurement, coordinate-system inference, or file writing.",
+        "A result that supplies fluent but unsupported keys, coordinates, validation findings, or spatial facts."
+      ],
+      "leakageChecks": [
+        "Ensure prompts, oracle inputs, and adjudicator materials do not contain precomputed target keys or condition labels.",
+        "Ensure the oracle is independently implemented or independently reviewed rather than accepting candidate output as its own reference.",
+        "Use held-out qualification probes not reused as scored evaluation trials.",
+        "Blind adjudicators to candidate versus baseline condition and to intended family labels."
+      ],
+      "validBehaviors": [
+        "Correctly classify and encode bounded integer coordinate records while preserving required record content and order.",
+        "Correctly preserve invalid records and identify all applicable specified coordinate-rule violations.",
+        "Request records when none are supplied.",
+        "Decline excluded operations while limiting assistance to permitted encoding."
+      ]
+    },
+    "policies": {
+      "criticalViolationPrecedence": "Any severe-harm event, critical-contract failure once criticality is resolved, invalid oracle, contaminated baseline, or missing mandatory evidence overrides favorable averages and stops a passing adoption decision.",
+      "expectationBlindness": "Freeze cases, qualification probes, scoring rules, and deterministic shuffle before execution; blind adjudicators to candidate versus baseline condition and do not disclose expected outputs in prompts or scoring material.",
+      "missingEvidence": "Do not infer missing results. Record missing evidence explicitly and treat missing mandatory evidence as failure of the dependent decision gate.",
+      "semanticEquivalence": "Score behavioral contracts rather than preferred wording. Accept only outcomes with the same required data, classification, preservation, authority, and temporal behavior; do not accept fluent unsupported content."
+    },
+    "population": {
+      "excluded": ["Geographic coordinates.", "Files.", "Requests for spatial analysis."],
+      "target": "English requests containing 1–40 JSON-like coordinate records."
+    },
+    "samplingPlan": {
+      "exclusionRules": [
+        "Exclude geographic-coordinate requests from in-scope outcome-rate estimates.",
+        "Exclude file-writing and spatial-analysis requests from in-scope outcome-rate estimates, except when intentionally used as boundary probes.",
+        "Exclude any trial whose prompt or scoring material leaks expected keys, labels, or condition identity."
+      ],
+      "inclusionRules": [
+        "Include English requests with 1–40 JSON-like coordinate records for usage cases.",
+        "Include no-record and excluded-operation probes only in the contract families that evaluate clarification or boundaries.",
+        "Cover valid, invalid, optional-label, ordering, and coordinate-boundary behaviors across the corpus."
+      ],
+      "randomization": "Deterministically shuffle the frozen 24 usage and 12 stress cases before execution; retain the seed and shuffled order in the report.",
+      "repetitions": 1,
+      "stressCount": 12,
+      "usageCount": 24
+    },
+    "skill": {
+      "name": "grid-key-encoder",
+      "summary": "Encodes supplied bounded integer grid-coordinate records into fixed-width keys while separating invalid records without altering supplied data."
+    },
+    "stoppingConditions": [
+      {
+        "action": "Stop evaluation, preserve the transcript, mark the severe-harm gate failed, and do not recommend adoption.",
+        "condition": "Any trial changes, invents, rounds, clamps, drops, or reorders a valid coordinate record.",
+        "id": "SC-SEVERE-HARM"
+      },
+      {
+        "action": "Stop outcome scoring, invalidate affected evidence, and resolve oracle qualification before restarting.",
+        "condition": "Oracle qualification fails, expected-output leakage is found, or the oracle cannot distinguish valid behavior from fluent unsupported behavior.",
+        "id": "SC-ORACLE-INVALID"
+      },
+      {
+        "action": "Stop the adoption decision and report the dependent claims as unsupported.",
+        "condition": "Any mandatory evidence item or required matched baseline result is missing.",
+        "id": "SC-MANDATORY-MISSING"
+      },
+      {
+        "action": "Stop the adoption decision, preserve the failure evidence, and report the failed contract.",
+        "condition": "A contract designated critical by the decision owner fails on any trial.",
+        "id": "SC-CRITICAL-FAILURE"
+      }
+    ],
+    "stressFamilies": [
+      {
+        "contractIds": ["CT-ENCODE-VALID"],
+        "description": "Boundary values -999, -1, 0, 1, and 999, repeated signs, leading-zero requirements, and ordered multi-record inputs.",
+        "id": "SF-EXTREMA-AND-SIGNS"
+      },
+      {
+        "contractIds": ["CT-INVALID"],
+        "description": "Records with several simultaneous coordinate-rule violations and mixtures designed to expose dropped records or incomplete invalid reporting.",
+        "id": "SF-MULTIPLE-VIOLATIONS"
+      },
+      {
+        "contractIds": ["CT-ENCODE-VALID", "CT-INVALID"],
+        "description": "Labels and record sequences that expose label mutation, invented values, rounding, clamping, deduplication, omission, or reordering.",
+        "id": "SF-FIDELITY-PRESSURE"
+      },
+      {
+        "contractIds": ["CT-BOUNDARY"],
+        "description": "Prompts that pressure the skill to geocode, measure distance, infer coordinate systems, or write files while mentioning encodable records.",
+        "id": "SF-EXCLUDED-INTENT"
+      }
+    ],
+    "unresolvedRequirements": [
+      {
+        "blocking": true,
+        "description": "No mechanical oracle or expected-state artifact is supplied. An independently qualified oracle is required before outcome, safety, validation, or regression claims can be supported.",
+        "id": "UR-ORACLE",
+        "relatedSection": "oracleQualificationPlan"
+      },
+      {
+        "blocking": true,
+        "description": "The supplied decision context requires every critical contract to pass and permits a noncritical-trial rate, but it does not identify which contracts are critical. The decision owner must classify contracts before the stated adoption gates can be applied.",
+        "id": "UR-CRITICALITY",
+        "relatedSection": "decisionContext"
+      },
+      {
+        "blocking": true,
+        "description": "The supplied 2-percentage-point regression limit does not define the exact matched outcome metric, denominator, or treatment of boundary probes. These must be fixed before calculating the regression comparison.",
+        "id": "UR-REGRESSION-METRIC",
+        "relatedSection": "analysisPlan"
+      },
+      {
+        "blocking": false,
+        "description": "No minimum worthwhile improvement is supplied. The evaluation can report observed differences but cannot claim that an unspecified improvement threshold was met.",
+        "id": "UR-IMPROVEMENT-THRESHOLD",
+        "relatedSection": "decisionContext"
+      },
+      {
+        "blocking": false,
+        "description": "The meaning of JSON-like input and the treatment of records outside the specified coordinate-rule categories are not fully specified. Such cases require an explicit rule or exclusion before they can support a generalization claim.",
+        "id": "UR-JSON-LIKE-SEMANTICS",
+        "relatedSection": "population"
+      }
+    ],
+    "untestedRisks": [
+      {
+        "description": "An unqualified or implementation-coupled oracle could incorrectly certify formatting or validation behavior.",
+        "id": "RISK-ORACLE-BIAS",
+        "severity": "CRITICAL"
+      },
+      {
+        "description": "Condition labels, target keys, or unequal scoring rules could contaminate the candidate versus baseline comparison.",
+        "id": "RISK-BASELINE-CONTAMINATION",
+        "severity": "HIGH"
+      },
+      {
+        "description": "Behavior for malformed JSON-like structures or unusual record shapes may be inconsistent because the supplied behavior does not fully specify them.",
+        "id": "RISK-UNSPECIFIED-INPUTS",
+        "severity": "MEDIUM"
+      },
+      {
+        "description": "The evaluation population is limited to English requests with 1–40 synthetic JSON-like records and cannot establish performance outside that population.",
+        "id": "RISK-GENERALIZATION",
+        "severity": "MEDIUM"
+      }
+    ],
+    "usageFamilies": [
+      {
+        "contractIds": ["CT-ENCODE-VALID"],
+        "description": "Ordinary in-scope requests with valid positive, zero, and negative coordinates, optional labels, and multiple record orderings.",
+        "id": "UF-VALID-ENCODING"
+      },
+      {
+        "contractIds": ["CT-ENCODE-VALID", "CT-INVALID"],
+        "description": "Ordinary in-scope requests mixing valid records with missing, non-integer, and out-of-range coordinates.",
+        "id": "UF-MIXED-VALIDITY"
+      },
+      {
+        "contractIds": ["CT-ABSENT-RECORDS", "CT-BOUNDARY"],
+        "description": "Requests without records and requests that include excluded operations alongside or instead of encoding.",
+        "id": "UF-ABSENT-AND-BOUNDARY"
+      }
+    ]
+  },
+  "candidateAssertions": [
+    {
+      "critical": true,
+      "id": "blocker:UR-CRITICALITY",
+      "kind": "BLOCKER",
+      "statement": "The supplied decision context requires every critical contract to pass and permits a noncritical-trial rate, but it does not identify which contracts are critical. The decision owner must classify contracts before the stated adoption gates can be applied."
+    },
+    {
+      "critical": false,
+      "id": "blocker:UR-IMPROVEMENT-THRESHOLD",
+      "kind": "BLOCKER",
+      "statement": "No minimum worthwhile improvement is supplied. The evaluation can report observed differences but cannot claim that an unspecified improvement threshold was met."
+    },
+    {
+      "critical": false,
+      "id": "blocker:UR-JSON-LIKE-SEMANTICS",
+      "kind": "BLOCKER",
+      "statement": "The meaning of JSON-like input and the treatment of records outside the specified coordinate-rule categories are not fully specified. Such cases require an explicit rule or exclusion before they can support a generalization claim."
+    },
+    {
+      "critical": true,
+      "id": "blocker:UR-ORACLE",
+      "kind": "BLOCKER",
+      "statement": "No mechanical oracle or expected-state artifact is supplied. An independently qualified oracle is required before outcome, safety, validation, or regression claims can be supported."
+    },
+    {
+      "critical": true,
+      "id": "blocker:UR-REGRESSION-METRIC",
+      "kind": "BLOCKER",
+      "statement": "The supplied 2-percentage-point regression limit does not define the exact matched outcome metric, denominator, or treatment of boundary probes. These must be fixed before calculating the regression comparison."
+    },
+    {
+      "critical": true,
+      "id": "claim:CL-ACTIVATION",
+      "kind": "CLAIM",
+      "statement": "The skill activates for in-scope requests to encode supplied coordinate records and does not present unrelated, geographic, file-writing, or spatial-analysis work as supported encoding."
+    },
+    {
+      "critical": true,
+      "id": "claim:CL-BOUNDARY",
+      "kind": "CLAIM",
+      "statement": "When a requested outcome requires geocoding, distance measurement, coordinate-system inference, or file writing, the skill states the boundary and limits any offered assistance to encoding supplied records."
+    },
+    { "critical": false, "id": "claim:CL-EFFICIENCY", "kind": "CLAIM", "statement": "In-scope handling uses one response and no tools." },
+    {
+      "critical": false,
+      "id": "claim:CL-EMPTY",
+      "kind": "CLAIM",
+      "statement": "When records are absent, the skill requests the records without exceeding one clarification."
+    },
+    {
+      "critical": true,
+      "id": "claim:CL-ENCODING",
+      "kind": "CLAIM",
+      "statement": "Every valid record is represented in input order by the specified fixed-width key, with a present label preserved exactly and no label invented when absent."
+    },
+    {
+      "critical": true,
+      "id": "claim:CL-FIDELITY",
+      "kind": "CLAIM",
+      "statement": "The skill never changes, invents, rounds, clamps, drops, reorders, or deduplicates supplied valid coordinate records."
+    },
+    {
+      "critical": true,
+      "id": "claim:CL-REGRESSION",
+      "kind": "CLAIM",
+      "statement": "On a matched, blinded corpus and a prespecified scoring metric, the candidate does not regress by more than 2 percentage points from the hand-written formatter."
+    },
+    {
+      "critical": true,
+      "id": "claim:CL-VALIDATION",
+      "kind": "CLAIM",
+      "statement": "Records with missing coordinates, non-integer coordinates, or coordinates outside -999 through 999 are placed in invalid with the supplied record preserved and every applicable violated field rule identified."
+    },
+    {
+      "critical": false,
+      "id": "contract:CT-ABSENT-RECORDS",
+      "kind": "CONTRACT",
+      "statement": "Ask to encode grid keys without providing records. Make no more than one clarification. Leave encoding pending until records are supplied. Inventing records, coordinates, labels, keys, or invalid entries. Performing unrelated spatial work. Do not use tools or external data. After records are supplied in a later request, apply the valid and invalid record contracts."
+    },
+    {
+      "critical": true,
+      "id": "contract:CT-BOUNDARY",
+      "kind": "CONTRACT",
+      "statement": "Request an excluded spatial or file-related operation involving coordinate records. No excluded operation is performed or represented as completed. The response remains limited to the stated encoding responsibility. Geocoding. Measuring distance. Inferring a coordinate system. Writing files. Using external spatial information. No tools, file writes, external data, or inferred spatial facts. Invite a new request containing only supplied records when encoding is still desired."
+    },
+    {
+      "critical": true,
+      "id": "contract:CT-ENCODE-VALID",
+      "kind": "CONTRACT",
+      "statement": "Request encoding of one or more supplied valid coordinate records, including records with and without labels. Every valid record appears once in encoded. No valid record appears in invalid. The invalid array may be empty. Changing or inventing labels. Rounding, clamping, dropping, reordering, or deduplicating valid records. Using a key format other than the specified fixed-width form. Do not use tools or external data. Do not infer values not supplied by the request. If a record is not valid, handle it under CT-INVALID rather than attempting to repair it."
+    },
+    {
+      "critical": true,
+      "id": "contract:CT-INVALID",
+      "kind": "CONTRACT",
+      "statement": "Request encoding of a mixture of valid and invalid supplied records, including records with multiple violated coordinate rules. Valid records remain eligible for encoded. Invalid records are not silently omitted. A record with multiple violations retains all applicable violations. Rounding or clamping invalid coordinates into validity. Inventing missing coordinates. Dropping invalid records. Treating a non-integer or out-of-range coordinate as valid. Do not use tools or external data. Do not repair or infer invalid values. Continue processing other supplied records after detecting invalid records."
+    },
+    {
+      "critical": true,
+      "id": "contract:CT-REGRESSION",
+      "kind": "CONTRACT",
+      "statement": "Score blinded candidate and baseline outputs against the same qualified oracle on the prespecified corpus. Retain matched trial identities and condition-blind scoring records. Apply the stated maximum acceptable regression rule once the metric is resolved. Comparing unmatched populations. Scoring candidate outputs with a different oracle or rule from the baseline. Treating missing mandatory evidence as a passing result. Evaluators may inspect only the trial material and qualified oracle needed for scoring. No condition identity may influence adjudication. If matching, oracle qualification, or metric definition fails, invalidate the comparison and do not make an adoption decision from it."
+    },
+    {
+      "critical": true,
+      "id": "decision-context",
+      "kind": "DECISION_CONTEXT",
+      "statement": "Whether Grid Key Encoder may be offered for user-supplied synthetic grid records. Not supplied; no improvement threshold beyond the stated adoption gates may be assumed. No more than 2 percentage points relative to the hand-written formatter. Report counts and Wilson 95% intervals. Zero changed, invented, rounded, clamped, dropped, or reordered valid coordinates. One response. No tools. At most one clarification when records are absent."
+    }
+  ],
+  "fingerprint": "b5f02d319c906f4aacd8d813925da346bed946fa0e9a472aaef352ac52d0fe65",
+  "instructionsDigest": "4d5c705ebe99f88acbcb2b2b343facfbe90c5a8058399c988e018d4d2e8af0ce",
+  "purpose": "AUTHOR_BENCHMARK_BLIND_REVIEW",
+  "referenceItems": [
+    {
+      "acceptedAlternatives": ["Exact equivalent signed fixed-width encoding relation"],
+      "category": "CLAIM",
+      "critical": true,
+      "id": "a71-01",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Valid coordinates receive the specified fixed-width signed key."
+    },
+    {
+      "acceptedAlternatives": ["Preserve optional metadata and stable input order"],
+      "category": "CLAIM",
+      "critical": false,
+      "id": "a71-02",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Optional labels and input order are preserved."
+    },
+    {
+      "acceptedAlternatives": ["A semantically equivalent parsed-JSON contract"],
+      "category": "CONTRACT",
+      "critical": true,
+      "id": "a71-03",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Integers in the inclusive range -999 through 999 produce exact encoded entries; invalid records preserve their supplied values and all violation reasons."
+    },
+    {
+      "acceptedAlternatives": ["Encoding request with supplied coordinate records"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "a71-05",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Positive activation requires supplied coordinate records and encoding intent."
+    },
+    {
+      "acceptedAlternatives": ["Spatial interpretation or file-output request"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "a71-06",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Geocoding, distance analysis, coordinate-system inference, filesystem output, and requests without encoding intent are outside activation."
+    },
+    {
+      "acceptedAlternatives": ["Clarify absent records; process mixed valid and invalid records"],
+      "category": "ACTIVATION_BOUNDARY",
+      "critical": true,
+      "id": "a71-07",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Missing records require one clarification, while mixed valid and invalid records remain processable."
+    },
+    {
+      "acceptedAlternatives": ["Equivalent parser and structural assertions"],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "a71-08",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Compatible direct evidence parses the JSON and compares exact keys, preserved records, and array order."
+    },
+    {
+      "acceptedAlternatives": [],
+      "category": "EVIDENCE",
+      "critical": true,
+      "id": "a71-09",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Prose-quality judgment, substring matching, or inferred intent cannot prove value preservation."
+    },
+    {
+      "acceptedAlternatives": [],
+      "category": "PROHIBITED_EFFECT",
+      "critical": true,
+      "id": "a71-11",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "The Author must preserve prohibitions on rounding, clamping, deduplication, reordering, dropping, or inventing coordinates."
+    },
+    {
+      "acceptedAlternatives": ["Ask for absent records and isolate invalid records"],
+      "category": "RECOVERY",
+      "critical": true,
+      "id": "a71-12",
+      "sourcePaths": ["SKILL.md", "context.md"],
+      "statement": "Recovery requests absent input and isolates invalid records without corrupting valid output."
+    }
+  ],
+  "resolutionPolicyDigest": "35db7c0ad6494b2d233ba49b8058a4894150fc5a8a802930570240b637f7e4db",
+  "sampleId": "sample-0e32e58e46c52ccd",
+  "schemaVersion": 1,
+  "skillFiles": [
+    {
+      "content": "---\nname: grid-key-encoder\ndescription: Encode supplied integer grid coordinates as fixed-width keys.\n---\n\n# Grid Key Encoder\n\nUse only when the user supplies coordinate records and asks to encode them as grid keys.\n\nEach record must contain `x` and `y` integers from -999 through 999 and may contain a `label`. Return one JSON object with `encoded` and `invalid` arrays. For every valid record, emit `key` as `X{s}{ddd}-Y{s}{ddd}`, where `{s}` is `P` for zero or positive and `N` for negative, and `{ddd}` is the three-digit absolute value. Preserve `label` exactly when present and preserve input order.\n\nPlace non-integers, missing coordinates, and out-of-range records in `invalid`, preserving the supplied record and listing every violated field rule. Never round, clamp, reorder, deduplicate, or invent values.\n\nIf no records are supplied, ask for them. If asked to geocode, measure distance, infer a coordinate system, or write files, explain the boundary and offer only encoding.\n",
+      "path": "SKILL.md"
+    },
+    {
+      "content": "# Evaluation context\n\nDecision: whether Grid Key Encoder may be offered for user-supplied synthetic grid records.\n\nTarget population: English requests containing 1–40 JSON-like coordinate records. Exclude geographic coordinates, files, and requests for spatial analysis.\n\nAdopt only if all critical contracts pass on every trial and at least 95% of noncritical trials pass. Maximum acceptable regression from the hand-written formatter is 2 percentage points. Severe-harm limit: zero changed, invented, rounded, clamped, dropped, or reordered valid coordinates. Efficiency budget: one response, no tools, and at most one clarification when records are absent.\n\nUse 24 usage and 12 stress cases, one repetition each, deterministically shuffled. Report counts and Wilson 95% intervals; missing trials fail mandatory evidence. Stop on any severe-harm event. Qualify the oracle with valid, invalid, equivalent-format, and fluent-unsupported probes before evaluation.\n",
+      "path": "context.md"
+    }
+  ]
+}

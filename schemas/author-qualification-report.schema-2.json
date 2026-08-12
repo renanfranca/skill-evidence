@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skill-evidence.local/schemas/author-qualification-report.schema-2.json",
+  "title": "AuthorQualificationReport schema-2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "purpose",
+    "campaignId",
+    "bundleFingerprint",
+    "collectionFingerprint",
+    "packetFingerprints",
+    "reviewerSubmissionFingerprints",
+    "samples",
+    "conditionResults",
+    "campaignResult",
+    "selectedCondition",
+    "selectionRationale",
+    "limitations"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "purpose": { "const": "AUTHOR_QUALIFICATION" },
+    "campaignId": { "$ref": "#/$defs/nonEmptyString" },
+    "bundleFingerprint": { "$ref": "#/$defs/digest" },
+    "collectionFingerprint": { "$ref": "#/$defs/digest" },
+    "packetFingerprints": { "type": "array", "items": { "$ref": "#/$defs/digest" } },
+    "reviewerSubmissionFingerprints": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "$ref": "#/$defs/digest" }
+    },
+    "samples": { "type": "array", "items": { "$ref": "#/$defs/sample" } },
+    "conditionResults": { "type": "array", "items": { "$ref": "#/$defs/conditionResult" } },
+    "campaignResult": { "enum": ["QUALIFIED", "NOT_QUALIFIED", "INSUFFICIENT", "INVALIDATED"] },
+    "selectedCondition": { "enum": ["LUNA_MAX", "TERRA_XHIGH", null] },
+    "selectionRationale": { "$ref": "#/$defs/nonEmptyString" },
+    "limitations": { "$ref": "#/$defs/stringArray" }
+  },
+  "$defs": {
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "stringArray": { "type": "array", "items": { "$ref": "#/$defs/nonEmptyString" } },
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sampleId", "caseId", "condition", "status", "elapsedMs", "tokenUsage", "error", "blueprint"],
+      "properties": {
+        "sampleId": { "$ref": "#/$defs/nonEmptyString" },
+        "caseId": { "$ref": "#/$defs/nonEmptyString" },
+        "condition": { "enum": ["LUNA_MAX", "TERRA_XHIGH"] },
+        "status": { "enum": ["COMPLETED", "ERROR", "NOT_RUN"] },
+        "elapsedMs": { "type": "number", "minimum": 0 },
+        "tokenUsage": { "type": ["object", "null"] },
+        "error": { "type": ["object", "null"] },
+        "blueprint": { "type": ["object", "null"] }
+      }
+    },
+    "conditionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["condition", "conditionFingerprint", "status", "criticalViolations", "limitations", "metrics"],
+      "properties": {
+        "condition": { "enum": ["LUNA_MAX", "TERRA_XHIGH"] },
+        "conditionFingerprint": { "$ref": "#/$defs/digest" },
+        "status": { "enum": ["QUALIFIED", "NOT_QUALIFIED", "INSUFFICIENT", "STALE"] },
+        "criticalViolations": { "type": "integer", "minimum": 0 },
+        "limitations": { "$ref": "#/$defs/stringArray" },
+        "metrics": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "activationCoverage",
+                "criticalMatched",
+                "criticalTotal",
+                "lifecycleMatched",
+                "lifecycleTotal",
+                "macroPrecision",
+                "macroRecall"
+              ],
+              "properties": {
+                "activationCoverage": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["positive", "negative", "nearBoundary", "total"],
+                  "properties": {
+                    "positive": { "type": "integer", "minimum": 0 },
+                    "negative": { "type": "integer", "minimum": 0 },
+                    "nearBoundary": { "type": "integer", "minimum": 0 },
+                    "total": { "type": "integer", "minimum": 0 }
+                  }
+                },
+                "criticalMatched": { "type": "integer", "minimum": 0 },
+                "criticalTotal": { "type": "integer", "minimum": 0 },
+                "lifecycleMatched": { "type": "integer", "minimum": 0 },
+                "lifecycleTotal": { "type": "integer", "minimum": 0 },
+                "macroPrecision": { "type": "number", "minimum": 0, "maximum": 1 },
+                "macroRecall": { "type": "number", "minimum": 0, "maximum": 1 }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

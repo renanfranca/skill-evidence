@@ -1,0 +1,1961 @@
+{
+  "fingerprint": "ddd499fee4837ed5476c1ba1493f3c21dc9ede4b863bdb6f79985492512e0549",
+  "judgments": [
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "blocker:UR-CRITICALITY",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "blocker:UR-IMPROVEMENT-THRESHOLD",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "blocker:UR-JSON-LIKE-SEMANTICS",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "blocker:UR-ORACLE",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "blocker:UR-REGRESSION-METRIC",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "claim:CL-ACTIVATION",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "claim:CL-BOUNDARY",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "claim:CL-EFFICIENCY",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "claim:CL-EMPTY",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "claim:CL-ENCODING",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "claim:CL-FIDELITY",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "claim:CL-REGRESSION",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "claim:CL-VALIDATION",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "contract:CT-ABSENT-RECORDS",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "contract:CT-BOUNDARY",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "contract:CT-ENCODE-VALID",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "contract:CT-INVALID",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "contract:CT-REGRESSION",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "decision-context",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "a71-01",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "a71-02",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "a71-03",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "a71-05",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "a71-06",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "a71-07",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "a71-08",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "a71-09",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "a71-11",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-0e32e58e46c52ccd",
+      "targetId": "a71-12",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "blocker:unresolved-confidentiality-decision-evidence",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "blocker:unresolved-journal-policy",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "blocker:unresolved-policy-dependent-oracles",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "claim:claim-approval-and-preview",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "claim:claim-approved-mapping",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "claim:claim-journal-recovery",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "claim:claim-path-content-safety",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "claim:claim-policy-gate",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "claim:claim-scope-activation",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "claim:claim-verification-and-efficiency",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "contract:contract-approved-rename",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "contract:contract-invalid-input-or-destination",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "contract:contract-journal-exposure",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "contract:contract-policy-gate",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "contract:contract-rename-failure-recovery",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "contract:contract-scope",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "decision-context",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "a1x-f8",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "c8t-s5",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "c8t-s6",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "d3v-a9",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "g2b-n7",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "l1h-x6",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "n4e-v9",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "p9s-k6",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "r7k-c2",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "u7p-z3",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-1edd8721cc9369c0",
+      "targetId": "y6q-p1",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "blocker:admission-decision-evidence",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "blocker:execution-environment",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A ausência de oráculos qualificados é observável, mas os arquivos não afirmam explicitamente que nenhum oráculo mecânico é fornecido.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "blocker:qualified-mechanical-oracles",
+      "targetType": "CANDIDATE",
+      "verdict": "REJECT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "blocker:trial-fixtures-and-expected-observations",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "claim:activation-scope",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "claim:authorization-gate",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "claim:bounded-write",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "claim:denial-robustness",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "claim:failure-recovery",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "claim:operational-bound",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "claim:preview-fidelity",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "claim:readback-reporting",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "contract:activate-preview",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "contract:authorized-publish",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "contract:contain-banner-scope",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "contract:deny-invalid-approval",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "contract:nonactivation-exclusions",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "contract:recover-publication-failure",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "contract:recover-readback-mismatch",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "decision-context",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "d8r-c3",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "e3t-s8",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "e3t-s9",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "g5p-n6",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "k1w-x9",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "r5j-z2",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "s1v-k2",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "u4c-a7",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "x2m-f5",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-2a6eb8de62227fe8",
+      "targetId": "z9a-p4",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["context.md"],
+      "rationale": "A baseline está ausente, mas o contexto prescreve 18 casos de uso e não exige exatamente 50 trials pareados.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "blocker:UR_BASELINE",
+      "targetType": "CANDIDATE",
+      "verdict": "REJECT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "blocker:UR_CRITICALITY",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "blocker:UR_FAULT_ACCESS",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "blocker:UR_INVOCATION",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "blocker:UR_KEY_MAPPING",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "blocker:UR_ORACLE",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "blocker:UR_RESOURCE_BOUNDARY",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "claim:CL_ACT",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "claim:CL_ATOMIC",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "claim:CL_DIGEST",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "claim:CL_EFFICIENCY",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "claim:CL_FAILURE",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "claim:CL_PATHS",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "claim:CL_SCOPE",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "claim:CL_SERIALIZATION",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "contract:CT_ACT",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "contract:CT_ATOMIC",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "contract:CT_DIGEST",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "contract:CT_EFFICIENCY",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "contract:CT_FAILURE",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "contract:CT_PATHS",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "contract:CT_PRESERVE",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "contract:CT_SCOPE",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "contract:CT_SEAL_VALIDATION",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "decision-context",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "c58-01",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "c58-02",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "c58-03",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "c58-05",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "c58-06",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "c58-07",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "c58-08",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "c58-09",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "c58-11",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-3ecac26c9e09d042",
+      "targetId": "c58-12",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "blocker:unresolved_authorized_apply_evidence",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "blocker:unresolved_delegation_matrix",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "blocker:unresolved_preview_oracle",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "blocker:unresolved_provider_oracle",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "claim:claim_activation",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "claim:claim_conditional_authorization",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "claim:claim_efficiency",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "claim:claim_exact_application",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "claim:claim_input_bounds",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "claim:claim_missing_matrix_gate",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "claim:claim_noninterference",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "claim:claim_preview",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "claim:claim_recovery",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "contract:contract_activation",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "contract:contract_authorized_apply",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "contract:contract_input_preview",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "contract:contract_matrix_absence",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "contract:contract_recovery",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "decision-context",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "a9q-k3",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "c7g-z8",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "e8k-v6",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "f2n-n9",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "h7x-c4",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "m1v-f2",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "p3c-a6",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "r4m-x1",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "t6b-p5",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "y1s-s4",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-5bd34530ee2a2e09",
+      "targetId": "y1s-s5",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "blocker:unresolved-conflict-classification-tie-rule",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "blocker:unresolved-frozen-cases-and-determinations",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "blocker:unresolved-noncritical-omission-definition",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "blocker:unresolved-oracle-qualification-criteria",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "blocker:unresolved-qualified-review-definition",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["context.md"],
+      "rationale": "O contexto fixa uma repetição e não estabelece estabilidade ou variância entre execuções como requisito bloqueante.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "blocker:unresolved-stability-evidence",
+      "targetType": "CANDIDATE",
+      "verdict": "REJECT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "claim:claim-activation",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "claim:claim-adoption-threshold",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "claim:claim-authority-boundary",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "claim:claim-classification",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "claim:claim-conflict-preservation",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "claim:claim-contradiction",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "claim:claim-direct-alternatives",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "claim:claim-efficiency",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "claim:claim-insufficiency",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "claim:claim-reporting",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "contract:contract-conflicting-evidence",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "contract:contract-contradicted",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "contract:contract-insufficient-mismatch",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "contract:contract-routing-and-boundaries",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "contract:contract-supported-accredited",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "contract:contract-supported-vendor-traceability",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "decision-context",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "c1m-z7",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "e5w-f4",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "g3v-p9",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "m6c-a2",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "n8f-x5",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "q7a-s6",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "q7a-s7",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "s2p-k1",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "x8d-n4",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-a13a83ff49bbc22d",
+      "targetId": "z1r-c8",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "blocker:authority-rule",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "blocker:criticality-definition",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "blocker:efficiency-measurement-method",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "blocker:fixture-manifest-format",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "blocker:qualified-comparator-oracle",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "claim:activation-gating",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "claim:authority-abstention",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "claim:conditional-comparison",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "claim:evidence-limits",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "claim:noninterference",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "claim:operational-budget",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "contract:authorized-manifest-comparison",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "contract:budget-observation",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "contract:missing-authority-rule",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "contract:qualified-request-activation",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "contract:safe-evidence-handling",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "decision-context",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "q05-01",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "q05-02",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "q05-03",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "q05-05",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "q05-06",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "q05-07",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "q05-08",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "q05-09",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "q05-10",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "q05-11",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-c2b5eefd407c034a",
+      "targetId": "q05-12",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "blocker:UR_BASELINE_PROTOCOL",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "blocker:UR_CRITICAL_CLASSIFICATION",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "blocker:UR_DUPLICATE_POLICY",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "claim:CL_ACTIVATION",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "claim:CL_AUTHORITY_AND_EFFICIENCY",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "claim:CL_DUPLICATE_SAFETY",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "claim:CL_INVALID_PRESERVATION",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "claim:CL_MISSING_RECORD_RECOVERY",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "claim:CL_NONCRITICAL_RATE",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "claim:CL_REGRESSION",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "claim:CL_VALID_SERIALIZATION",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "contract:C_ACTIVATE",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "contract:C_BASELINE_REGRESSION",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "contract:C_DUPLICATES",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "contract:C_INVALID_PRESERVE",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "contract:C_NO_RECORDS",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "contract:C_NONACTIVATION",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "contract:C_VALID_SERIALIZE",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "A afirmação é sustentada pelos requisitos e limites observáveis fornecidos.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "decision-context",
+      "targetType": "CANDIDATE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "v24-01",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate preserva o registro inválido, mas não exige que os motivos de violação permaneçam visíveis.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "v24-02",
+      "targetType": "REFERENCE",
+      "verdict": "REJECT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "v24-03",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "v24-05",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "v24-06",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "v24-07",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "v24-08",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "v24-09",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "v24-10",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "v24-11",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    },
+    {
+      "evidencePaths": ["SKILL.md", "context.md"],
+      "rationale": "O candidate cobre semanticamente o contrato observável indicado.",
+      "sampleId": "sample-cca3219a93ea3a9b",
+      "targetId": "v24-12",
+      "targetType": "REFERENCE",
+      "verdict": "ACCEPT"
+    }
+  ],
+  "packetFingerprints": [
+    "0d496c0da5c38785bb8ba3266d44300d29136f402a6b536e68ded26c14fef406",
+    "430204e1d0a3e476752d779843ca4656428f342d052b788e4578a53de0b28a28",
+    "6c9ea23f787c9922634e802e1ff250f15e6757478e752303479741c1c5552066",
+    "709c8d8a73021609d6f8a47b909c1d0287e5265cbfccdeb4f24d8f59b0bb1a9c",
+    "a276d37ab3f465c70280e64463c61cd21850c49ab28794c89e7faa9daf6bfda1",
+    "b5f02d319c906f4aacd8d813925da346bed946fa0e9a472aaef352ac52d0fe65",
+    "bae02705699b5c0c31b1882da4c3ca562a8d90358dea21c347d1c63b5978e155",
+    "cd579e5c153afda35e2bd1448372ee6bd127df4082c998707e1b6655688f8eed"
+  ],
+  "reviewerId": "reviewer-b",
+  "schemaVersion": 1
+}

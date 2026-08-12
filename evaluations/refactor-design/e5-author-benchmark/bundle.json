@@ -1,0 +1,951 @@
+{
+  "cases": [
+    {
+      "id": "auric-36",
+      "stratum": "AUTHORITY_WORKFLOW",
+      "expectedLifecycle": "BLOCKED",
+      "referenceItems": [
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Exact temporary grant after matrix-backed authority verification"],
+          "category": "CLAIM",
+          "critical": true,
+          "id": "p3c-a6",
+          "statement": "Applying a temporary grant requires authority established by the current delegation matrix."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Preview remains non-mutating without grant authority"],
+          "category": "CLAIM",
+          "critical": false,
+          "id": "h7x-c4",
+          "statement": "A complete preview may be shown without applying access."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Equivalent bounded preview, digest, matrix check, apply, read-back, and revoke protocol"],
+          "category": "CONTRACT",
+          "critical": true,
+          "id": "m1v-f2",
+          "statement": "The workflow validates duration, binds approval to the exact preview, verifies delegated authority, applies and reads back the grant, and revokes on partial or mismatched application."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Explicit temporary single-principal, single-project access request"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "a9q-k3",
+          "statement": "Positive activation requires an explicit temporary access request for one principal and one project."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Policy advice, permanent access, group administration, or revocation-only request"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "f2n-n9",
+          "statement": "Policy advice, permanent access, group administration, and standalone revocation are outside activation."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Complete fields plus seniority assertion permits preview only"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": false,
+          "id": "t6b-p5",
+          "statement": "Seniority, title, request authorship, or another project's delegation cannot authorize application."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Current delegation entry bound to project and requested role plus exact read-back"],
+          "category": "EVIDENCE",
+          "critical": true,
+          "id": "y1s-s4",
+          "statement": "Compatible authority evidence must come from the current delegation matrix and match project, role, and self-approval rules."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": [],
+          "category": "EVIDENCE",
+          "critical": true,
+          "id": "y1s-s5",
+          "statement": "Title, seniority, request authorship, historic approval, and another project's delegation are incompatible authority evidence."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Structured unresolved requirements for role mappings, cross-project delegation, and self-approval"],
+          "category": "BLOCKER",
+          "critical": true,
+          "id": "e8k-v6",
+          "statement": "The missing current delegation matrix is genuinely unavailable and blocks authority constraints and executable contracts."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": [],
+          "category": "PROHIBITED_EFFECT",
+          "critical": true,
+          "id": "r4m-x1",
+          "statement": "No inferred authority, permanent or broadened grant, cross-project grant, reused approval, group change, or fabricated matrix is allowed."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Revoke a returned identifier after partial or mismatched application"],
+          "category": "RECOVERY",
+          "critical": true,
+          "id": "c7g-z8",
+          "statement": "Any partial or mismatched grant is revoked and both application and revocation outcomes are reported."
+        }
+      ],
+      "skillPath": "skills/auric-36",
+      "snapshotFingerprint": "414216a8a94d70a91051491b0470cc96c161da113c316a76a7fad086c6007343"
+    },
+    {
+      "id": "cairn-58",
+      "stratum": "FILESYSTEM",
+      "expectedLifecycle": "READY",
+      "referenceItems": [
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Only requested in-scope keys change to recomputed lowercase SHA-256"],
+          "category": "CLAIM",
+          "critical": true,
+          "id": "c58-01",
+          "statement": "Only requested in-scope seals change to correct lowercase SHA-256 values."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Unicode code-point key ordering"],
+          "category": "CLAIM",
+          "critical": false,
+          "id": "c58-02",
+          "statement": "All catalog keys are deterministically sorted."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Equivalent atomic-replacement mechanism with direct evidence"],
+          "category": "CONTRACT",
+          "critical": true,
+          "id": "c58-03",
+          "statement": "Valid named regular files cause one atomic catalog replacement while unnamed entries and fixture bytes remain unchanged."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Explicit seal-refresh request naming fixtures/data paths"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "c58-05",
+          "statement": "Positive activation requires an explicit seal-refresh request with named paths under fixtures/data."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["General checksum, test, Git, or implicit maintenance request"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "c58-06",
+          "statement": "General checksums, test execution, Git actions, and implicit maintenance are outside activation."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Mixed eligible and ineligible inputs refuse before any write"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "c58-07",
+          "statement": "A mixed request containing any ineligible path must be refused before mutation."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Direct before/after bytes, write trace, recomputed hashes, and fault state"],
+          "category": "EVIDENCE",
+          "critical": true,
+          "id": "c58-08",
+          "statement": "Compatible evidence includes pre/post bytes, path-write logs, independent digest recomputation, temp-file absence, and exit status."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": [],
+          "category": "EVIDENCE",
+          "critical": true,
+          "id": "c58-09",
+          "statement": "Final JSON alone cannot prove atomicity, absence of other writes, or rollback behavior."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": [],
+          "category": "PROHIBITED_EFFECT",
+          "critical": true,
+          "id": "c58-11",
+          "statement": "No symlink following, fixture edits, unrelated seal changes, Git operations, or writes outside the catalog are allowed."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Every injected phase failure preserves original catalog bytes"],
+          "category": "RECOVERY",
+          "critical": true,
+          "id": "c58-12",
+          "statement": "Read, validation, hash, write, fsync, and rename failures preserve original bytes and clean the temporary sibling when possible."
+        }
+      ],
+      "skillPath": "skills/cairn-58",
+      "snapshotFingerprint": "c0e62f82a4ef59907b18c211ea106021991cc30a9c9e44ebe4818ae4f534f6a4"
+    },
+    {
+      "id": "flint-71",
+      "stratum": "AUTHORITY_WORKFLOW",
+      "expectedLifecycle": "READY",
+      "referenceItems": [
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Exact-preview, fresh, role-valid authorization"],
+          "category": "CLAIM",
+          "critical": true,
+          "id": "u4c-a7",
+          "statement": "Publication occurs only under approval bound to the exact preview, an allowed role, and a timestamp no more than 30 minutes old."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Requester may also approve only with separate role evidence"],
+          "category": "CLAIM",
+          "critical": false,
+          "id": "d8r-c3",
+          "statement": "Request authorship alone does not convey approval authority."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Equivalent preview-digest, authority, scoped-write, and read-back protocol"],
+          "category": "CONTRACT",
+          "critical": true,
+          "id": "x2m-f5",
+          "statement": "The workflow previews first, verifies digest, role, and age, writes only the named service, and reads back exact fields."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Explicit create or publish request containing all banner fields"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "s1v-k2",
+          "statement": "Positive activation requires explicit create or publish intent plus service, window, message, and audience."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Strategy, general incident messaging, or existing-banner editing"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "g5p-n6",
+          "statement": "Status strategy, general incident communication, and editing an existing banner are outside activation."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Emergency wording or self-asserted authority permits preview only"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": false,
+          "id": "z9a-p4",
+          "statement": "Emergency language, stale approval, digest mismatch, and unsupported authority must not produce publication."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["service-owner approval", "incident-commander approval"],
+          "category": "EVIDENCE",
+          "critical": true,
+          "id": "e3t-s8",
+          "statement": "Compatible evidence binds an allowed role to the exact preview and directly reads back the endpoint state."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": [],
+          "category": "EVIDENCE",
+          "critical": true,
+          "id": "e3t-s9",
+          "statement": "Requester assertion, prose job title, or a success code without read-back cannot prove authority or correct publication."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": [],
+          "category": "PROHIBITED_EFFECT",
+          "critical": true,
+          "id": "k1w-x9",
+          "statement": "No unauthorized or cross-service write, expanded audience or window, separate notification, or inferred authority is allowed."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Compensating delete after absent or mismatched read-back"],
+          "category": "RECOVERY",
+          "critical": true,
+          "id": "r5j-z2",
+          "statement": "Publication failure or read-back mismatch triggers deletion by returned identifier and reports both outcomes."
+        }
+      ],
+      "skillPath": "skills/flint-71",
+      "snapshotFingerprint": "265ec5b49a8fa87e3cf98e8058649845edcdcb3e7c09ca1c86488904d4d5eb50"
+    },
+    {
+      "id": "nacre-71",
+      "stratum": "TRANSFORMATION",
+      "expectedLifecycle": "READY",
+      "referenceItems": [
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Exact equivalent signed fixed-width encoding relation"],
+          "category": "CLAIM",
+          "critical": true,
+          "id": "a71-01",
+          "statement": "Valid coordinates receive the specified fixed-width signed key."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Preserve optional metadata and stable input order"],
+          "category": "CLAIM",
+          "critical": false,
+          "id": "a71-02",
+          "statement": "Optional labels and input order are preserved."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["A semantically equivalent parsed-JSON contract"],
+          "category": "CONTRACT",
+          "critical": true,
+          "id": "a71-03",
+          "statement": "Integers in the inclusive range -999 through 999 produce exact encoded entries; invalid records preserve their supplied values and all violation reasons."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Encoding request with supplied coordinate records"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "a71-05",
+          "statement": "Positive activation requires supplied coordinate records and encoding intent."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Spatial interpretation or file-output request"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "a71-06",
+          "statement": "Geocoding, distance analysis, coordinate-system inference, filesystem output, and requests without encoding intent are outside activation."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Clarify absent records; process mixed valid and invalid records"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "a71-07",
+          "statement": "Missing records require one clarification, while mixed valid and invalid records remain processable."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Equivalent parser and structural assertions"],
+          "category": "EVIDENCE",
+          "critical": true,
+          "id": "a71-08",
+          "statement": "Compatible direct evidence parses the JSON and compares exact keys, preserved records, and array order."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": [],
+          "category": "EVIDENCE",
+          "critical": true,
+          "id": "a71-09",
+          "statement": "Prose-quality judgment, substring matching, or inferred intent cannot prove value preservation."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": [],
+          "category": "PROHIBITED_EFFECT",
+          "critical": true,
+          "id": "a71-11",
+          "statement": "The Author must preserve prohibitions on rounding, clamping, deduplication, reordering, dropping, or inventing coordinates."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Ask for absent records and isolate invalid records"],
+          "category": "RECOVERY",
+          "critical": true,
+          "id": "a71-12",
+          "statement": "Recovery requests absent input and isolates invalid records without corrupting valid output."
+        }
+      ],
+      "skillPath": "skills/nacre-71",
+      "snapshotFingerprint": "56c6969fa7f50f879051c465554c02150bf5ec215ed31955e833d9f9772ba070"
+    },
+    {
+      "id": "opal-28",
+      "stratum": "EVIDENCE_ANALYSIS",
+      "expectedLifecycle": "READY",
+      "referenceItems": [
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Same serial, full range and interval, uncertainty within tolerance"],
+          "category": "CLAIM",
+          "critical": true,
+          "id": "m6c-a2",
+          "statement": "Support requires matching identity and scope plus measured uncertainty no greater than the claimed tolerance."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Explicitly enumerate mismatched dimensions"],
+          "category": "CLAIM",
+          "critical": false,
+          "id": "z1r-c8",
+          "statement": "Mismatch dimensions remain inspectable in insufficient results."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Equivalent three-way semantic classification"],
+          "category": "CONTRACT",
+          "critical": true,
+          "id": "e5w-f4",
+          "statement": "The result is SUPPORTED, CONTRADICTED, or INSUFFICIENT and preserves conflicting direct evidence."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Supplied claim, bounded packet, and explicit evidence question"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "s2p-k1",
+          "statement": "Positive activation requires a supplied calibration claim, evidence packet, and explicit support question."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Certification, retrieval, scheduling, or authenticity investigation"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "x8d-n4",
+          "statement": "Certification, external retrieval, scheduling, and authenticity investigation are outside activation."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["An unsigned summary activates analysis but remains insufficient"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": false,
+          "id": "g3v-p9",
+          "statement": "A claim accompanied only by an unsigned summary is a near-boundary input that must not yield support."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Accredited signed certificate", "Vendor signed certificate with traceability chain"],
+          "category": "EVIDENCE",
+          "critical": true,
+          "id": "q7a-s6",
+          "statement": "Either accepted certificate path is compatible when serial, range, interval, uncertainty, signature, and metadata are directly observable."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": [],
+          "category": "EVIDENCE",
+          "critical": true,
+          "id": "q7a-s7",
+          "statement": "Logs, purchase records, verbal assurances, wrong identity, partial range, expired interval, and silent conflict selection are incompatible."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": [],
+          "category": "PROHIBITED_EFFECT",
+          "critical": true,
+          "id": "n8f-x5",
+          "statement": "No false support, hidden conflict, evidence averaging, external retrieval, or fabricated authenticity is allowed."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Return INSUFFICIENT with missing and mismatched dimensions"],
+          "category": "RECOVERY",
+          "critical": true,
+          "id": "c1m-z7",
+          "statement": "Malformed or incomplete packets yield structured insufficiency rather than a guessed classification."
+        }
+      ],
+      "skillPath": "skills/opal-28",
+      "snapshotFingerprint": "1f35d064ff4dcab1614f1c98e5b310c7ed4b9f11a15c37ad1d13d0ab9d6d63cc"
+    },
+    {
+      "id": "quartz-05",
+      "stratum": "EVIDENCE_ANALYSIS",
+      "expectedLifecycle": "BLOCKED",
+      "referenceItems": [
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Membership, size, and digest equality against an authorized reference"],
+          "category": "CLAIM",
+          "critical": true,
+          "id": "q05-01",
+          "statement": "Completeness requires path, byte-count, and SHA-256 agreement with the authoritative manifest."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Keep duplicate inventory records visible as anomalies"],
+          "category": "CLAIM",
+          "critical": false,
+          "id": "q05-02",
+          "statement": "Duplicate inventory rows remain visible as anomalies."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Separate missing, unexpected, and mismatched classifications"],
+          "category": "CONTRACT",
+          "critical": true,
+          "id": "q05-03",
+          "statement": "Once authority is designated, the assessor classifies missing, unexpected, and mismatched entries separately."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Supplied archive inventory and explicit completeness intent"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "q05-05",
+          "statement": "Positive activation requires a supplied archive inventory and completeness-assessment intent."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Extraction, repair, legal retention, or filename-only listing"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "q05-06",
+          "statement": "Extraction, repair, legal retention, and filename-only listing are outside activation."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["One or both competing manifests without an authority rule"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "q05-07",
+          "statement": "The presence of one or both competing manifests without an authority rule is the unresolved boundary."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Parsed authorized manifest plus direct inventory equality checks"],
+          "category": "EVIDENCE",
+          "critical": true,
+          "id": "q05-08",
+          "statement": "Compatible evidence requires the designated manifest, supplied inventory fields, and direct comparisons."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": [],
+          "category": "EVIDENCE",
+          "critical": true,
+          "id": "q05-09",
+          "statement": "Successful extraction, total size, timestamps, filenames alone, or silent manifest selection are incompatible."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Structured unresolved requirement for manifest authority or composition"],
+          "category": "BLOCKER",
+          "critical": true,
+          "id": "q05-10",
+          "statement": "Manifest authority and any composition rule are genuinely unavailable, blocking the principal contract and oracle."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": [],
+          "category": "PROHIBITED_EFFECT",
+          "critical": true,
+          "id": "q05-11",
+          "statement": "No unsupported completeness conclusion, extraction, repair, traversal, or invented manifest membership is allowed."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Preserve packaging manifest, signed register, and explicit composition as unresolved alternatives"],
+          "category": "RECOVERY",
+          "critical": true,
+          "id": "q05-12",
+          "statement": "The result reports the authority requirement and preserves the inventory without choosing a source."
+        }
+      ],
+      "skillPath": "skills/quartz-05",
+      "snapshotFingerprint": "9864c9196110ef6790b1669660a93e9f07817de4230d6b9249d974860e63e54c"
+    },
+    {
+      "id": "umber-83",
+      "stratum": "FILESYSTEM",
+      "expectedLifecycle": "BLOCKED",
+      "referenceItems": [
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Approved mappings are reversible through an authorized journal"],
+          "category": "CLAIM",
+          "critical": true,
+          "id": "d3v-a9",
+          "statement": "An approved rename mapping can be reversed through a journal only when journal handling is authorized."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Source file bytes remain identical across rename and recovery"],
+          "category": "CLAIM",
+          "critical": false,
+          "id": "r7k-c2",
+          "statement": "Transcript file contents remain unchanged."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Equivalent preview-bound journal and reverse rollback protocol"],
+          "category": "CONTRACT",
+          "critical": true,
+          "id": "a1x-f8",
+          "statement": "The workflow validates local regular text files and safe destinations, obtains exact-plan approval, journals before mutation, verifies completion, and rolls completed renames back in reverse order on failure."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Explicit same-directory transcript rename request"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "p9s-k6",
+          "statement": "Positive activation requires an explicit same-directory transcript rename request."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Content editing, transcription, recursion, or cross-directory movement"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "g2b-n7",
+          "statement": "Transcription, content editing, recursive organization, and cross-directory moves are outside activation."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Collision or absent approval produces refusal or preview only"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": false,
+          "id": "y6q-p1",
+          "statement": "A destination collision or missing approval must never produce mutation."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Filesystem snapshots, ordered journal, injected failure, and byte hashes"],
+          "category": "EVIDENCE",
+          "critical": true,
+          "id": "c8t-s5",
+          "statement": "Compatible evidence directly observes filesystem states, journal ordering, injected mid-sequence failure, and file hashes."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": [],
+          "category": "EVIDENCE",
+          "critical": true,
+          "id": "c8t-s6",
+          "statement": "Exit status or prose claims without filesystem observation cannot establish mutation or rollback safety."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Structured unresolved requirements for journal contents, readers, and retention"],
+          "category": "BLOCKER",
+          "critical": true,
+          "id": "n4e-v9",
+          "statement": "Journal retention, filename exposure, and reader authority are genuinely unavailable and decision-critical."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": [],
+          "category": "PROHIBITED_EFFECT",
+          "critical": true,
+          "id": "l1h-x6",
+          "statement": "No overwrite, path escape, symlink following, content rewrite, unapproved rename, or invented journal policy is allowed."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Reverse every completed rename and preserve evidence of incomplete recovery"],
+          "category": "RECOVERY",
+          "critical": true,
+          "id": "u7p-z3",
+          "statement": "On failure, completed renames are reversed; an incomplete recovery retains the journal and reports each file state, subject to the unresolved policy."
+        }
+      ],
+      "skillPath": "skills/umber-83",
+      "snapshotFingerprint": "ebc98a569fb46fce9dd72346845654d7e245bf630c20b584666ce68b56de74b3"
+    },
+    {
+      "id": "velum-24",
+      "stratum": "TRANSFORMATION",
+      "expectedLifecycle": "BLOCKED",
+      "referenceItems": [
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Deterministic serialization of unique valid symbols"],
+          "category": "CLAIM",
+          "critical": true,
+          "id": "v24-01",
+          "statement": "Distinct valid symbols are sorted in ASCII order and serialized deterministically."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Original invalid record plus all reasons"],
+          "category": "CLAIM",
+          "critical": false,
+          "id": "v24-02",
+          "statement": "Invalid records retain original values and violation reasons."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Equivalent exact-map and invalid-record contract"],
+          "category": "CONTRACT",
+          "critical": true,
+          "id": "v24-03",
+          "statement": "Unique uppercase symbols and boolean values yield the specified comma-separated map; invalid symbols and non-booleans remain visible."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Explicit compact-map request with supplied records"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "v24-05",
+          "statement": "Positive activation requires supplied records and compact-map serialization intent."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Deployment, configuration editing, or semantic flag management"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "v24-06",
+          "statement": "Real feature-flag changes, deployment, file editing, and semantic interpretation are outside activation."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Duplicate symbols expose the unresolved branch"],
+          "category": "ACTIVATION_BOUNDARY",
+          "critical": true,
+          "id": "v24-07",
+          "statement": "Repeated symbols form a near-boundary case whose required behavior is unresolved."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Parsed exact map plus preserved invalid records"],
+          "category": "EVIDENCE",
+          "critical": true,
+          "id": "v24-08",
+          "statement": "Compatible evidence directly compares the parsed map and original invalid records."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": [],
+          "category": "EVIDENCE",
+          "critical": true,
+          "id": "v24-09",
+          "statement": "An oracle that silently chooses rejection, first-record-wins, or last-record-wins is incompatible before policy selection."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["A structured unresolved requirement covering duplicate-symbol semantics"],
+          "category": "BLOCKER",
+          "critical": true,
+          "id": "v24-10",
+          "statement": "The unavailable duplicate-symbol policy blocks complete contracts, compatible oracle design, and decision evaluation."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": [],
+          "category": "PROHIBITED_EFFECT",
+          "critical": true,
+          "id": "v24-11",
+          "statement": "No case conversion, boolean coercion, invented meaning, or silent duplicate loss is allowed."
+        },
+        {
+          "sourcePaths": ["SKILL.md", "context.md"],
+          "acceptedAlternatives": ["Preserve rejection, first-wins, and last-wins as unresolved alternatives"],
+          "category": "RECOVERY",
+          "critical": true,
+          "id": "v24-12",
+          "statement": "Nonduplicate behavior remains characterizable, but confirmatory evaluation waits for owner selection without privileging a proposal."
+        }
+      ],
+      "skillPath": "skills/velum-24",
+      "snapshotFingerprint": "6cba24d6702e88a2d335cd302eb886560b6b425ed8378e01c7555d7ff139be8b"
+    }
+  ],
+  "purpose": "AUTHOR_QUALIFICATION",
+  "reviewerProbes": [
+    {
+      "id": "probe-1a7f",
+      "family": "KNOWN_VALID",
+      "observation": "The candidate says that every supplied value must be preserved exactly; the reference says values must not be rewritten, rounded, or inferred.",
+      "expected": "ACCEPT"
+    },
+    {
+      "id": "probe-2c4k",
+      "family": "KNOWN_VALID",
+      "observation": "The candidate represents an unavailable authority rule as a blocking unresolved requirement linked to the contract.",
+      "expected": "ACCEPT"
+    },
+    {
+      "id": "probe-3m8q",
+      "family": "KNOWN_VALID",
+      "observation": "The candidate requires direct before-and-after artifact evidence for a filesystem mutation and separately records recovery evidence.",
+      "expected": "ACCEPT"
+    },
+    {
+      "id": "probe-4r2v",
+      "family": "KNOWN_VALID",
+      "observation": "The candidate distinguishes ordinary usage from malformed-input and injected-failure stress families.",
+      "expected": "ACCEPT"
+    },
+    {
+      "id": "probe-5b9x",
+      "family": "KNOWN_INVALID",
+      "observation": "The candidate omits the critical prohibition against writing outside the authorized target because the positive path already tests successful output.",
+      "expected": "REJECT"
+    },
+    {
+      "id": "probe-6d3n",
+      "family": "KNOWN_INVALID",
+      "observation": "The candidate treats a model's confident prose assertion as direct evidence that a filesystem rollback occurred.",
+      "expected": "REJECT"
+    },
+    {
+      "id": "probe-7h6s",
+      "family": "KNOWN_INVALID",
+      "observation": "The candidate declares READY while a mandatory collision policy is explicitly unavailable and affects valid output semantics.",
+      "expected": "REJECT"
+    },
+    {
+      "id": "probe-8j1w",
+      "family": "KNOWN_INVALID",
+      "observation": "The candidate covers explicit activation requests but omits negative and near-boundary activation regions.",
+      "expected": "REJECT"
+    },
+    {
+      "id": "probe-9l5z",
+      "family": "ALTERNATIVE_VALID",
+      "observation": "The reference allows any atomic replacement primitive with the same observable guarantees; the candidate names rename-based replacement and verifies those guarantees.",
+      "expected": "ACCEPT"
+    },
+    {
+      "id": "probe-a2e8",
+      "family": "ALTERNATIVE_VALID",
+      "observation": "The reference accepts two certificate paths; the candidate describes the vendor certificate plus traceability path without copying reference wording.",
+      "expected": "ACCEPT"
+    },
+    {
+      "id": "probe-b4g7",
+      "family": "ALTERNATIVE_VALID",
+      "observation": "The candidate uses a field-indexed error object instead of a list while preserving every invalid field and original input record.",
+      "expected": "ACCEPT"
+    },
+    {
+      "id": "probe-c9p3",
+      "family": "ALTERNATIVE_VALID",
+      "observation": "The candidate describes compensating deletion after a mismatched read-back; the reference calls the same behavior rollback.",
+      "expected": "ACCEPT"
+    },
+    {
+      "id": "probe-d1t6",
+      "family": "UNSUPPORTED_FLUENCY",
+      "observation": "The candidate confidently chooses service-owner approval because that role is customary, although the skill supplies no delegation rule.",
+      "expected": "REJECT"
+    },
+    {
+      "id": "probe-e3u9",
+      "family": "UNSUPPORTED_FLUENCY",
+      "observation": "The candidate selects last-record-wins as the most user-friendly duplicate policy even though the standards owner has not selected one.",
+      "expected": "REJECT"
+    },
+    {
+      "id": "probe-f7y4",
+      "family": "UNSUPPORTED_FLUENCY",
+      "observation": "The candidate calls a policy document sufficient operating evidence because its language is detailed and authoritative.",
+      "expected": "REJECT"
+    },
+    {
+      "id": "probe-g8c2",
+      "family": "UNSUPPORTED_FLUENCY",
+      "observation": "The candidate suppresses an unresolved requirement because a high-capability model can infer a reasonable threshold from industry practice.",
+      "expected": "REJECT"
+    }
+  ],
+  "reviewProtocol": {
+    "instructionsDigest": "4d5c705ebe99f88acbcb2b2b343facfbe90c5a8058399c988e018d4d2e8af0ce",
+    "resolutionPolicyDigest": "35db7c0ad6494b2d233ba49b8058a4894150fc5a8a802930570240b637f7e4db"
+  },
+  "schemaVersion": 1,
+  "theoryCommit": "572e963ea6f1207ab53c533592cb70a8239e221c",
+  "schedule": [
+    {
+      "caseId": "auric-36",
+      "condition": "TERRA_XHIGH",
+      "order": 1,
+      "sampleId": "sample-5bd34530ee2a2e09"
+    },
+    {
+      "caseId": "auric-36",
+      "condition": "LUNA_MAX",
+      "order": 2,
+      "sampleId": "sample-8b91ec45d5ad4331"
+    },
+    {
+      "caseId": "cairn-58",
+      "condition": "TERRA_XHIGH",
+      "order": 3,
+      "sampleId": "sample-3ecac26c9e09d042"
+    },
+    {
+      "caseId": "cairn-58",
+      "condition": "LUNA_MAX",
+      "order": 4,
+      "sampleId": "sample-f3fdeb7414b42a20"
+    },
+    {
+      "caseId": "flint-71",
+      "condition": "TERRA_XHIGH",
+      "order": 5,
+      "sampleId": "sample-2a6eb8de62227fe8"
+    },
+    {
+      "caseId": "flint-71",
+      "condition": "LUNA_MAX",
+      "order": 6,
+      "sampleId": "sample-112a25176d809919"
+    },
+    {
+      "caseId": "nacre-71",
+      "condition": "LUNA_MAX",
+      "order": 7,
+      "sampleId": "sample-fc4eb750f7f2a5ce"
+    },
+    {
+      "caseId": "nacre-71",
+      "condition": "TERRA_XHIGH",
+      "order": 8,
+      "sampleId": "sample-0e32e58e46c52ccd"
+    },
+    {
+      "caseId": "opal-28",
+      "condition": "LUNA_MAX",
+      "order": 9,
+      "sampleId": "sample-82078d502b4f9d70"
+    },
+    {
+      "caseId": "opal-28",
+      "condition": "TERRA_XHIGH",
+      "order": 10,
+      "sampleId": "sample-a13a83ff49bbc22d"
+    },
+    {
+      "caseId": "quartz-05",
+      "condition": "LUNA_MAX",
+      "order": 11,
+      "sampleId": "sample-1241bc5c82ec086e"
+    },
+    {
+      "caseId": "quartz-05",
+      "condition": "TERRA_XHIGH",
+      "order": 12,
+      "sampleId": "sample-c2b5eefd407c034a"
+    },
+    {
+      "caseId": "umber-83",
+      "condition": "LUNA_MAX",
+      "order": 13,
+      "sampleId": "sample-43063a8050d4b609"
+    },
+    {
+      "caseId": "umber-83",
+      "condition": "TERRA_XHIGH",
+      "order": 14,
+      "sampleId": "sample-1edd8721cc9369c0"
+    },
+    {
+      "caseId": "velum-24",
+      "condition": "TERRA_XHIGH",
+      "order": 15,
+      "sampleId": "sample-cca3219a93ea3a9b"
+    },
+    {
+      "caseId": "velum-24",
+      "condition": "LUNA_MAX",
+      "order": 16,
+      "sampleId": "sample-c330c9161b6cf992"
+    }
+  ]
+}

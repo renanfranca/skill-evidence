@@ -1,0 +1,8 @@
+{
+  "agreement": 1,
+  "result": "QUALIFIED",
+  "reviewers": [
+    { "criticalAccuracy": 1, "noncriticalAccuracy": 1, "reviewerId": "reviewer-a" },
+    { "criticalAccuracy": 1, "noncriticalAccuracy": 1, "reviewerId": "reviewer-b" }
+  ]
+}

@@ -1,6 +1,8 @@
 import { Ajv, type ErrorObject } from 'ajv';
+import { Ajv2020 } from 'ajv/dist/2020.js';
 
 import blueprintSchema from '../../schemas/evaluation-blueprint.schema.json' with { type: 'json' };
+import blueprintSchema2 from '../../schemas/evaluation-blueprint.schema-2.json' with { type: 'json' };
 
 export type BlueprintLifecycle = 'BLOCKED' | 'DRAFT' | 'READY';
 
@@ -87,14 +89,19 @@ export interface BlueprintDiagnostic {
   path: string;
 }
 
+export interface ComposedBlueprintValidation {
+  diagnostics: BlueprintDiagnostic[];
+  valid: boolean;
+}
+
 export interface AuthorProvenance {
   campaignId: string;
   conditionFingerprint: string;
   instructionDigest: string;
   observedModel: string | null;
   protocolDigest: string;
-  reasoningEffort: 'xhigh';
-  requestedModel: 'gpt-5.6-terra';
+  reasoningEffort: 'max' | 'xhigh';
+  requestedModel: 'gpt-5.6-luna' | 'gpt-5.6-terra';
   schemaDigest: string;
   status: 'NOT_QUALIFIED';
   theoryDigest: string;
@@ -104,7 +111,7 @@ export type EvaluationBlueprint = Required<BlueprintCandidate> & {
   authorProvenance: AuthorProvenance;
   blueprintId: string;
   lifecycle: { decisionEligible: false; scope: 'DEVELOPMENT_AUTHORING'; state: BlueprintLifecycle };
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   snapshotFingerprint: string;
 };
 
@@ -121,9 +128,30 @@ export const evaluationBlueprintCandidateSchema = {
 };
 const ajv = new Ajv({ allErrors: true, strict: false });
 const validateStructure = ajv.compile(evaluationBlueprintCandidateSchema);
+const composedAjv = new Ajv2020({ allErrors: true, strict: false });
+composedAjv.addSchema(blueprintSchema);
+composedAjv.addSchema(
+  { ...blueprintSchema, $id: 'https://skill-evidence.local/schemas/evaluation-blueprint.schema.json' },
+  'https://skill-evidence.local/schemas/evaluation-blueprint.schema.json',
+);
+const validateComposedV1 = composedAjv.getSchema(blueprintSchema.$id)!;
+const validateComposedV2 = composedAjv.compile(blueprintSchema2);
 
 function structuralDiagnostics(errors: ErrorObject[] | null | undefined): BlueprintDiagnostic[] {
   return (errors ?? []).map((error) => ({ code: `SCHEMA_${error.keyword.toUpperCase()}`, path: error.instancePath || '/' }));
+}
+
+export function validateComposedEvaluationBlueprint(value: unknown): ComposedBlueprintValidation {
+  const schemaVersion =
+    value !== null && typeof value === 'object' && 'schemaVersion' in value
+      ? (value as { schemaVersion?: unknown }).schemaVersion
+      : undefined;
+  const validate = schemaVersion === 1 ? validateComposedV1 : schemaVersion === 2 ? validateComposedV2 : undefined;
+  if (validate === undefined) {
+    return { diagnostics: [{ code: 'SCHEMA_VERSION', path: '/schemaVersion' }], valid: false };
+  }
+  const valid = validate(value);
+  return { diagnostics: valid ? [] : structuralDiagnostics(validate.errors), valid };
 }
 
 function addDuplicateDiagnostics(candidate: BlueprintCandidate, diagnostics: BlueprintDiagnostic[]): void {
