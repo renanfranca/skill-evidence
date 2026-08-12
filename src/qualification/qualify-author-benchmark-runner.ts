@@ -77,6 +77,7 @@ export async function qualifyAuthorBenchmarkRunner(root = process.cwd()): Promis
           preflight: {
             codexCliVersion: () => Promise.resolve('0.147.0'),
             currentCommit: () => Promise.resolve(expectedCommit),
+            nodeVersion: () => '24.16.0',
             npmVersion: () => Promise.resolve('11.13.0'),
             packageVersion: (name) => Promise.resolve(name === 'promptfoo' ? '0.122.0' : '0.147.0'),
             pathExists: () => Promise.resolve(false),
