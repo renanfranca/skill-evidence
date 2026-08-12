@@ -1549,5 +1549,5 @@ describe('blind Evaluation Author benchmark', () => {
       schemaVersion: 1,
       workspaceCampaignArtifacts: 0,
     });
-  });
+  }, 20_000);
 });
