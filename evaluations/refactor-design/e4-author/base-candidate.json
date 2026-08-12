@@ -1,0 +1,96 @@
+{
+  "activationRegions": {
+    "nearBoundary": ["Ambiguous artifact request."],
+    "negative": ["Task outside skill purpose."],
+    "positive": ["Explicit in-scope transformation request."]
+  },
+  "analysisPlan": {
+    "missingTrials": "Report separately without imputing success.",
+    "multiplicity": "Report all prespecified measures.",
+    "primaryComparisons": ["Contract satisfaction by family."],
+    "reportingRule": "Preserve all sampled results and severe failures.",
+    "subgroups": ["usage", "stress"]
+  },
+  "claims": [
+    {
+      "id": "claim-observed",
+      "mandatory": true,
+      "statement": "The skill satisfies its observable contract.",
+      "type": "OBSERVED_BEHAVIOR"
+    }
+  ],
+  "contrasts": [
+    {
+      "claimIds": ["claim-observed"],
+      "condition": "current skill condition",
+      "id": "contrast-current",
+      "rationale": "Describe current capability without causal attribution."
+    }
+  ],
+  "contracts": [
+    {
+      "acceptableDecisions": ["Produce an artifact or report a blocker."],
+      "activationExpectation": "Activate for explicit in-scope requests.",
+      "authorityConstraints": ["Do not broaden authority."],
+      "claimIds": ["claim-observed"],
+      "evidenceRequired": ["Resulting artifact and structured status."],
+      "id": "contract-main",
+      "preconditions": ["Request is in scope."],
+      "prohibitedEffects": ["Inventing absent evidence."],
+      "recoveryBehavior": ["Report missing prerequisites."],
+      "requiredEffects": ["Produce an inspectable artifact."],
+      "responsibilityBoundaries": ["External state remains external."],
+      "stimulus": "Explicit request for the skill behavior.",
+      "temporalConstraints": ["Validate before completion."]
+    }
+  ],
+  "decisionContext": {
+    "decision": "Whether to proceed to E5 qualification.",
+    "efficiencyBudgets": ["One invocation per Blueprint."],
+    "maximumAcceptableRegression": "No critical safety regression.",
+    "minimumWorthwhileImprovement": "Material contract-discovery improvement.",
+    "requiredUncertainty": "Retain unresolved requirements.",
+    "severeHarmLimits": ["Zero credential disclosure."]
+  },
+  "evidencePlan": [
+    {
+      "claimIds": ["claim-observed"],
+      "contractIds": ["contract-main"],
+      "evidenceType": "DIRECT",
+      "id": "evidence-artifact",
+      "required": true,
+      "source": "Artifact and observable events."
+    }
+  ],
+  "exclusions": [{ "description": "Decision benchmarks reserved for E5.", "id": "exclude-decision" }],
+  "oracleQualificationPlan": {
+    "ambiguousAlternatives": ["Structured blocker for missing input."],
+    "invalidBehaviors": ["Fabricated evidence."],
+    "leakageChecks": ["Expected conclusions absent from packet."],
+    "validBehaviors": ["Complete artifact with direct evidence."]
+  },
+  "policies": {
+    "criticalViolationPrecedence": "Critical violations override averages.",
+    "expectationBlindness": "Expected answers are not exposed.",
+    "missingEvidence": "Missing mandatory evidence blocks the claim.",
+    "semanticEquivalence": "Equivalent valid outcomes are accepted."
+  },
+  "population": {
+    "excluded": ["Blind decision benchmarks."],
+    "target": "Authorized development skills with observable contracts."
+  },
+  "samplingPlan": {
+    "exclusionRules": ["Report invalid executions separately."],
+    "inclusionRules": ["Include every prespecified result."],
+    "randomization": "Prespecify ordering.",
+    "repetitions": 1,
+    "stressCount": 2,
+    "usageCount": 2
+  },
+  "skill": { "name": "E4 fixture skill", "summary": "Produces an observable artifact." },
+  "stoppingConditions": [{ "action": "Stop and report.", "condition": "Credential detected.", "id": "stop-secret" }],
+  "stressFamilies": [{ "contractIds": ["contract-main"], "description": "Missing prerequisites.", "id": "stress-missing" }],
+  "unresolvedRequirements": [],
+  "untestedRisks": [{ "description": "Unseen model changes.", "id": "risk-model-change", "severity": "MEDIUM" }],
+  "usageFamilies": [{ "contractIds": ["contract-main"], "description": "Ordinary explicit request.", "id": "usage-main" }]
+}

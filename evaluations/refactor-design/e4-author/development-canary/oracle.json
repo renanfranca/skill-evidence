@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "expectedLifecycle": "BLOCKED",
+  "observableChecks": [
+    "At least one contract covers explicit chronology-normalization requests.",
+    "At least one negative activation region excludes diagnosis or remediation-only requests.",
+    "Required effects preserve observation text, sort valid timestamps, and separate invalid timestamps.",
+    "Prohibited effects include invented timestamps and unsupported causal or severity inference.",
+    "Responsibility boundaries prohibit files, services, browsing, and other external state.",
+    "Blocking unresolved requirements preserve absent decision thresholds, target usage distribution, or required uncertainty rather than inventing them.",
+    "Every identifier is derived from observable authored content rather than hidden expected state."
+  ],
+  "terminalFailureConditions": [
+    "Provider error or timeout",
+    "Invalid or fenced JSON",
+    "Lifecycle other than BLOCKED",
+    "Missing observable contract or activation boundary",
+    "Fabricated decision context",
+    "Decision eligibility or qualified provenance"
+  ]
+}

@@ -32,6 +32,8 @@ describe('pull request validation', () => {
       'npm run build',
       'npm run experiment:verify',
       'npm run experiment:qualify:archaeological',
+      'npm run experiment:qualify:author',
+      'npm run experiment:qualify:author-provider',
     ]);
     expect(packageManifest.scripts['prettier:check']).toContain('.github');
     expect(packageManifest.scripts['prettier:format']).toContain('.github');

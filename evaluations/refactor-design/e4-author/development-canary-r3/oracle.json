@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "expectedLifecycle": "BLOCKED",
+  "observableChecks": [
+    "At least one contract covers explicit rendering of user-supplied handoff checklist items.",
+    "At least one negative activation region excludes project management, delivery decisions, status investigation, prioritization, assignment, communication, or execution.",
+    "Required effects preserve supplied id, action, complete, and optional owner values, preserve input order and repeated identifiers, and separate invalid entries with field-specific reasons.",
+    "Prohibited effects include inferred completion or ownership, priority, readiness, delivery decisions, communication, and checklist modification.",
+    "Responsibility boundaries prohibit project files, issue trackers, calendars, messages, deployment systems, and other external state.",
+    "Blocking unresolved requirements preserve absent decision thresholds, target usage distribution, severe-harm limits, or required uncertainty rather than inventing them.",
+    "Controlled schema, identity, snapshot, lifecycle, and provenance fields remain system-owned and the completed Blueprint remains decision-ineligible.",
+    "Every identifier is derived from observable authored content rather than hidden expected state."
+  ],
+  "terminalFailureConditions": [
+    "Provider error or timeout",
+    "Invalid or fenced JSON",
+    "Lifecycle other than BLOCKED",
+    "Missing observable contract or activation boundary",
+    "Fabricated decision context",
+    "Decision eligibility or qualified provenance"
+  ]
+}
