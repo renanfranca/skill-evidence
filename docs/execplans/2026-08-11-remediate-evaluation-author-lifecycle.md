@@ -5,7 +5,8 @@ This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mit
 - Date: 2026-08-11
 - Intended executor: `gpt-5.6-terra`, reasoning `xhigh`
 - Planning baseline: `feat/e5-blind-author-benchmark` at `2eb06211b449d3f149764948f0ae3e77f673099b`
-- Execution baseline: the clean commit that completes `2026-08-11-reconcile-e5-result-semantics.md`; record its exact SHA in `Progress` before changing code
+- Reconciled behavior baseline: `9f9bece6b2c52763798ee3c16863d6ccb81627f2`
+- Branch baseline: `d370aa83c8cfc99041ec19f8d9d22e4e21aae160`, which adds only the planned Luna/max operability handoff after reconciliation
 - Intended branch: `feat/e5-author-lifecycle-remediation`
 - Normative THEORY consulted in full: commit `572e963ea6f1207ab53c533592cb70a8239e221c`
 
@@ -44,6 +45,18 @@ E5 R1 also found a distinct operational failure: all eight Luna/max calls ended 
 Protocol v1 remains the exact default and reproduces its historical packet and fingerprints. Protocol v2 is selected only through an explicit internal input and has distinct instruction, protocol, packet, and condition fingerprints. Its instructions distinguish genuine missing authoring inputs from planned downstream work. A new zero-external-call qualifier demonstrates the distinction on fresh development material and reports only `SUPPORTED_FOR_DEVELOPMENT`. No existing Blueprint schema or E5 artifact changes. Completion records the stable protocol-v2 fingerprint as the input boundary for the separately authorized Luna/max operability investigation; it does not execute that investigation.
 
 Internal interface additions:
+
+The implementation landed in `d2ddfe5d63c97ed19561b125e1c946d77046f400`. For the stable `future-oracle-qualification` development snapshot and the explicit schema-2 conditions, protocol v2 has these canonical identities:
+
+- snapshot fingerprint: `670123a025db6c341ad68423748801ebdd48056674db5eef90a066c71cc98e8a`;
+- instruction digest: `4ffaae564ec8d1d776ef6a7861cf0e9345e6c8b84925f662495e23da92a49cc3`;
+- protocol digest: `69b8693cc115dd7ef26594aeac7aead97be5311422d93de5fbabecc60a3547a6`;
+- schema-2 digest: `ad2cf0bb8eb1af51e9e893799b5805c6061217839816a74405d972da30a779a5`;
+- packet fingerprint: `512ed5af332a464e4aec44f5d6fd8814f63df6e46aaeb9b901c94899bd2fdb06`;
+- Terra/xhigh condition fingerprint: `ef97a49d81b2f517f31da68199b1b78482d0f044aded8f6af9a975fb04e1015d`;
+- Luna/max condition fingerprint: `a376dd77967181385cd83ac7e24b281b4290e9788f5b40a58142a338c5e1039a`.
+
+The packet fingerprint is deliberately tied to that named reference snapshot. ExecPlan 18 must derive and freeze a new packet fingerprint for its novel canary rather than treating this development fixture as authorization.
 
 ```ts
 type AuthorProtocolVersion = 1 | 2;
@@ -159,12 +172,12 @@ At handoff, record the exact protocol-v2 instruction, protocol, schema, packet, 
 - [x] Choose protocol v2 with unchanged schemas as the minimum remediation hypothesis.
 - [x] Create this planned ExecPlan and its index entry.
 - [x] Preserve Luna/max operability as separate ExecPlan 18 work and record that E5 disabled multi-agent.
-- [ ] Complete the E5 result-semantics reconciliation and record its exact clean baseline.
-- [ ] Create `feat/e5-author-lifecycle-remediation` from that baseline.
-- [ ] Complete Milestone 1 through behavior-focused TDD.
-- [ ] Complete Milestone 2 with zero external calls.
-- [ ] Complete post-GREEN design review and documentation reconciliation.
-- [ ] Complete final deterministic validation and intentional commits.
+- [x] Complete the E5 result-semantics reconciliation and record exact baseline `9f9bece6b2c52763798ee3c16863d6ccb81627f2`.
+- [x] Create `feat/e5-author-lifecycle-remediation` from clean handoff commit `d370aa83c8cfc99041ec19f8d9d22e4e21aae160`.
+- [x] Complete Milestone 1 through behavior-focused TDD; v1 historical fingerprints remain exact and v2 is explicitly selectable.
+- [x] Complete Milestone 2 with eight local Promptfoo results, zero external calls, and `SUPPORTED_FOR_DEVELOPMENT`.
+- [x] Complete post-GREEN design review; no behavior-preserving structural change was justified beyond the explicit protocol definition already introduced.
+- [x] Complete final deterministic validation: audit zero, 145 tests, all deterministic qualifiers green, provider imports zero, and no real reservation or call.
 
 ## Decisions
 
@@ -187,6 +200,10 @@ At handoff, record the exact protocol-v2 instruction, protocol, schema, packet, 
 - Decision: keep Luna/max operability separate and hand off only after protocol v2 has a stable fingerprint.
   Rationale: lifecycle semantics and runtime completion are distinct claims, and protocol v2 changes the exact prompt condition whose operability matters for future use.
   Date/Author: 2026-08-12 / user and planning agent.
+
+- Decision: use one immutable v2 instruction definition while leaving the exported v1 instructions and default version untouched.
+  Rationale: packet assembly and digest construction select the same definition, while exact v1 regression assertions protect the historical identity.
+  Date/Author: 2026-08-12 / implementation agent.
 
 ## Risks and Mitigations
 
@@ -223,3 +240,5 @@ There is no deployment or normal-path promotion. Land the protocol and qualifier
 - Versioning instructions without rewriting schemas preserves historical evidence while allowing a falsifiable remediation hypothesis.
 - Offline packet and lifecycle qualification can establish implementation correctness, but only fresh model-backed evidence can establish Author improvement.
 - Official Luna subagent support does not explain E5 R1 because the Author adapter disabled multi-agent; timeout attribution remains open and requires separate observable evidence.
+- The fresh eight-case corpus supports the lifecycle plumbing hypothesis locally, but deterministic candidates cannot show that a model will follow the clarified rule.
+- The post-GREEN design review found no material temporal coupling, hidden request state, or framework leakage; extracting the compact protocol selection further would add indirection without reducing a demonstrated risk.
