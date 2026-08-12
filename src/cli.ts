@@ -83,11 +83,16 @@ function parseArguments(args: string[]): AuthorCommandArguments {
     const index = args.indexOf(name);
     return index === -1 ? undefined : args[index + 1];
   };
+  const protocolIndexes = args.flatMap((argument, index) => (argument === '--author-protocol' ? [index] : []));
+  const protocol = protocolIndexes.length === 1 ? args[protocolIndexes[0]! + 1] : undefined;
+  if (protocolIndexes.length > 1 || (protocolIndexes.length === 1 && (protocol === undefined || protocol.startsWith('--')))) {
+    throw new AuthorCommandError('AUTHOR_ARGUMENT_INVALID', '--author-protocol must be provided exactly once with value 1 or 2');
+  }
   return {
     approval: value('--approve-provider-invocations'),
     campaign: value('--campaign'),
     out: value('--out'),
-    protocol: value('--author-protocol'),
+    protocol,
     skill: value('--skill'),
   };
 }

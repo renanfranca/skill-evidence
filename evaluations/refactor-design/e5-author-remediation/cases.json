@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "cases": [
-    { "id": "future-oracle-qualification", "kind": "READY", "expected": "READY" },
-    { "id": "future-evidence-collection", "kind": "READY", "expected": "READY" },
-    { "id": "conditional-contract-complete", "kind": "READY", "expected": "READY" },
-    { "id": "future-dependency-nonblocking", "kind": "NONBLOCKING", "expected": "READY" },
-    { "id": "authority-policy-absent", "kind": "AUTHORITY_BLOCKER", "expected": "BLOCKED" },
-    { "id": "contract-behavior-absent", "kind": "BEHAVIOR_BLOCKER", "expected": "BLOCKED" },
-    { "id": "candidate-incomplete", "kind": "DRAFT", "expected": "DRAFT" },
-    { "id": "external-context-absent", "kind": "CONTEXT_BLOCKER", "expected": "BLOCKED" }
+    { "id": "future-oracle-qualification", "expected": "READY" },
+    { "id": "future-evidence-collection", "expected": "READY" },
+    { "id": "conditional-contract-complete", "expected": "READY" },
+    { "id": "future-dependency-nonblocking", "expected": "READY" },
+    { "id": "authority-policy-absent", "expected": "BLOCKED" },
+    { "id": "contract-behavior-absent", "expected": "BLOCKED" },
+    { "id": "candidate-incomplete", "expected": "DRAFT" },
+    { "id": "external-context-absent", "expected": "BLOCKED" }
   ]
 }

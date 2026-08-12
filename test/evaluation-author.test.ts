@@ -378,6 +378,7 @@ describe('Evaluation Author v0', () => {
 
     const v1 = prepareAuthorInvocation(snapshot, condition, 1);
     const v2 = prepareAuthorInvocation(snapshot, condition, 2);
+    const lunaV2 = prepareAuthorInvocation(snapshot, { model: 'gpt-5.6-luna', reasoningEffort: 'max' }, 2);
     const packet = JSON.parse(v2.request.prompt) as { instructions: string[]; protocol: { authorProtocolVersion: number } };
 
     expect(v2.protocolVersion).toBe(2);
@@ -387,6 +388,13 @@ describe('Evaluation Author v0', () => {
     expect(v2.digests.protocolDigest).not.toBe(v1.digests.protocolDigest);
     expect(v2.conditionFingerprint).not.toBe(v1.conditionFingerprint);
     expect(v2.packetFingerprint).not.toBe(v1.packetFingerprint);
+    expect(v2.digests).toMatchObject({
+      instructionDigest: '4ffaae564ec8d1d776ef6a7861cf0e9345e6c8b84925f662495e23da92a49cc3',
+      protocolDigest: '69b8693cc115dd7ef26594aeac7aead97be5311422d93de5fbabecc60a3547a6',
+      schemaDigest: 'ad2cf0bb8eb1af51e9e893799b5805c6061217839816a74405d972da30a779a5',
+    });
+    expect(v2.conditionFingerprint).toBe('ef97a49d81b2f517f31da68199b1b78482d0f044aded8f6af9a975fb04e1015d');
+    expect(lunaV2.conditionFingerprint).toBe('a376dd77967181385cd83ac7e24b281b4290e9788f5b40a58142a338c5e1039a');
     expect(packet.protocol.authorProtocolVersion).toBe(2);
     expect(packet.instructions.join('\n')).toContain('does not by itself make the Blueprint incomplete');
     expect(packet.instructions.join('\n')).toContain(
@@ -869,11 +877,14 @@ describe('Evaluation Author v0', () => {
     expect(report.limitations).toContain('Deterministic local providers do not qualify a model-backed Author condition.');
   });
 
-  it('qualifies the v2 lifecycle distinction on eight fresh local cases without decision evidence', async () => {
-    const report = await qualifyAuthorLifecycle(runAuthorLifecycleConformance);
+  it('qualifies the v2 packet, grounded fixtures, and lifecycle mechanics without decision evidence', async () => {
+    const evidence = await runAuthorLifecycleConformance();
+    const report = await qualifyAuthorLifecycle(() => Promise.resolve(evidence));
 
     expect(report).toMatchObject({
       externalProviderCalls: 0,
+      groundingFindings: 0,
+      invalidMutationsAccepted: 0,
       localProviderCalls: 8,
       packetLeakageFindings: 0,
       promptfooVersion: '0.122.0',
@@ -894,9 +905,22 @@ describe('Evaluation Author v0', () => {
     ]);
     expect(report.cases.every((entry) => /^[a-f0-9]{64}$/.test(entry.packetFingerprint))).toBe(true);
     expect(report.cases.every((entry) => /^[a-f0-9]{64}$/.test(entry.snapshotFingerprint))).toBe(true);
+    expect(report.cases.every((entry) => entry.groundingValid && entry.invalidMutationRejected)).toBe(true);
     expect(report.limitations).toContain(
       'This adaptable corpus is not blind decision evidence and does not qualify Author protocol v2 on a model.',
     );
+    expect(report.limitations).toContain(
+      'Grounding checks qualify curated fixture candidates and known-invalid mutations, not model interpretation of skill content.',
+    );
+
+    const ungrounded = await qualifyAuthorLifecycle(() =>
+      Promise.resolve({
+        ...evidence,
+        cases: evidence.cases.map((entry, index) => (index === 0 ? { ...entry, groundingValid: false } : entry)),
+        groundingFindings: 1,
+      }),
+    );
+    expect(ungrounded.result).toBe('INSUFFICIENT');
   });
 
   it('qualifies the real Promptfoo and Codex SDK boundary through a local executable with zero external calls', async () => {
@@ -933,32 +957,27 @@ describe('Evaluation Author v0', () => {
     ).rejects.toMatchObject({ code: 'AUTHOR_APPROVAL_REQUIRED' });
   });
 
-  it('rejects an invalid CLI protocol before authentication, reservation, or invocation', async () => {
+  it('rejects malformed CLI protocol selections before authentication, reservation, or invocation', async () => {
     let invocations = 0;
+    const common = ['--skill', '/unused-skill', '--out', '/unused-blueprint.json', '--campaign', 'invalid-cli-protocol'];
+    const malformed = [
+      [...common, '--approve-provider-invocations', '1', '--author-protocol'],
+      [...common, '--author-protocol', '--approve-provider-invocations', '1'],
+      [...common, '--author-protocol', '1', '--author-protocol', '2', '--approve-provider-invocations', '1'],
+      [...common, '--author-protocol', '3', '--approve-provider-invocations', '1'],
+    ];
 
-    await expect(
-      runAuthorCommand(
-        [
-          '--skill',
-          '/unused-skill',
-          '--out',
-          '/unused-blueprint.json',
-          '--campaign',
-          'invalid-cli-protocol',
-          '--author-protocol',
-          '3',
-          '--approve-provider-invocations',
-          '1',
-        ],
-        {
+    for (const args of malformed) {
+      await expect(
+        runAuthorCommand(args, {
           environment: {},
           invoke: () => {
             invocations += 1;
             return Promise.resolve({ observedModel: null, output: '{}' });
           },
-        },
-      ),
-    ).rejects.toMatchObject({ code: 'AUTHOR_ARGUMENT_INVALID' });
+        }),
+      ).rejects.toMatchObject({ code: 'AUTHOR_ARGUMENT_INVALID' });
+    }
     expect(invocations).toBe(0);
   });
 
