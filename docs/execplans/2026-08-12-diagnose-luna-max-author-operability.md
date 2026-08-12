@@ -5,7 +5,7 @@ This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mit
 - Date: 2026-08-12
 - Intended executor: `gpt-5.6-terra`, reasoning `xhigh`
 - Planning baseline: `feat/e5-blind-author-benchmark` at `9f9bece6b2c52763798ee3c16863d6ccb81627f2`
-- Protocol-v2 implementation baseline: `d2ddfe5d63c97ed19561b125e1c946d77046f400`; start execution only from the later clean handoff commit that closes `2026-08-11-remediate-evaluation-author-lifecycle.md`
+- Protocol-v2 implementation baseline: `d2ddfe52285773688c1c59d75a1ee64d8729ecad`; start execution only from the later clean handoff commit that closes `2026-08-11-remediate-evaluation-author-lifecycle.md`
 - Intended branch: `feat/e5-luna-max-operability-diagnosis`
 - Normative THEORY consulted in full: commit `572e963ea6f1207ab53c533592cb70a8239e221c`
 - Official OpenAI documentation consulted on 2026-08-12: [GPT-5.6 Luna](https://developers.openai.com/api/docs/models/gpt-5.6-luna), [GPT-5.6 model guidance](https://developers.openai.com/api/docs/guides/latest-model), [Responses API Multi-agent](https://developers.openai.com/api/docs/guides/responses-multi-agent), and [Codex subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)

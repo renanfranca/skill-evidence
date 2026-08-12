@@ -46,7 +46,7 @@ Protocol v1 remains the exact default and reproduces its historical packet and f
 
 Internal interface additions:
 
-The implementation landed in `d2ddfe5d63c97ed19561b125e1c946d77046f400`. For the stable `future-oracle-qualification` development snapshot and the explicit schema-2 conditions, protocol v2 has these canonical identities:
+The protocol-v2 implementation landed in `d2ddfe52285773688c1c59d75a1ee64d8729ecad`; the review correction that grounds the deterministic qualifier landed in `706c920`. For the stable `future-oracle-qualification` development snapshot and the explicit schema-2 conditions, protocol v2 has these canonical identities:
 
 - snapshot fingerprint: `670123a025db6c341ad68423748801ebdd48056674db5eef90a066c71cc98e8a`;
 - instruction digest: `4ffaae564ec8d1d776ef6a7861cf0e9345e6c8b84925f662495e23da92a49cc3`;
@@ -175,9 +175,10 @@ At handoff, record the exact protocol-v2 instruction, protocol, schema, packet, 
 - [x] Complete the E5 result-semantics reconciliation and record exact baseline `9f9bece6b2c52763798ee3c16863d6ccb81627f2`.
 - [x] Create `feat/e5-author-lifecycle-remediation` from clean handoff commit `d370aa83c8cfc99041ec19f8d9d22e4e21aae160`.
 - [x] Complete Milestone 1 through behavior-focused TDD; v1 historical fingerprints remain exact and v2 is explicitly selectable.
-- [x] Complete Milestone 2 with eight local Promptfoo results, zero external calls, and `SUPPORTED_FOR_DEVELOPMENT`.
+- [x] Requalify Milestone 2 with eight skill-specific candidates and mechanical grounding checks; the first implementation proved packet/lifecycle plumbing but was partially tautological.
 - [x] Complete post-GREEN design review; no behavior-preserving structural change was justified beyond the explicit protocol definition already introduced.
 - [x] Complete final deterministic validation: audit zero, 145 tests, all deterministic qualifiers green, provider imports zero, and no real reservation or call.
+- [x] Close the review corrections: malformed CLI values fail before side effects, v2 identities are exact regressions, the corrected qualifier reports eight grounded candidates and eight rejected mutations, and the full deterministic sequence remains green.
 
 ## Decisions
 
@@ -205,6 +206,10 @@ At handoff, record the exact protocol-v2 instruction, protocol, schema, packet, 
   Rationale: packet assembly and digest construction select the same definition, while exact v1 regression assertions protect the historical identity.
   Date/Author: 2026-08-12 / implementation agent.
 
+- Decision: require each lifecycle fixture to carry a skill-specific candidate and mechanical grounding oracle.
+  Rationale: deriving the candidate directly from an expected-state `kind` proved lifecycle plumbing but did not independently establish that the candidate represented its skill.
+  Date/Author: 2026-08-12 / user and review agent.
+
 ## Risks and Mitigations
 
 - Risk: v2 silently changes historical v1 identities. Mitigation: default v1, exact digest/fingerprint regression assertions, and frozen-path diff checks.
@@ -215,6 +220,9 @@ At handoff, record the exact protocol-v2 instruction, protocol, schema, packet, 
 - Risk: an internal CLI option is interpreted as authorization. Mitigation: preserve approval/reservation checks and document that every real invocation remains separately authorized.
 - Risk: E6 begins despite an unqualified Author. Mitigation: this plan produces only `SUPPORTED_FOR_DEVELOPMENT`; E6 and fresh blind qualification remain separate gates.
 - Risk: completing lifecycle remediation is mistaken for resolving Luna/max's eight timeouts. Mitigation: keep timeout diagnosis out of this plan, record the protocol-v2 handoff fingerprints, and retain ExecPlan 18 as a separate authorization boundary.
+- Risk: a deterministic qualifier is described as evidence that a model interpreted the v2 instructions. Mitigation: qualify only fixture grounding, packet construction, and lifecycle mechanics; retain model behavior as untested.
+- Risk: a malformed `--author-protocol` silently selects v1. Mitigation: distinguish an absent option from an option without exactly one valid value and reject before side effects.
+- Risk: instruction drift silently invalidates the ExecPlan 18 handoff. Mitigation: assert the exact v2 digests and condition fingerprints in the behavior suite.
 
 ## Validation Strategy
 
@@ -242,3 +250,8 @@ There is no deployment or normal-path promotion. Land the protocol and qualifier
 - Official Luna subagent support does not explain E5 R1 because the Author adapter disabled multi-agent; timeout attribution remains open and requires separate observable evidence.
 - The fresh eight-case corpus supports the lifecycle plumbing hypothesis locally, but deterministic candidates cannot show that a model will follow the clarified rule.
 - The post-GREEN design review found no material temporal coupling, hidden request state, or framework leakage; extracting the compact protocol selection further would add indirection without reducing a demonstrated risk.
+- Review found that the original eight-case qualifier selected expected-state kinds and constructed matching lifecycle inputs independently of each skill. Its evidence was therefore valid for packet and lifecycle plumbing but insufficient for semantic fixture grounding.
+- The initially recorded full implementation SHA was invalid despite sharing the correct seven-character prefix; provenance must be verified as an actual Git object, not reconstructed from an abbreviation.
+- The corrected qualifier checks every curated candidate against exact facts in that case's `SKILL.md`, rejects a prespecified unsupported mutation, and keeps candidate profiles outside the Author packet. This removes the expected-state shortcut but still does not test model interpretation.
+- The repeated post-GREEN design review found no justified extraction: candidate composition, grounding, and report classification form one local qualification policy, with no hidden invocation state or mutable cross-case state.
+- Final review-correction validation on 2026-08-12 passed with audit zero, 145 tests, Prettier, build, provider imports zero, all deterministic qualifiers green, and no real reservation, artifact, or external call.
