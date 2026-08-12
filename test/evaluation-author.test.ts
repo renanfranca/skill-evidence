@@ -842,7 +842,7 @@ describe('Evaluation Author v0', () => {
           timeoutOwner: 'PROMPTFOO_STEP',
         },
         id: 'observation-no-progress',
-        timeouts: { maxEvalTimeMs: 300, timeoutMs: 80 },
+        timeouts: { maxEvalTimeMs: 3_000, timeoutMs: 1_000 },
       },
       {
         expected: {
@@ -852,7 +852,7 @@ describe('Evaluation Author v0', () => {
           timeoutOwner: 'PROMPTFOO_STEP',
         },
         id: 'observation-progress-timeout',
-        timeouts: { maxEvalTimeMs: 300, timeoutMs: 80 },
+        timeouts: { maxEvalTimeMs: 3_000, timeoutMs: 1_000 },
       },
       {
         expected: {
@@ -862,7 +862,7 @@ describe('Evaluation Author v0', () => {
           timeoutOwner: 'UNKNOWN',
         },
         id: 'observation-no-progress',
-        timeouts: { maxEvalTimeMs: 80, timeoutMs: 300 },
+        timeouts: { maxEvalTimeMs: 1_000, timeoutMs: 3_000 },
       },
       {
         expected: {
@@ -873,7 +873,7 @@ describe('Evaluation Author v0', () => {
           timeoutOwner: 'CODEX_TURN',
         },
         id: 'observation-turn-timeout',
-        timeouts: { maxEvalTimeMs: 300, timeoutMs: 200 },
+        timeouts: { maxEvalTimeMs: 3_000, timeoutMs: 2_000 },
       },
       {
         expected: {
@@ -883,7 +883,7 @@ describe('Evaluation Author v0', () => {
           timeoutOwner: null,
         },
         id: 'observation-process-after-progress',
-        timeouts: { maxEvalTimeMs: 300, timeoutMs: 200 },
+        timeouts: { maxEvalTimeMs: 3_000, timeoutMs: 2_000 },
       },
     ] as const;
 
@@ -934,7 +934,7 @@ describe('Evaluation Author v0', () => {
       invoke: createPromptfooAuthorInvoker({
         codexHome: directory,
         observation: completedObservation,
-        timeouts: { maxEvalTimeMs: 300, timeoutMs: 200 },
+        timeouts: { maxEvalTimeMs: 3_000, timeoutMs: 2_000 },
         workingDirectory: directory,
       }),
       protocolVersion: 2,
@@ -1031,7 +1031,7 @@ describe('Evaluation Author v0', () => {
         progressObserved: null,
       },
     });
-  });
+  }, 20_000);
 
   it('normalizes available Promptfoo latency and token usage without inventing missing fields', async () => {
     const invoke = createPromptfooAuthorInvoker({
@@ -1188,7 +1188,7 @@ describe('Evaluation Author v0', () => {
       id: 'observation-evaluation-timeout-unresolved',
     });
     expect(JSON.stringify(first)).not.toMatch(/owner@example\.com|secret-token-value|private\/work/);
-  });
+  }, 30_000);
 
   it('refuses the internal Author command without approval for exactly one provider invocation', async () => {
     await expect(

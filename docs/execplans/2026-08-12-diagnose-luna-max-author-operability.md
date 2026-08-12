@@ -129,6 +129,8 @@ Run the repository's deterministic final validation without repeating any canary
 - [x] Receive authorization to execute Milestones 1 and 2 only.
 - [x] Record the protocol-v2 implementation baseline, reference identities, and clean ExecPlan 17 handoff `4000f06192b843775149a807c2e35fac05c83431`.
 - [x] Complete offline diagnosis and observability qualification on `feat/e5-luna-max-operability-diagnosis`: 12 deterministic local processes, zero external calls, and `SUPPORTED_FOR_DEVELOPMENT`.
+- [x] Stabilize the synthetic timing budget locally: 147 tests green, provider qualifier green, and provider-free checkpoint green.
+- [ ] Restore the public CI checkpoint after run `31648333083` exposed insufficient synthetic process-start margins and the default Vitest timeout.
 - [ ] Receive separate authorization to prepare a novel canary.
 - [ ] Freeze and preflight the one-call canary without invoking a provider.
 - [ ] Receive exact one-call authorization.
@@ -169,6 +171,10 @@ Run the repository's deterministic final validation without repeating any canary
   Rationale: provider-controlled event names are untrusted content; retaining arbitrary values would violate the type-only evidence boundary even when canonical results omitted them.
   Date/Author: 2026-08-12 / implementation agent.
 
+- Decision: give deterministic process scenarios one-second timeout margins and explicit integration-test budgets.
+  Rationale: the qualifier tests process-boundary behavior rather than scheduler speed; one second gives process startup a wide margin while retaining explicit ownership ordering, and per-test limits avoid weakening Vitest globally.
+  Date/Author: 2026-08-12 / implementation agent.
+
 ## Risks and Mitigations
 
 - Risk: E5 is effectively rerun under a longer timeout. Mitigation: use a novel development fixture, new campaign and fingerprints, and report the 300-second miss separately without reclassifying E5.
@@ -179,7 +185,7 @@ Run the repository's deterministic final validation without repeating any canary
 - Risk: enabling subagents changes the workload. Mitigation: retain `features.multi_agent: false` and assert it in deterministic tests and preflight.
 - Risk: investigation expands into adaptive model comparison. Mitigation: exclude Luna/xhigh, Terra, retries, repeated samples, and follow-up calls from this plan.
 - Risk: the diagnostic proxy perturbs the process boundary being measured. Mitigation: keep it opt-in, forward the original process contract unchanged, record the perturbation in provenance, and never use its evidence to rewrite E5.
-- Risk: a timing-sensitive qualifier becomes flaky. Mitigation: use wide deterministic margins and classify ownership from explicit terminal messages and event types, never from closeness to a deadline.
+- Risk: a timing-sensitive qualifier becomes flaky. Mitigation: use one-second synthetic timeout margins, explicit 20- and 30-second integration-test budgets, and classify ownership from terminal messages and event types rather than deadline proximity.
 - Risk: provider-controlled event metadata leaks content into the temporary journal. Mitigation: persist only an explicit allowlist of event types and map every other value to `unknown`; regression tests use credential-like and absolute-path payloads.
 - Risk: Promptfoo projects a timeout just before the proxy journal records its cancellation signal. Mitigation: after an explicit Promptfoo cancellation only, read the journal within a fixed 250-millisecond settling window; never infer acknowledgement when the signal is absent.
 
@@ -210,3 +216,4 @@ There is no deployment. Land offline observability changes separately from any f
 - The real pinned local boundary showed that Promptfoo's global evaluation deadline may surface as a provider abort before the max-duration result is projected. Timeout ownership must remain `UNKNOWN` in that case.
 - Post-GREEN review found and removed an artificial response representation and returned to TDD for two missing safety behaviors: allowlisting journal event types and preserving observation on `NO_TEXT` terminal results.
 - Full-suite validation exposed that timeout projection and proxy signal journaling are asynchronous. A bounded settling read is required to make directly observed cancellation deterministic without converting a missing signal into inferred evidence.
+- GitHub Actions run `31648333083` showed that an 80-millisecond synthetic deadline can expire before the proxy process starts under CI load, correctly leaving journal-backed fields `null`; it also showed that two complete local qualifications can exceed Vitest's default five-second test limit. These are test-budget defects, not evidence that the Author or future canary path failed.

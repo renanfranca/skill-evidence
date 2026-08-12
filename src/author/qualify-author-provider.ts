@@ -43,37 +43,37 @@ const observationScenarios = [
     expected: 'ERROR:PROMPTFOO_STEP:false:true:true:PROCESS_EXIT',
     fixture: 'observation-no-progress',
     id: 'observation-no-progress-timeout',
-    timeouts: { maxEvalTimeMs: 300, timeoutMs: 80 },
+    timeouts: { maxEvalTimeMs: 3_000, timeoutMs: 1_000 },
   },
   {
     expected: 'ERROR:PROMPTFOO_STEP:true:true:true:PROCESS_EXIT',
     fixture: 'observation-progress-timeout',
     id: 'observation-progress-timeout',
-    timeouts: { maxEvalTimeMs: 300, timeoutMs: 80 },
+    timeouts: { maxEvalTimeMs: 3_000, timeoutMs: 1_000 },
   },
   {
     expected: 'ERROR:UNKNOWN:false:false:false:PROCESS_EXIT',
     fixture: 'observation-no-progress',
     id: 'observation-evaluation-timeout-unresolved',
-    timeouts: { maxEvalTimeMs: 80, timeoutMs: 300 },
+    timeouts: { maxEvalTimeMs: 1_000, timeoutMs: 3_000 },
   },
   {
     expected: 'ERROR:CODEX_TURN:true:false:false:TURN_FAILED',
     fixture: 'observation-turn-timeout',
     id: 'observation-codex-turn-timeout',
-    timeouts: { maxEvalTimeMs: 300, timeoutMs: 200 },
+    timeouts: { maxEvalTimeMs: 3_000, timeoutMs: 2_000 },
   },
   {
     expected: 'ERROR:NONE:true:false:false:PROCESS_EXIT',
     fixture: 'observation-process-after-progress',
     id: 'observation-process-termination',
-    timeouts: { maxEvalTimeMs: 300, timeoutMs: 200 },
+    timeouts: { maxEvalTimeMs: 3_000, timeoutMs: 2_000 },
   },
   {
     expected: 'COMPLETED:NONE:true:false:false:TURN_COMPLETED',
     fixture: 'observation-complete',
     id: 'observation-completion',
-    timeouts: { maxEvalTimeMs: 300, timeoutMs: 200 },
+    timeouts: { maxEvalTimeMs: 3_000, timeoutMs: 2_000 },
   },
 ] as const;
 
