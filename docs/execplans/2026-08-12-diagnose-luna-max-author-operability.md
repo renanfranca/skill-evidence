@@ -130,7 +130,7 @@ Run the repository's deterministic final validation without repeating any canary
 - [x] Record the protocol-v2 implementation baseline, reference identities, and clean ExecPlan 17 handoff `4000f06192b843775149a807c2e35fac05c83431`.
 - [x] Complete offline diagnosis and observability qualification on `feat/e5-luna-max-operability-diagnosis`: 12 deterministic local processes, zero external calls, and `SUPPORTED_FOR_DEVELOPMENT`.
 - [x] Stabilize the synthetic timing budget locally: 147 tests green, provider qualifier green, and provider-free checkpoint green.
-- [ ] Restore the public CI checkpoint after run `31648333083` exposed insufficient synthetic process-start margins and the default Vitest timeout.
+- [x] Restore the public CI checkpoint: run `31649414070` completed all validation steps after the synthetic timing correction.
 - [ ] Receive separate authorization to prepare a novel canary.
 - [ ] Freeze and preflight the one-call canary without invoking a provider.
 - [ ] Receive exact one-call authorization.
