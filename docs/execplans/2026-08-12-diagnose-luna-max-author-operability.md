@@ -5,7 +5,7 @@ This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mit
 - Date: 2026-08-12
 - Intended executor: `gpt-5.6-terra`, reasoning `xhigh`
 - Planning baseline: `feat/e5-blind-author-benchmark` at `9f9bece6b2c52763798ee3c16863d6ccb81627f2`
-- Execution baseline: the clean commit that completes `2026-08-11-remediate-evaluation-author-lifecycle.md`; record its exact SHA and protocol-v2 fingerprints before implementation
+- Protocol-v2 implementation baseline: `d2ddfe52285773688c1c59d75a1ee64d8729ecad`; start execution only from the later clean handoff commit that closes `2026-08-11-remediate-evaluation-author-lifecycle.md`
 - Intended branch: `feat/e5-luna-max-operability-diagnosis`
 - Normative THEORY consulted in full: commit `572e963ea6f1207ab53c533592cb70a8239e221c`
 - Official OpenAI documentation consulted on 2026-08-12: [GPT-5.6 Luna](https://developers.openai.com/api/docs/models/gpt-5.6-luna), [GPT-5.6 model guidance](https://developers.openai.com/api/docs/guides/latest-model), [Responses API Multi-agent](https://developers.openai.com/api/docs/guides/responses-multi-agent), and [Codex subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
@@ -37,6 +37,8 @@ E5 R1 ran eight Luna/max samples once each, interleaved with eight successful Te
 The Author adapter in `src/author/promptfoo-author-invoker.ts` sets `cli_config.features.multi_agent` to `false`, disables streaming, and applies Promptfoo `timeoutMs: 300000`. Therefore E5 did not request subagents. Official OpenAI documentation currently states that multi-agent is available for all GPT-5.6 API models; the Codex subagent guide explicitly recommends `gpt-5.6-luna` for narrow high-volume agents and includes Luna custom-agent examples. The Luna model page lists `max` as supported, while model guidance warns that higher reasoning effort increases latency and recommends comparing `max` with lower efforts on representative workloads. These sources establish capability, not account-specific availability or E5 root cause.
 
 ExecPlan 17 changes the Author instructions and protocol fingerprint. Its stable protocol-v2 condition is the relevant future workload; this plan must not diagnose against a moving prompt or reuse the exposed E5 material.
+
+ExecPlan 17 recorded the following protocol-v2 reference identities from its fresh `future-oracle-qualification` development snapshot: instruction `4ffaae564ec8d1d776ef6a7861cf0e9345e6c8b84925f662495e23da92a49cc3`, protocol `69b8693cc115dd7ef26594aeac7aead97be5311422d93de5fbabecc60a3547a6`, schema-2 `ad2cf0bb8eb1af51e9e893799b5805c6061217839816a74405d972da30a779a5`, packet `512ed5af332a464e4aec44f5d6fd8814f63df6e46aaeb9b901c94899bd2fdb06`, and Luna/max condition `a376dd77967181385cd83ac7e24b281b4290e9788f5b40a58142a338c5e1039a`. The packet fingerprint is reference evidence only because the diagnostic canary must use a novel snapshot and derive its own packet identity before authorization.
 
 ## Desired End State
 
@@ -118,7 +120,7 @@ Run the repository's deterministic final validation without repeating any canary
 - [x] Rule out unsupported Luna-subagent capability as the direct explanation for E5 R1.
 - [x] Create this planned ExecPlan and its index entry.
 - [ ] Receive authorization to execute Milestones 1 and 2 only.
-- [ ] Record the completed ExecPlan 17 baseline and protocol-v2 identities.
+- [x] Record the protocol-v2 implementation baseline and reference identities from ExecPlan 17; the final clean handoff SHA remains to be recorded when execution starts.
 - [ ] Complete offline diagnosis and observability qualification.
 - [ ] Receive separate authorization to prepare a novel canary.
 - [ ] Freeze and preflight the one-call canary without invoking a provider.

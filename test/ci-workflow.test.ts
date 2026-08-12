@@ -34,6 +34,7 @@ describe('pull request validation', () => {
       'npm run experiment:qualify:archaeological',
       'npm run experiment:qualify:author',
       'npm run experiment:qualify:author-provider',
+      'npm run experiment:qualify:author-lifecycle',
       'npm run experiment:qualify:author-benchmark:offline -- --bundle evaluations/refactor-design/e5-author-benchmark',
       'npm run experiment:qualify:author-benchmark:runner',
     ]);

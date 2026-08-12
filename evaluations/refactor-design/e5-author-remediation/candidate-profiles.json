@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 1,
+  "profiles": [
+    {
+      "id": "future-oracle-qualification",
+      "skillName": "Parcel label verifier",
+      "summary": "Verifies declared destination and service-level fields on a generated parcel label.",
+      "claim": "The generated label preserves the declared destination and service level.",
+      "stimulus": "A generated parcel label plus its declared destination and service level.",
+      "precondition": "The future evaluation provides a generated label and its declared fields.",
+      "requiredEffect": "Report whether destination and service level both match the declarations.",
+      "prohibitedEffect": "Treat an unqualified parser result as decision evidence.",
+      "recovery": "Report a label as unparseable when the qualified parser cannot read it.",
+      "evidenceSource": "Parser results collected after the mechanical label parser passes its qualification probes.",
+      "oracleValid": "A parser qualified on known-valid, known-invalid, and ambiguous label layouts before scoring.",
+      "oracleInvalid": "Using an unqualified parser as if its verdict were authoritative.",
+      "unresolvedRequirements": [],
+      "omitEvidencePlan": false,
+      "grounding": {
+        "sourceRequired": ["declared destination and service level", "qualify its mechanical label parser before scoring"],
+        "required": ["destination and service level", "mechanical label parser", "before scoring"],
+        "forbidden": ["already-qualified parser is available"]
+      },
+      "invalidMutation": "already-qualified parser is available"
+    },
+    {
+      "id": "future-evidence-collection",
+      "skillName": "Parcel route formatter",
+      "summary": "Formats supplied routes as compact, inspectable delivery records.",
+      "claim": "The delivery record preserves every supplied route field.",
+      "stimulus": "A supplied ordinary or malformed route input.",
+      "precondition": "A route input is supplied by a future evaluation case.",
+      "requiredEffect": "Return a compact delivery record preserving the supplied route values.",
+      "prohibitedEffect": "Invent a missing route value.",
+      "recovery": "Report malformed route fields without manufacturing replacements.",
+      "evidenceSource": "Delivery records collected later from prespecified ordinary and malformed route inputs.",
+      "oracleValid": "Records preserve supplied route values or explicitly report malformed fields.",
+      "oracleInvalid": "A record fabricates a route value absent from the input.",
+      "unresolvedRequirements": [],
+      "omitEvidencePlan": false,
+      "grounding": {
+        "sourceRequired": ["compact, inspectable delivery record", "evidence consists of records produced later"],
+        "required": ["compact delivery record", "collected later", "ordinary and malformed route inputs"],
+        "forbidden": ["evidence has already been collected"]
+      },
+      "invalidMutation": "evidence has already been collected"
+    },
+    {
+      "id": "conditional-contract-complete",
+      "skillName": "Conditional parcel note",
+      "summary": "Creates a parcel note only when destination and service are both supplied.",
+      "claim": "The skill creates a note exactly when both required fields are present.",
+      "stimulus": "A request with destination, service, both, or neither.",
+      "precondition": "Destination and service must both be supplied to create a note.",
+      "requiredEffect": "Create the note when both fields exist; otherwise identify each missing field.",
+      "prohibitedEffect": "Create a note while destination or service is absent.",
+      "recovery": "Report the missing destination or service and do not create a note.",
+      "evidenceSource": "The returned note or missing-field report for each conditional input.",
+      "oracleValid": "A note with both supplied fields, or a precise missing-field report without a note.",
+      "oracleInvalid": "A note created with either destination or service absent.",
+      "unresolvedRequirements": [],
+      "omitEvidencePlan": false,
+      "grounding": {
+        "sourceRequired": ["when both destination and service are supplied", "if either is absent"],
+        "required": ["destination and service must both be supplied", "do not create a note", "missing destination or service"],
+        "forbidden": ["destination may be inferred"]
+      },
+      "invalidMutation": "destination may be inferred"
+    },
+    {
+      "id": "future-dependency-nonblocking",
+      "skillName": "Depot code normalizer",
+      "summary": "Normalizes a depot code using the mapping supplied with each evaluation case.",
+      "claim": "The normalized depot code follows the case-supplied mapping.",
+      "stimulus": "A depot code and the mapping supplied with its future evaluation case.",
+      "precondition": "The evaluation case supplies its prespecified depot mapping.",
+      "requiredEffect": "Return the mapped depot code without modifying the supplied mapping.",
+      "prohibitedEffect": "Guess a mapping that the case did not supply.",
+      "recovery": "Report the case as not executable when its mapping is absent.",
+      "evidenceSource": "Normalized codes and missing-mapping reports from future evaluation cases.",
+      "oracleValid": "The output equals the mapping supplied with that case.",
+      "oracleInvalid": "The output relies on an inferred or global depot mapping.",
+      "unresolvedRequirements": [
+        {
+          "blocking": false,
+          "description": "The future evaluation harness must supply its prespecified depot mapping.",
+          "id": "requirement-future-depot-map",
+          "relatedSection": "contracts"
+        }
+      ],
+      "omitEvidencePlan": false,
+      "grounding": {
+        "sourceRequired": ["mapping supplied with each future evaluation case", "not executable"],
+        "required": ["case supplies its prespecified depot mapping", "not executable when its mapping is absent", "blocking\":false"],
+        "forbidden": ["global depot mapping is known"]
+      },
+      "invalidMutation": "global depot mapping is known"
+    },
+    {
+      "id": "authority-policy-absent",
+      "skillName": "Dispatch requester",
+      "summary": "Prepares or sends a dispatch request, but does not define who may authorize sending.",
+      "claim": "The skill stays within the authority boundary for preparing versus sending a dispatch request.",
+      "stimulus": "A request to prepare or send a parcel dispatch.",
+      "precondition": "Sending requires an authority policy that the skill does not supply.",
+      "requiredEffect": "Prepare a dispatch request; send only when separately authorized by a defined policy.",
+      "prohibitedEffect": "Assume that preparation authority includes sending authority.",
+      "recovery": "Block sending and request the missing authority policy.",
+      "evidenceSource": "Observable preparation, send, or blocked-send status with authority evidence.",
+      "oracleValid": "Preparation succeeds while an unauthorized send is blocked.",
+      "oracleInvalid": "A dispatch is sent under invented authority.",
+      "unresolvedRequirements": [
+        {
+          "blocking": true,
+          "description": "The skill does not define who may authorize sending a dispatch request.",
+          "id": "requirement-dispatch-authority",
+          "relatedSection": "contracts"
+        }
+      ],
+      "omitEvidencePlan": false,
+      "grounding": {
+        "sourceRequired": ["does not state who may authorize sending"],
+        "required": ["who may authorize sending", "preparation authority includes sending authority", "blocking\":true"],
+        "forbidden": ["all requesters may authorize sending"]
+      },
+      "invalidMutation": "all requesters may authorize sending"
+    },
+    {
+      "id": "contract-behavior-absent",
+      "skillName": "Parcel exception helper",
+      "summary": "Handles parcel exceptions without specifying the required result, side effects, or fallback.",
+      "claim": "The helper satisfies a parcel-exception contract whose behavior remains unspecified.",
+      "stimulus": "A parcel exception requiring the undefined helper behavior.",
+      "precondition": "The expected exception behavior must be supplied before a defensible contract can be finalized.",
+      "requiredEffect": "Do not invent the absent result, side effects, or fallback.",
+      "prohibitedEffect": "Claim a specific exception resolution not stated by the skill.",
+      "recovery": "Request the missing exception behavior specification.",
+      "evidenceSource": "Future observable exception results after the behavior contract is supplied.",
+      "oracleValid": "The Blueprint exposes the absent exception behavior as blocking.",
+      "oracleInvalid": "The Blueprint fabricates a preferred exception resolution.",
+      "unresolvedRequirements": [
+        {
+          "blocking": true,
+          "description": "The required result, side effects, and fallback for a parcel exception are absent.",
+          "id": "requirement-exception-contract",
+          "relatedSection": "contracts"
+        }
+      ],
+      "omitEvidencePlan": false,
+      "grounding": {
+        "sourceRequired": ["does not define the result, side effects, or fallback"],
+        "required": ["result, side effects, and fallback", "do not invent", "blocking\":true"],
+        "forbidden": ["always refund the parcel"]
+      },
+      "invalidMutation": "always refund the parcel"
+    },
+    {
+      "id": "candidate-incomplete",
+      "skillName": "Delivery window renderer",
+      "summary": "Renders supplied start and end timestamps without changing either value.",
+      "claim": "The rendered delivery window preserves both supplied timestamps.",
+      "stimulus": "A delivery-window start and end timestamp.",
+      "precondition": "Both timestamps are supplied.",
+      "requiredEffect": "Render start and end without changing either value.",
+      "prohibitedEffect": "Change, reorder, or infer either timestamp.",
+      "recovery": "Report a missing timestamp rather than inventing one.",
+      "evidenceSource": "Rendered delivery windows compared directly with supplied timestamps.",
+      "oracleValid": "Both rendered timestamps exactly preserve the inputs.",
+      "oracleInvalid": "Either rendered timestamp differs from its input.",
+      "unresolvedRequirements": [],
+      "omitEvidencePlan": true,
+      "grounding": {
+        "sourceRequired": ["start and end timestamp", "without changing either value"],
+        "required": ["start and end", "without changing either value", "delivery window"],
+        "forbidden": ["timestamps may be rounded"]
+      },
+      "invalidMutation": "timestamps may be rounded"
+    },
+    {
+      "id": "external-context-absent",
+      "skillName": "Carrier selector",
+      "summary": "Selects an approved carrier although the external approval policy is absent.",
+      "claim": "A selected carrier complies with the unavailable approved-carrier policy.",
+      "stimulus": "A parcel requiring selection of an approved carrier.",
+      "precondition": "The external approved-carrier policy must be supplied to define a valid selection.",
+      "requiredEffect": "Expose the missing policy instead of selecting a carrier.",
+      "prohibitedEffect": "Invent an approved carrier or approval rule.",
+      "recovery": "Request the approved-carrier policy and make no selection.",
+      "evidenceSource": "Future carrier selections checked against the supplied approval policy.",
+      "oracleValid": "No carrier is selected until the approval policy is supplied.",
+      "oracleInvalid": "A carrier is declared approved from unstated external context.",
+      "unresolvedRequirements": [
+        {
+          "blocking": true,
+          "description": "The approved-carrier policy needed to define a valid selection is absent.",
+          "id": "requirement-carrier-policy",
+          "relatedSection": "decisionContext"
+        }
+      ],
+      "omitEvidencePlan": false,
+      "grounding": {
+        "sourceRequired": ["approved-carrier policy is external", "not supplied by the skill"],
+        "required": ["approved-carrier policy", "make no selection", "blocking\":true"],
+        "forbidden": ["Northstar Freight is approved"]
+      },
+      "invalidMutation": "Northstar Freight is approved"
+    }
+  ]
+}

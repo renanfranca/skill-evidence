@@ -61,6 +61,9 @@ jobs:
       - name: Qualify Evaluation Author provider boundary
         run: npm run experiment:qualify:author-provider
 
+      - name: Qualify Evaluation Author lifecycle remediation
+        run: npm run experiment:qualify:author-lifecycle
+
       - name: Qualify blind Author benchmark instrument offline
         run: npm run experiment:qualify:author-benchmark:offline -- --bundle evaluations/refactor-design/e5-author-benchmark
 

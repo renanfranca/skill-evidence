@@ -18,7 +18,7 @@
 | [ExecPlan 14 — Run E4 Author canary R3](2026-08-10-run-e4-author-canary-r3.md)                                      | Closed: `SUPPORTED_FOR_E5`              | Authorized E4 development canary |
 | [ExecPlan 15 — Qualify the Evaluation Author blindly — E5](2026-08-11-qualify-evaluation-author-blind-e5.md)        | Complete: `INSUFFICIENT`; none selected | Blind Author qualification plan  |
 | [ExecPlan 16 — Reconcile the E5 result semantics](2026-08-11-reconcile-e5-result-semantics.md)                      | Complete                                | E5 historical reconciliation     |
-| [ExecPlan 17 — Remediate the Evaluation Author lifecycle](2026-08-11-remediate-evaluation-author-lifecycle.md)      | Planned                                 | Post-E5 Author remediation       |
+| [ExecPlan 17 — Remediate the Evaluation Author lifecycle](2026-08-11-remediate-evaluation-author-lifecycle.md)      | Complete: review corrected              | Post-E5 Author remediation       |
 | [ExecPlan 18 — Diagnose Luna/max Author operability](2026-08-12-diagnose-luna-max-author-operability.md)            | Planned                                 | Luna/max operational diagnosis   |
 | [Historical record — Pre-live instrument hardening](2026-08-08-pre-live-instrument-hardening-record.md)             | Closed and blocked at `60c0240`         | Preserved hardening provenance   |
 

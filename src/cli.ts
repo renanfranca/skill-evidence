@@ -6,7 +6,12 @@ import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { constants } from 'node:fs';
 
-import { authorEvaluationBlueprint, prepareAuthorInvocation, type AuthorInvoker } from './author/evaluation-author.js';
+import {
+  authorEvaluationBlueprint,
+  prepareAuthorInvocation,
+  type AuthorInvoker,
+  type AuthorProtocolVersion,
+} from './author/evaluation-author.js';
 import { createPromptfooAuthorInvoker } from './author/promptfoo-author-invoker.js';
 import type { AuthorProviderDiagnostic } from './author/provider-diagnostic.js';
 import { reserveAuthorInvocation } from './author/reservation.js';
@@ -53,6 +58,7 @@ interface AuthorCommandArguments {
   approval: string | undefined;
   campaign: string | undefined;
   out: string | undefined;
+  protocol: string | undefined;
   skill: string | undefined;
 }
 
@@ -77,12 +83,28 @@ function parseArguments(args: string[]): AuthorCommandArguments {
     const index = args.indexOf(name);
     return index === -1 ? undefined : args[index + 1];
   };
+  const protocolIndexes = args.flatMap((argument, index) => (argument === '--author-protocol' ? [index] : []));
+  const protocol = protocolIndexes.length === 1 ? args[protocolIndexes[0]! + 1] : undefined;
+  if (protocolIndexes.length > 1 || (protocolIndexes.length === 1 && (protocol === undefined || protocol.startsWith('--')))) {
+    throw new AuthorCommandError('AUTHOR_ARGUMENT_INVALID', '--author-protocol must be provided exactly once with value 1 or 2');
+  }
   return {
     approval: value('--approve-provider-invocations'),
     campaign: value('--campaign'),
     out: value('--out'),
+    protocol,
     skill: value('--skill'),
   };
+}
+
+function parseAuthorProtocol(value: string | undefined): AuthorProtocolVersion {
+  if (value === undefined || value === '1') {
+    return 1;
+  }
+  if (value === '2') {
+    return 2;
+  }
+  throw new AuthorCommandError('AUTHOR_ARGUMENT_INVALID', '--author-protocol must be 1 or 2');
 }
 
 async function gitOutput(repositoryRoot: string, args: string[]): Promise<string> {
@@ -139,6 +161,7 @@ export async function runAuthorCommand(args: string[], dependencies: AuthorComma
   if (parsed.campaign === undefined || parsed.out === undefined || parsed.skill === undefined) {
     throw new AuthorCommandError('AUTHOR_ARGUMENT_INVALID', 'Author execution requires --skill, --out, and --campaign');
   }
+  const protocolVersion = parseAuthorProtocol(parsed.protocol);
   const repositoryRoot = dependencies.repositoryRoot ?? process.cwd();
   const environment = dependencies.environment ?? process.env;
   const codexHome = await assertCodexHome(environment);
@@ -167,7 +190,7 @@ export async function runAuthorCommand(args: string[], dependencies: AuthorComma
   if (version !== '0.147.0') {
     throw new AuthorCommandError('AUTHOR_VERSION_MISMATCH', 'the Author canary requires Codex CLI 0.147.0');
   }
-  const prepared = prepareAuthorInvocation(snapshot);
+  const prepared = prepareAuthorInvocation(snapshot, undefined, protocolVersion);
   const outputPath = resolve(parsed.out);
   const outputHandle = await claimBlueprintOutput(outputPath);
   const createWorkspace = dependencies.createWorkspace ?? defaultWorkspace;
@@ -186,7 +209,7 @@ export async function runAuthorCommand(args: string[], dependencies: AuthorComma
       },
     });
     const invoke = dependencies.invoke ?? createPromptfooAuthorInvoker({ codexHome, workingDirectory: workspace.path });
-    const run = await authorEvaluationBlueprint({ campaignId: parsed.campaign, invoke, snapshot });
+    const run = await authorEvaluationBlueprint({ campaignId: parsed.campaign, invoke, protocolVersion, snapshot });
     if (run.status === 'ERROR') {
       throw new AuthorCommandError(
         'AUTHOR_RUN_ERROR',

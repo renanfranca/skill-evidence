@@ -10,10 +10,11 @@ import {
 } from '../blueprint/evaluation-blueprint.js';
 import { canonicalJson, sha256 } from '../canonical-json.js';
 import type { SkillSnapshot } from '../intake/skill-snapshot.js';
-import { authorInstructions, authorProtocolVersion, theoryCommit, theoryPrinciples } from './instructions.js';
+import { authorInstructions, authorInstructionsV2, authorProtocolVersion, theoryCommit, theoryPrinciples } from './instructions.js';
 import { AuthorProviderError, unknownProviderDiagnostic, type AuthorProviderDiagnostic } from './provider-diagnostic.js';
 
 export type AuthorConditionSpec = { model: 'gpt-5.6-luna'; reasoningEffort: 'max' } | { model: 'gpt-5.6-terra'; reasoningEffort: 'xhigh' };
+export type AuthorProtocolVersion = 1 | 2;
 
 const defaultAuthorCondition = { model: 'gpt-5.6-terra', reasoningEffort: 'xhigh' } as const;
 
@@ -23,6 +24,12 @@ function assertSupportedCondition(condition: AuthorConditionSpec): void {
     (condition.model === 'gpt-5.6-luna' && condition.reasoningEffort === 'max');
   if (!supported) {
     throw new Error('UNSUPPORTED_AUTHOR_CONDITION');
+  }
+}
+
+function assertSupportedProtocol(protocolVersion: number): asserts protocolVersion is AuthorProtocolVersion {
+  if (protocolVersion !== 1 && protocolVersion !== 2) {
+    throw new Error('UNSUPPORTED_AUTHOR_PROTOCOL');
   }
 }
 
@@ -54,6 +61,7 @@ export interface AuthorInput {
   campaignId: string;
   condition?: AuthorConditionSpec;
   invoke: AuthorInvoker;
+  protocolVersion?: AuthorProtocolVersion;
   snapshot: SkillSnapshot;
 }
 
@@ -78,16 +86,21 @@ export interface PreparedAuthorInvocation {
   conditionFingerprint: string;
   digests: AuthorConditionDigests;
   packetFingerprint: string;
+  protocolVersion: AuthorProtocolVersion;
   request: AuthorInvocationRequest;
   schemaVersion: 1 | 2;
 }
 
-function authorPacket(snapshot: SkillSnapshot): Record<string, unknown> {
+function instructionsFor(protocolVersion: AuthorProtocolVersion): readonly string[] {
+  return protocolVersion === 1 ? authorInstructions : authorInstructionsV2;
+}
+
+function authorPacket(snapshot: SkillSnapshot, protocolVersion: AuthorProtocolVersion): Record<string, unknown> {
   return {
     candidateSchema: evaluationBlueprintCandidateSchema,
-    instructions: authorInstructions,
+    instructions: instructionsFor(protocolVersion),
     protocol: {
-      authorProtocolVersion,
+      authorProtocolVersion: protocolVersion,
       controlledFields: ['schemaVersion', 'blueprintId', 'snapshotFingerprint', 'lifecycle', 'authorProvenance'],
       expectedStateProvided: false,
       mechanicalOracleProvided: false,
@@ -107,9 +120,9 @@ interface AuthorConditionDigests {
   theoryDigest: string;
 }
 
-function conditionDigests(condition: AuthorConditionSpec, schema: unknown): AuthorConditionDigests {
-  const instructionDigest = sha256(authorInstructions);
-  const protocolDigest = sha256({ authorProtocolVersion, response: 'PURE_JSON', systemControlledFields: true });
+function conditionDigests(condition: AuthorConditionSpec, schema: unknown, protocolVersion: AuthorProtocolVersion): AuthorConditionDigests {
+  const instructionDigest = sha256(instructionsFor(protocolVersion));
+  const protocolDigest = sha256({ authorProtocolVersion: protocolVersion, response: 'PURE_JSON', systemControlledFields: true });
   const schemaDigest = sha256(schema);
   const theoryDigest = sha256({ commit: theoryCommit, principles: theoryPrinciples });
   return {
@@ -128,17 +141,23 @@ function conditionDigests(condition: AuthorConditionSpec, schema: unknown): Auth
   };
 }
 
-export function prepareAuthorInvocation(snapshot: SkillSnapshot, condition?: AuthorConditionSpec): PreparedAuthorInvocation {
+export function prepareAuthorInvocation(
+  snapshot: SkillSnapshot,
+  condition?: AuthorConditionSpec,
+  protocolVersion: AuthorProtocolVersion = authorProtocolVersion,
+): PreparedAuthorInvocation {
+  assertSupportedProtocol(protocolVersion);
   const selectedCondition: AuthorConditionSpec = { ...(condition ?? defaultAuthorCondition) };
   assertSupportedCondition(selectedCondition);
   const schema = condition === undefined ? blueprintSchema : blueprintSchema2;
-  const packet = authorPacket(snapshot);
-  const digests = conditionDigests(selectedCondition, schema);
+  const packet = authorPacket(snapshot, protocolVersion);
+  const digests = conditionDigests(selectedCondition, schema, protocolVersion);
   return {
     condition: selectedCondition,
     conditionFingerprint: digests.conditionFingerprint,
     digests,
     packetFingerprint: sha256(packet),
+    protocolVersion,
     request: {
       maxRetries: 0,
       model: selectedCondition.model,
@@ -172,7 +191,7 @@ function providerErrorResult(diagnostic: AuthorProviderDiagnostic, packetFingerp
 }
 
 export async function authorEvaluationBlueprint(input: AuthorInput): Promise<AuthorRunResult> {
-  const prepared = prepareAuthorInvocation(input.snapshot, input.condition);
+  const prepared = prepareAuthorInvocation(input.snapshot, input.condition, input.protocolVersion);
   const packetFingerprint = prepared.packetFingerprint;
   let response: AuthorInvocationResponse;
   try {
