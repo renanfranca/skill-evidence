@@ -33,7 +33,7 @@ export interface AuthorOperabilityCampaignPreparation {
   sanitizedReportPath: string;
   schemaVersion: 1;
   skillPath: string;
-  timeouts: { maxEvalTimeMs: 660_000; timeoutMs: 600_000 };
+  timeouts: { maxEvalTimeMs: number; timeoutMs: number };
 }
 
 export interface AuthorOperabilityEnvironment {
@@ -79,11 +79,14 @@ export interface AuthorOperabilityPreflightReport {
 export type AuthorOperabilityOutcome =
   'COMPLETED_WITHIN_DIAGNOSTIC_BUDGET' | 'INSUFFICIENT' | 'INVALIDATED' | 'NOT_COMPLETED_WITHIN_DIAGNOSTIC_BUDGET';
 
+export type AuthorViabilityDecision = 'INSUFFICIENT' | 'NOT_VIABLE_FOR_AUTHOR' | 'PENDING_SEMANTIC_REVIEW' | 'VIABLE_CANDIDATE';
+
 export interface AuthorOperabilityRunResult {
   collectionPersisted: boolean;
   operabilityOutcome: AuthorOperabilityOutcome;
   providerInvocations: 0 | 1;
   terminalReceiptPath: string;
+  viabilityDecision: AuthorViabilityDecision | null;
 }
 
 export interface InspectedAuthorOperabilityCampaign {
@@ -91,6 +94,23 @@ export interface InspectedAuthorOperabilityCampaign {
   invocationConfigurationValid: boolean;
   packet: string;
   packetBlind: boolean;
+}
+
+const campaignProfiles = {
+  'e18-luna-max-locale-catalog-20260812-r1': {
+    maxEvalTimeMs: 660_000,
+    oraclePath: 'evaluations/refactor-design/e5-author-operability/luna-max-canary-r1/oracle.json',
+    timeoutMs: 600_000,
+  },
+  'e19-luna-max-locale-catalog-20260813-r1': {
+    maxEvalTimeMs: 1_860_000,
+    oraclePath: 'evaluations/refactor-design/e5-author-operability/luna-max-viability-r1/oracle.json',
+    timeoutMs: 1_800_000,
+  },
+} as const;
+
+function isViabilityCampaign(campaign: AuthorOperabilityCampaignPreparation): boolean {
+  return campaign.campaignId === 'e19-luna-max-locale-catalog-20260813-r1';
 }
 
 function fingerprintsValid(value: AuthorOperabilityFingerprints): boolean {
@@ -108,23 +128,25 @@ function fingerprintsValid(value: AuthorOperabilityFingerprints): boolean {
 export function validateAuthorOperabilityCampaignPreparation(value: unknown): value is AuthorOperabilityCampaignPreparation {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
   const campaign = value as Partial<AuthorOperabilityCampaignPreparation>;
+  const profile =
+    typeof campaign.campaignId === 'string' ? campaignProfiles[campaign.campaignId as keyof typeof campaignProfiles] : undefined;
   return (
     campaign.schemaVersion === 1 &&
-    campaign.campaignId === 'e18-luna-max-locale-catalog-20260812-r1' &&
+    profile !== undefined &&
     campaign.invocationBudget === 1 &&
     campaign.protocolVersion === 2 &&
     campaign.condition?.requestedModel === 'gpt-5.6-luna' &&
     campaign.condition.reasoningEffort === 'max' &&
     typeof campaign.condition.conditionFingerprint === 'string' &&
     /^[a-f0-9]{64}$/u.test(campaign.condition.conditionFingerprint) &&
-    campaign.timeouts?.timeoutMs === 600_000 &&
-    campaign.timeouts.maxEvalTimeMs === 660_000 &&
+    campaign.timeouts?.timeoutMs === profile.timeoutMs &&
+    campaign.timeouts.maxEvalTimeMs === profile.maxEvalTimeMs &&
     typeof campaign.fingerprints === 'object' &&
     campaign.fingerprints !== null &&
     fingerprintsValid(campaign.fingerprints) &&
     campaign.condition.conditionFingerprint === campaign.fingerprints.condition &&
     campaign.skillPath === 'evaluations/refactor-design/e5-author-operability/luna-max-canary-r1/skill' &&
-    campaign.oraclePath === 'evaluations/refactor-design/e5-author-operability/luna-max-canary-r1/oracle.json' &&
+    campaign.oraclePath === profile.oraclePath &&
     campaign.reservationPath === `.skill-evidence/author-operability-reservations/${campaign.campaignId}.json` &&
     campaign.outputDirectory === `.skill-evidence/author-operability/${campaign.campaignId}` &&
     campaign.sanitizedReportPath === `docs/experiments/${campaign.campaignId}.json`
@@ -178,8 +200,8 @@ export async function inspectAuthorOperabilityCampaign(
       snapshot: snapshot.fingerprint,
     },
     invocationConfigurationValid:
-      invocation.options.timeoutMs === 600_000 &&
-      invocation.options.maxEvalTimeMs === 660_000 &&
+      invocation.options.timeoutMs === campaign.timeouts.timeoutMs &&
+      invocation.options.maxEvalTimeMs === campaign.timeouts.maxEvalTimeMs &&
       invocation.options.maxConcurrency === 1 &&
       provider.model === 'gpt-5.6-luna' &&
       provider.model_reasoning_effort === 'max' &&
@@ -321,6 +343,7 @@ export async function runAuthorOperabilityCampaign(input: {
   const startedAt = now();
   let collectionPersisted = false;
   let operabilityOutcome: AuthorOperabilityOutcome = 'INSUFFICIENT';
+  let viabilityDecision: AuthorViabilityDecision | null = null;
   let providerInvocations: 0 | 1 = 0;
   const collectionPath = resolve(input.repositoryRoot, input.preparation.outputDirectory, 'collection.json');
   try {
@@ -339,14 +362,31 @@ export async function runAuthorOperabilityCampaign(input: {
       run.error.code === 'PROVIDER_ERROR' &&
       run.error.diagnostic.category === 'TIMEOUT' &&
       run.providerObservation?.timeoutOwner === 'PROMPTFOO_STEP';
+    const providerTimedOut = run.status === 'ERROR' && run.error.code === 'PROVIDER_ERROR' && run.error.diagnostic.category === 'TIMEOUT';
+    const timedOutForCampaign = isViabilityCampaign(input.preparation) ? providerTimedOut : timedOutAtPromptfooStep;
     operabilityOutcome =
       run.status === 'COMPLETED'
         ? elapsedMs <= input.preparation.timeouts.timeoutMs
           ? 'COMPLETED_WITHIN_DIAGNOSTIC_BUDGET'
           : 'NOT_COMPLETED_WITHIN_DIAGNOSTIC_BUDGET'
-        : timedOutAtPromptfooStep
+        : timedOutForCampaign
           ? 'NOT_COMPLETED_WITHIN_DIAGNOSTIC_BUDGET'
           : 'INSUFFICIENT';
+    if (isViabilityCampaign(input.preparation)) {
+      viabilityDecision =
+        run.status === 'COMPLETED'
+          ? elapsedMs <= input.preparation.timeouts.timeoutMs
+            ? run.blueprint.lifecycle.state === 'BLOCKED'
+              ? 'PENDING_SEMANTIC_REVIEW'
+              : 'NOT_VIABLE_FOR_AUTHOR'
+            : 'NOT_VIABLE_FOR_AUTHOR'
+          : run.error.code !== 'PROVIDER_ERROR' || providerTimedOut
+            ? 'NOT_VIABLE_FOR_AUTHOR'
+            : 'INSUFFICIENT';
+    }
+    const target300SecondsMet = run.status === 'COMPLETED' ? elapsedMs <= 300_000 : providerTimedOut ? false : null;
+    const target600SecondsMet = run.status === 'COMPLETED' ? elapsedMs <= 600_000 : providerTimedOut ? false : null;
+    const target1800SecondsMet = run.status === 'COMPLETED' ? elapsedMs <= 1_800_000 : providerTimedOut ? false : null;
     const collection =
       run.status === 'COMPLETED'
         ? {
@@ -362,7 +402,11 @@ export async function runAuthorOperabilityCampaign(input: {
             providerObservation: run.providerObservation ?? null,
             purpose: 'DEVELOPMENT',
             schemaVersion: 1,
+            target1800SecondsMet,
+            target300SecondsMet,
+            target600SecondsMet,
             tokenUsage: run.tokenUsage,
+            viabilityDecision,
           }
         : {
             campaignFingerprint,
@@ -376,12 +420,17 @@ export async function runAuthorOperabilityCampaign(input: {
             providerObservation: run.providerObservation ?? null,
             purpose: 'DEVELOPMENT',
             schemaVersion: 1,
+            target1800SecondsMet,
+            target300SecondsMet,
+            target600SecondsMet,
             tokenUsage: run.tokenUsage,
+            viabilityDecision,
           };
     await createExclusiveJson(collectionPath, collection);
     collectionPersisted = true;
   } catch {
     if (providerInvocations === 0) operabilityOutcome = 'INVALIDATED';
+    if (isViabilityCampaign(input.preparation)) viabilityDecision = 'INSUFFICIENT';
     await mkdir(dirname(collectionPath), { recursive: true }).catch(() => undefined);
     await writeFile(
       collectionPath,
@@ -391,6 +440,7 @@ export async function runAuthorOperabilityCampaign(input: {
         diagnostic: { code: providerInvocations === 0 ? 'PRE_INVOCATION_FAILURE' : 'COLLECTION_FAILURE' },
         operabilityOutcome,
         providerInvocations,
+        viabilityDecision,
         purpose: 'DEVELOPMENT',
         schemaVersion: 1,
       })}\n`,
@@ -409,6 +459,7 @@ export async function runAuthorOperabilityCampaign(input: {
     operabilityOutcome,
     providerInvocations,
     status: 'TERMINAL',
+    viabilityDecision,
   });
-  return { collectionPersisted, operabilityOutcome, providerInvocations, terminalReceiptPath: receiptPath };
+  return { collectionPersisted, operabilityOutcome, providerInvocations, terminalReceiptPath: receiptPath, viabilityDecision };
 }

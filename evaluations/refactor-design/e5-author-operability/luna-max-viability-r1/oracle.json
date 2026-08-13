@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "criteria": [
+    {
+      "id": "activation-explicit-catalog-with-entries",
+      "critical": true,
+      "statement": "Positive activation requires an explicit locale-catalog rendering request with user-supplied entries; absent entries, unrelated localization work, and combined unsupported work are represented as negative or near-boundary cases."
+    },
+    {
+      "id": "input-fields-and-invalid-preservation",
+      "critical": true,
+      "statement": "Contracts require key, locale, and text, permit note, and preserve supplied values while naming every missing field in invalid entries."
+    },
+    {
+      "id": "literal-stable-codepoint-rendering",
+      "critical": true,
+      "statement": "Contracts copy values without rewriting, sort by locale then key using Unicode code-point order, and preserve input order for equal locale-and-key pairs."
+    },
+    {
+      "id": "prohibited-transformations-and-decisions",
+      "critical": true,
+      "statement": "Contracts prohibit translation, fallback inference, locale-relationship inference, deduplication, wording-quality judgment, and release-readiness decisions."
+    },
+    {
+      "id": "external-state-boundary",
+      "critical": true,
+      "statement": "Contracts prohibit reading or modifying catalogs, files, repositories, translation services, issue trackers, or other external state."
+    },
+    {
+      "id": "grounded-evaluation-structure",
+      "critical": true,
+      "statement": "Claims, contracts, evidence, usage families, and stress families are linked and grounded in observable behavior from the skill snapshot."
+    },
+    {
+      "id": "genuine-decision-context-blockers",
+      "critical": true,
+      "statement": "Absent population, decision thresholds, regression limits, severe-harm limits, efficiency budgets, and required uncertainty remain unknown and are represented by genuine blocking unresolved requirements."
+    },
+    {
+      "id": "no-fabricated-context",
+      "critical": true,
+      "statement": "The Blueprint does not present absent decision context, external facts, expected answers, or oracle content as known evidence."
+    },
+    {
+      "id": "system-controlled-lifecycle-and-provenance",
+      "critical": true,
+      "statement": "The composed Blueprint is schema-valid, BLOCKED, DEVELOPMENT_AUTHORING, decision-ineligible, NOT_QUALIFIED, and preserves system-controlled identity, snapshot, condition, protocol, and provenance."
+    }
+  ],
+  "qualificationCases": [
+    {
+      "id": "valid-semantic-alternative",
+      "expected": "ACCEPT",
+      "description": "Equivalent wording covers every required behavior and prohibition with grounded references."
+    },
+    {
+      "id": "invalid-fluent-omission",
+      "expected": "REJECT",
+      "description": "A fluent Blueprint omits stable ordering or permits translation despite otherwise complete sections."
+    },
+    {
+      "id": "invalid-fabricated-thresholds",
+      "expected": "REJECT",
+      "description": "A Blueprint invents numeric acceptance thresholds or population facts absent from the snapshot."
+    }
+  ],
+  "reviewPolicy": {
+    "allowedJudgments": ["ACCEPT", "REJECT", "NEEDS_ADJUDICATION"],
+    "evidenceMustUseBlueprintJsonPointers": true,
+    "mechanicalCriticalFailuresTakePrecedence": true,
+    "resolveOnlyDisagreements": true
+  }
+}
