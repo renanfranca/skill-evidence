@@ -120,6 +120,7 @@ Archive only sanitized evidence, update this plan, its index, AGENTS.md, and the
 - [x] Complete Milestone 1: freeze the exact E20 Terra/xhigh profile and prove model-facing packet identity with E19.
 - [x] Complete Milestone 2: derive the diagnostic matrix, exact shared-taxonomy finding, and generalized blinded review/scoring.
 - [x] Complete the offline implementation and validation portion of Milestone 3: audit zero, 163 tests, nine-process local qualification, build, lint, formatting, and provider-free checkpoints green.
+- [x] Publish draft PR #8 and observe hosted CI green on implementation commit `00769d1337142f13c71712a94c152bdda45be828`.
 - [ ] Complete Milestone 3 and exact preflight.
 - [ ] Receive exact one-call authorization.
 - [ ] Complete Milestone 4 once.
@@ -187,4 +188,4 @@ There is no deployment. Before reservation, E20 changes can be reverted normally
 
 ## Offline Validation Evidence
 
-On 2026-08-13, before any E20 reservation or external call, the focused Author suites passed 58 tests and the complete repository passed 163 tests. `npm audit` reported zero vulnerabilities. Typecheck, lint, Prettier, build, `experiment:verify`, and the archaeological, Author, provider, lifecycle, and operability qualifiers all passed. The E18–E20 operability qualifier traversed nine local Promptfoo/Codex SDK processes, reported both review workflows qualified, and made zero external provider calls. The post-GREEN design review centralized frozen campaign policy without changing behavior. E20 reservation, output, and report paths were absent. The campaign fingerprint before the final commit freeze is `9ee8ae89e362ca931f6f4d8fda0b097995b7b03e2d09ec26c2bfc475e12f9672`; hosted CI and the exact literal-SHA preflight remain pending.
+On 2026-08-13, before any E20 reservation or external call, the focused Author suites passed 58 tests and the complete repository passed 163 tests. `npm audit` reported zero vulnerabilities. Typecheck, lint, Prettier, build, `experiment:verify`, and the archaeological, Author, provider, lifecycle, and operability qualifiers all passed. The E18–E20 operability qualifier traversed nine local Promptfoo/Codex SDK processes, reported both review workflows qualified, and made zero external provider calls. The post-GREEN design review centralized frozen campaign policy without changing behavior. Draft PR #8 passed every hosted CI step at implementation commit `00769d1337142f13c71712a94c152bdda45be828`. E20 reservation, output, and report paths were absent. The campaign fingerprint is `9ee8ae89e362ca931f6f4d8fda0b097995b7b03e2d09ec26c2bfc475e12f9672`; the final documentation CI and exact literal-SHA preflight remain pending.
