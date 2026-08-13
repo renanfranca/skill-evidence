@@ -4,8 +4,23 @@ import { dirname, join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import type { AuthorInvocationResponse } from '../src/author/evaluation-author.js';
+import { authorEvaluationBlueprint, type AuthorInvocationResponse } from '../src/author/evaluation-author.js';
 import { AuthorProviderError } from '../src/author/provider-diagnostic.js';
+import { createSkillSnapshot } from '../src/intake/skill-snapshot.js';
+import { sha256 } from '../src/canonical-json.js';
+import {
+  createAuthorViabilityResolutionPacket,
+  createAuthorViabilityReviewPacket,
+  createAuthorViabilityReviewerSubmission,
+  resolveAuthorViabilityReview,
+  validateAuthorViabilityReviewerSubmission,
+  type AuthorViabilityOracle,
+} from '../src/qualification/author-viability-review.js';
+import {
+  prepareAuthorViabilityResolution,
+  prepareAuthorViabilityReview,
+  scoreAuthorViability,
+} from '../src/qualification/author-viability-workflow.js';
 import { runAuthorOperabilityPreflight } from '../src/qualification/preflight-author-operability.js';
 import { qualifyAuthorOperabilityRunner } from '../src/qualification/qualify-author-operability.js';
 import { runAuthorOperabilityCommand } from '../src/qualification/run-author-operability.js';
@@ -13,6 +28,7 @@ import {
   evaluateAuthorOperabilityPreflight,
   inspectAuthorOperabilityCampaign,
   runAuthorOperabilityCampaign,
+  validateAuthorOperabilityCampaignPreparation,
   type AuthorOperabilityCampaignPreparation,
   type AuthorOperabilityPreflightEvidence,
 } from '../src/qualification/author-operability.js';
@@ -49,6 +65,18 @@ function preparation(): AuthorOperabilityCampaignPreparation {
   };
 }
 
+function viabilityPreparation(): AuthorOperabilityCampaignPreparation {
+  return {
+    ...preparation(),
+    campaignId: 'e19-luna-max-locale-catalog-20260813-r1',
+    oraclePath: 'evaluations/refactor-design/e5-author-operability/luna-max-viability-r1/oracle.json',
+    outputDirectory: '.skill-evidence/author-operability/e19-luna-max-locale-catalog-20260813-r1',
+    reservationPath: '.skill-evidence/author-operability-reservations/e19-luna-max-locale-catalog-20260813-r1.json',
+    sanitizedReportPath: 'docs/experiments/e19-luna-max-locale-catalog-20260813-r1.json',
+    timeouts: { maxEvalTimeMs: 1_860_000, timeoutMs: 1_800_000 },
+  };
+}
+
 function evidence(): AuthorOperabilityPreflightEvidence {
   return {
     authentication: { codexHome: '/home/renanfranca/.codex', homeWritable: true, loginStatus: 'AUTHENTICATED' },
@@ -75,6 +103,32 @@ function evidence(): AuthorOperabilityPreflightEvidence {
 }
 
 describe('Evaluation Author operability canary', () => {
+  it('accepts the frozen 30-minute profile while preserving the exact E18 model-facing packet', async () => {
+    const [e18Value, e19Value] = await Promise.all([
+      readFile('evaluations/refactor-design/e5-author-operability/luna-max-canary-r1/campaign-preparation.json', 'utf8'),
+      readFile('evaluations/refactor-design/e5-author-operability/luna-max-viability-r1/campaign-preparation.json', 'utf8'),
+    ]);
+    const e18 = JSON.parse(e18Value) as unknown;
+    const e19 = JSON.parse(e19Value) as unknown;
+
+    expect(validateAuthorOperabilityCampaignPreparation(e18)).toBe(true);
+    expect(validateAuthorOperabilityCampaignPreparation(e19)).toBe(true);
+    if (!validateAuthorOperabilityCampaignPreparation(e18) || !validateAuthorOperabilityCampaignPreparation(e19)) return;
+    const [e18Inspection, e19Inspection] = await Promise.all([
+      inspectAuthorOperabilityCampaign(process.cwd(), e18),
+      inspectAuthorOperabilityCampaign(process.cwd(), e19),
+    ]);
+
+    expect(e19.timeouts).toEqual({ maxEvalTimeMs: 1_860_000, timeoutMs: 1_800_000 });
+    expect(e19Inspection.packet).toBe(e18Inspection.packet);
+    expect(e19Inspection.fingerprints).toEqual({
+      ...e18Inspection.fingerprints,
+      oracle: e19.fingerprints.oracle,
+    });
+    expect(e19Inspection.invocationConfigurationValid).toBe(true);
+    expect(e19Inspection.packetBlind).toBe(true);
+  });
+
   it('keeps the final command inert without literal one-call approval', async () => {
     await expect(
       runAuthorOperabilityCommand([
@@ -99,18 +153,48 @@ describe('Evaluation Author operability canary', () => {
 
     expect(report).toMatchObject({
       externalProviderCalls: 0,
-      localProcessCalls: 3,
+      localProcessCalls: 6,
       purpose: 'DEVELOPMENT',
+      reviewWorkflowQualified: true,
       result: 'SUPPORTED_FOR_DEVELOPMENT',
     });
     expect(report.cases).toEqual([
       {
         actual: 'COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
         expected: 'COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
-        id: 'completion',
+        id: 'e18-luna-max-locale-catalog-20260812-r1:completion',
+        viabilityDecision: null,
       },
-      { actual: 'INSUFFICIENT', expected: 'INSUFFICIENT', id: 'codex-turn-timeout' },
-      { actual: 'INSUFFICIENT', expected: 'INSUFFICIENT', id: 'process-failure' },
+      {
+        actual: 'INSUFFICIENT',
+        expected: 'INSUFFICIENT',
+        id: 'e18-luna-max-locale-catalog-20260812-r1:codex-turn-timeout',
+        viabilityDecision: null,
+      },
+      {
+        actual: 'INSUFFICIENT',
+        expected: 'INSUFFICIENT',
+        id: 'e18-luna-max-locale-catalog-20260812-r1:process-failure',
+        viabilityDecision: null,
+      },
+      {
+        actual: 'COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
+        expected: 'COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
+        id: 'e19-luna-max-locale-catalog-20260813-r1:completion',
+        viabilityDecision: 'PENDING_SEMANTIC_REVIEW',
+      },
+      {
+        actual: 'NOT_COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
+        expected: 'NOT_COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
+        id: 'e19-luna-max-locale-catalog-20260813-r1:codex-turn-timeout',
+        viabilityDecision: 'NOT_VIABLE_FOR_AUTHOR',
+      },
+      {
+        actual: 'INSUFFICIENT',
+        expected: 'INSUFFICIENT',
+        id: 'e19-luna-max-locale-catalog-20260813-r1:process-failure',
+        viabilityDecision: 'INSUFFICIENT',
+      },
     ]);
   }, 20_000);
 
@@ -343,6 +427,256 @@ describe('Evaluation Author operability canary', () => {
         expect(collection).toMatchObject({ actualLifecycle: 'BLOCKED', lifecycleExpectationMet: true });
       }
     }
+  });
+
+  it('discards the 30-minute condition after its single prespecified step timeout', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-viability-timeout-'));
+    const campaign = viabilityPreparation();
+    await mkdir(join(repositoryRoot, campaign.skillPath), { recursive: true });
+    await writeFile(join(repositoryRoot, campaign.skillPath, 'SKILL.md'), '# Viability fixture\n');
+
+    const result = await runAuthorOperabilityCampaign({
+      approval: '1',
+      currentCommit: () => Promise.resolve(commit),
+      expectedCommit: commit,
+      inspectCampaign: () =>
+        Promise.resolve({
+          fingerprints: campaign.fingerprints,
+          invocationConfigurationValid: true,
+          packet: '{}',
+          packetBlind: true,
+        }),
+      invoke: () =>
+        Promise.reject(
+          new AuthorProviderError(
+            { category: 'TIMEOUT', code: 'ABORTED', stage: 'RESULT' },
+            {
+              cancellationObserved: true,
+              cancellationRequested: true,
+              firstProgressAtMs: 10,
+              lastObservedStage: 'PROCESS_EXIT',
+              lastProgressAtMs: 20,
+              progressObserved: true,
+              timeoutOwner: 'PROMPTFOO_STEP',
+            },
+          ),
+        ),
+      preparation: campaign,
+      preflight: evaluateAuthorOperabilityPreflight(campaign, {
+        ...evidence(),
+        derivedFingerprints: campaign.fingerprints,
+      }),
+      repositoryRoot,
+      workingTreeClean: () => Promise.resolve(true),
+    });
+    const collection = JSON.parse(await readFile(join(repositoryRoot, campaign.outputDirectory, 'collection.json'), 'utf8')) as Record<
+      string,
+      unknown
+    >;
+
+    expect(result).toMatchObject({ providerInvocations: 1, viabilityDecision: 'NOT_VIABLE_FOR_AUTHOR' });
+    expect(collection).toMatchObject({
+      target1800SecondsMet: false,
+      target300SecondsMet: false,
+      target600SecondsMet: false,
+      viabilityDecision: 'NOT_VIABLE_FOR_AUTHOR',
+    });
+  });
+
+  it('discards a completed 30-minute candidate when the system-derived lifecycle is not BLOCKED', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-viability-ready-'));
+    const campaign = viabilityPreparation();
+    const candidate = JSON.parse(await readFile('evaluations/refactor-design/e4-author/base-candidate.json', 'utf8')) as Record<
+      string,
+      unknown
+    >;
+    await mkdir(join(repositoryRoot, campaign.skillPath), { recursive: true });
+    await writeFile(join(repositoryRoot, campaign.skillPath, 'SKILL.md'), '# Viability fixture\n');
+
+    const result = await runAuthorOperabilityCampaign({
+      approval: '1',
+      currentCommit: () => Promise.resolve(commit),
+      expectedCommit: commit,
+      inspectCampaign: () =>
+        Promise.resolve({
+          fingerprints: campaign.fingerprints,
+          invocationConfigurationValid: true,
+          packet: '{}',
+          packetBlind: true,
+        }),
+      invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(candidate) }),
+      now: (() => {
+        let value = 0;
+        return () => (value += 1_000);
+      })(),
+      preparation: campaign,
+      preflight: evaluateAuthorOperabilityPreflight(campaign, {
+        ...evidence(),
+        derivedFingerprints: campaign.fingerprints,
+      }),
+      repositoryRoot,
+      workingTreeClean: () => Promise.resolve(true),
+    });
+
+    expect(result.viabilityDecision).toBe('NOT_VIABLE_FOR_AUTHOR');
+  });
+
+  it('keeps semantic review condition-blind and resolves only disagreements before viability', async () => {
+    const candidate = JSON.parse(await readFile('evaluations/refactor-design/e4-author/base-candidate.json', 'utf8')) as Record<
+      string,
+      unknown
+    >;
+    candidate.unresolvedRequirements = [
+      {
+        blocking: true,
+        description: 'Decision context is absent from the skill snapshot.',
+        id: 'decision-context-absent',
+        relatedSection: 'decisionContext',
+      },
+    ];
+    const snapshot = await createSkillSnapshot({
+      rootDirectory: 'evaluations/refactor-design/e5-author-operability/luna-max-canary-r1/skill',
+    });
+    const run = await authorEvaluationBlueprint({
+      campaignId: 'hidden-campaign',
+      condition: { model: 'gpt-5.6-luna', reasoningEffort: 'max' },
+      invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(candidate) }),
+      protocolVersion: 2,
+      snapshot,
+    });
+    expect(run.status).toBe('COMPLETED');
+    if (run.status !== 'COMPLETED') return;
+    const oracle = JSON.parse(
+      await readFile('evaluations/refactor-design/e5-author-operability/luna-max-viability-r1/oracle.json', 'utf8'),
+    ) as AuthorViabilityOracle;
+    const packet = createAuthorViabilityReviewPacket({ blueprint: run.blueprint, oracle, skillFiles: snapshot.includedFiles });
+    const packetText = JSON.stringify(packet);
+
+    expect(packetText).not.toMatch(/gpt-5\.6-luna|\bmax\b|600649|e18-|hidden-campaign|expectedLifecycle|BLOCKED/u);
+    expect(packet.criteria.some((criterion) => criterion.id === 'system-controlled-lifecycle-and-provenance')).toBe(false);
+    const accepted = packet.criteria.map((criterion) => ({
+      criterionId: criterion.id,
+      evidencePaths: ['/candidate/contracts'],
+      rationale: 'The candidate preserves the observable skill contract.',
+      verdict: 'ACCEPT' as const,
+    }));
+    const reviewerA = createAuthorViabilityReviewerSubmission({ judgments: accepted, packet, reviewerId: 'reviewer-a' });
+    const reviewerB = createAuthorViabilityReviewerSubmission({ judgments: accepted, packet, reviewerId: 'reviewer-b' });
+    expect(validateAuthorViabilityReviewerSubmission(packet, reviewerA)).toBe(true);
+    expect(validateAuthorViabilityReviewerSubmission(packet, reviewerB)).toBe(true);
+    expect(createAuthorViabilityResolutionPacket(packet, [reviewerA, reviewerB]).disagreements).toEqual([]);
+    expect(resolveAuthorViabilityReview(packet, [reviewerA, reviewerB], [])).toMatchObject({
+      decision: 'VIABLE_CANDIDATE',
+    });
+
+    const disputedB = createAuthorViabilityReviewerSubmission({
+      judgments: accepted.map((judgment, index) => (index === 0 ? { ...judgment, verdict: 'REJECT' as const } : judgment)),
+      packet,
+      reviewerId: 'reviewer-b',
+    });
+    const resolutionPacket = createAuthorViabilityResolutionPacket(packet, [reviewerA, disputedB]);
+    expect(resolutionPacket.disagreements.map((entry) => entry.criterionId)).toEqual([packet.criteria[0]!.id]);
+    expect(
+      resolveAuthorViabilityReview(
+        packet,
+        [reviewerA, disputedB],
+        [
+          {
+            criterionId: packet.criteria[0]!.id,
+            evidencePaths: ['/candidate/activationRegions'],
+            rationale: 'The activation boundary is critically incomplete.',
+            verdict: 'REJECT',
+          },
+        ],
+      ),
+    ).toMatchObject({ decision: 'NOT_VIABLE_FOR_AUTHOR' });
+  });
+
+  it('persists independent review packets, disagreement-only resolution, and one sanitized final report', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-viability-review-'));
+    const campaign = viabilityPreparation();
+    const candidate = JSON.parse(await readFile('evaluations/refactor-design/e4-author/base-candidate.json', 'utf8')) as Record<
+      string,
+      unknown
+    >;
+    candidate.unresolvedRequirements = [
+      {
+        blocking: true,
+        description: 'Decision authority and release thresholds are absent.',
+        id: 'decision-authority-absent',
+        relatedSection: 'decisionContext',
+      },
+    ];
+    const skillDirectory = join(repositoryRoot, campaign.skillPath);
+    await mkdir(skillDirectory, { recursive: true });
+    await writeFile(join(skillDirectory, 'SKILL.md'), '# Locale catalog\n\nRender entries literally.\n');
+    await mkdir(dirname(join(repositoryRoot, campaign.oraclePath)), { recursive: true });
+    await writeFile(
+      join(repositoryRoot, campaign.oraclePath),
+      await readFile('evaluations/refactor-design/e5-author-operability/luna-max-viability-r1/oracle.json', 'utf8'),
+    );
+    const snapshot = await createSkillSnapshot({ rootDirectory: skillDirectory });
+    const run = await authorEvaluationBlueprint({
+      campaignId: campaign.campaignId,
+      condition: { model: 'gpt-5.6-luna', reasoningEffort: 'max' },
+      invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(candidate) }),
+      protocolVersion: 2,
+      snapshot,
+    });
+    expect(run.status).toBe('COMPLETED');
+    if (run.status !== 'COMPLETED') return;
+    const outputDirectory = join(repositoryRoot, campaign.outputDirectory);
+    await mkdir(outputDirectory, { recursive: true });
+    await writeFile(
+      join(outputDirectory, 'collection.json'),
+      JSON.stringify({
+        actualLifecycle: 'BLOCKED',
+        blueprint: run.blueprint,
+        campaignFingerprint: sha256(campaign),
+        campaignId: campaign.campaignId,
+        elapsedMs: 700_000,
+        operabilityOutcome: 'COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
+        providerInvocations: 1,
+        providerObservation: null,
+        target1800SecondsMet: true,
+        target300SecondsMet: false,
+        target600SecondsMet: false,
+        tokenUsage: null,
+        viabilityDecision: 'PENDING_SEMANTIC_REVIEW',
+      }),
+    );
+
+    const prepared = await prepareAuthorViabilityReview({ preparation: campaign, repositoryRoot });
+    const packet = JSON.parse(await readFile(join(prepared.reviewDirectory, 'reviewer-a.packet.json'), 'utf8')) as {
+      criteria: Array<{ id: string }>;
+    };
+    const accepted = packet.criteria.map((criterion) => ({
+      criterionId: criterion.id,
+      evidencePaths: ['/candidate/contracts'],
+      rationale: 'Grounded in the candidate contract.',
+      verdict: 'ACCEPT',
+    }));
+    await Promise.all([
+      writeFile(join(prepared.reviewDirectory, 'reviewer-a.input.json'), JSON.stringify({ judgments: accepted, reviewerId: 'reviewer-a' })),
+      writeFile(join(prepared.reviewDirectory, 'reviewer-b.input.json'), JSON.stringify({ judgments: accepted, reviewerId: 'reviewer-b' })),
+    ]);
+    const resolutionPacket = await prepareAuthorViabilityResolution({
+      repositoryRoot,
+      reviewDirectory: prepared.reviewDirectory,
+    });
+    expect(resolutionPacket.disagreements).toEqual([]);
+    const report = await scoreAuthorViability({
+      outputPath: campaign.sanitizedReportPath,
+      preparation: campaign,
+      repositoryRoot,
+    });
+
+    expect(report).toMatchObject({ decisionEligible: false, result: 'VIABLE_CANDIDATE' });
+    expect(JSON.stringify(report)).not.toMatch(/hidden-campaign|rawReasoning|responseRaw|SKILL_EVIDENCE_AUTHOR_CODEX_HOME/);
+    await expect(prepareAuthorViabilityReview({ preparation: campaign, repositoryRoot })).rejects.toMatchObject({ code: 'EEXIST' });
+    await expect(
+      scoreAuthorViability({ outputPath: campaign.sanitizedReportPath, preparation: campaign, repositoryRoot }),
+    ).rejects.toMatchObject({ code: 'EEXIST' });
   });
 
   it('allows only one concurrent reservation and therefore at most one invocation', async () => {
