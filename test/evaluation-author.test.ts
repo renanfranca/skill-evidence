@@ -1,4 +1,4 @@
-import { appendFile, mkdir, mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises';
+import { appendFile, chmod, mkdir, mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -17,6 +17,7 @@ import {
   type AuthorInvocationRequest,
 } from '../src/author/evaluation-author.js';
 import { createAuthorPromptfooInvocation, createPromptfooAuthorInvoker } from '../src/author/promptfoo-author-invoker.js';
+import { createCodexObservationSession, readCodexObservation } from '../src/author/provider-observation.js';
 import { reserveAuthorInvocation } from '../src/author/reservation.js';
 import { qualifyEvaluationAuthor, runAuthorConformance } from '../src/author/qualify-author.js';
 import { qualifyAuthorProviderBoundary } from '../src/author/qualify-author-provider.js';
@@ -795,6 +796,243 @@ describe('Evaluation Author v0', () => {
     expect(() => JSON.stringify(invocation)).not.toThrow();
   });
 
+  it('keeps Luna progress observation opt-in, bounded, and multi-agent disabled', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'skill-evidence-author-observation-config-'));
+    const codexExecutable = join(directory, 'codex-target');
+    await writeFile(codexExecutable, 'unused');
+    const observation = await createCodexObservationSession({ codexExecutable, directory });
+
+    const invocation = createAuthorPromptfooInvocation({
+      codexHome: '/external/codex-home',
+      observation,
+      request: { maxRetries: 0, model: 'gpt-5.6-luna', prompt: '{"packet":true}', reasoningEffort: 'max' },
+      timeouts: { maxEvalTimeMs: 1_000, timeoutMs: 750 },
+      workingDirectory: '/empty/workspace',
+    });
+
+    expect(invocation.options).toEqual({ cache: false, maxConcurrency: 1, maxEvalTimeMs: 1_000, silent: true, timeoutMs: 750 });
+    expect(invocation.suite.providers[0]!.config).toMatchObject({
+      cli_config: { features: { multi_agent: false } },
+      codex_path_override: observation.codexPathOverride,
+      enable_streaming: true,
+      maxRetries: 0,
+      model: 'gpt-5.6-luna',
+      model_reasoning_effort: 'max',
+    });
+    expect(() => JSON.stringify(invocation)).not.toThrow();
+  });
+
+  it('attributes timeout ownership only from sanitized process and Promptfoo evidence', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'skill-evidence-author-observation-runtime-'));
+    const codexExecutable = join(directory, 'codex-target');
+    const ledger = join(directory, 'calls.log');
+    await writeFile(ledger, '');
+    await writeFile(codexExecutable, await readFile('evaluations/refactor-design/e4-author/providers/fake-codex-cli.cjs', 'utf8'));
+    await chmod(codexExecutable, 0o700);
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-observation-skill-'));
+    await writeFile(join(root, 'SKILL.md'), '# Observed provider boundary\n');
+    const snapshot = await createSkillSnapshot({ rootDirectory: root });
+    const candidate = JSON.stringify(completeCandidate());
+    const scenarios = [
+      {
+        expected: {
+          cancellationObserved: true,
+          cancellationRequested: true,
+          progressObserved: false,
+          timeoutOwner: 'PROMPTFOO_STEP',
+        },
+        id: 'observation-no-progress',
+        timeouts: { maxEvalTimeMs: 3_000, timeoutMs: 1_000 },
+      },
+      {
+        expected: {
+          cancellationObserved: true,
+          cancellationRequested: true,
+          progressObserved: true,
+          timeoutOwner: 'PROMPTFOO_STEP',
+        },
+        id: 'observation-progress-timeout',
+        timeouts: { maxEvalTimeMs: 3_000, timeoutMs: 1_000 },
+      },
+      {
+        expected: {
+          cancellationObserved: false,
+          cancellationRequested: false,
+          progressObserved: false,
+          timeoutOwner: 'UNKNOWN',
+        },
+        id: 'observation-no-progress',
+        timeouts: { maxEvalTimeMs: 1_000, timeoutMs: 3_000 },
+      },
+      {
+        expected: {
+          cancellationObserved: false,
+          cancellationRequested: false,
+          lastObservedStage: 'TURN_FAILED',
+          progressObserved: true,
+          timeoutOwner: 'CODEX_TURN',
+        },
+        id: 'observation-turn-timeout',
+        timeouts: { maxEvalTimeMs: 3_000, timeoutMs: 2_000 },
+      },
+      {
+        expected: {
+          cancellationObserved: false,
+          cancellationRequested: false,
+          progressObserved: true,
+          timeoutOwner: null,
+        },
+        id: 'observation-process-after-progress',
+        timeouts: { maxEvalTimeMs: 3_000, timeoutMs: 2_000 },
+      },
+    ] as const;
+
+    for (const scenario of scenarios) {
+      const observationDirectory = await mkdtemp(join(directory, `${scenario.id}-`));
+      const observation = await createCodexObservationSession({
+        codexExecutable,
+        directory: observationDirectory,
+        environment: {
+          SKILL_EVIDENCE_FAKE_CODEX_LEDGER: ledger,
+          SKILL_EVIDENCE_FAKE_CODEX_OUTPUT: candidate,
+          SKILL_EVIDENCE_FAKE_CODEX_SCENARIO: scenario.id,
+        },
+      });
+      const invoke = createPromptfooAuthorInvoker({
+        codexHome: directory,
+        observation,
+        timeouts: scenario.timeouts,
+        workingDirectory: directory,
+      });
+      const result = await authorEvaluationBlueprint({
+        campaignId: scenario.id,
+        condition: { model: 'gpt-5.6-luna', reasoningEffort: 'max' },
+        invoke,
+        protocolVersion: 2,
+        snapshot,
+      });
+
+      expect(result).toMatchObject({ providerObservation: scenario.expected, status: 'ERROR' });
+      expect(JSON.stringify(result)).not.toMatch(
+        /local-diagnostic-thread|local-progress|deterministic process failure|author-observation-runtime/,
+      );
+    }
+
+    const completedDirectory = await mkdtemp(join(directory, 'observation-complete-'));
+    const completedObservation = await createCodexObservationSession({
+      codexExecutable,
+      directory: completedDirectory,
+      environment: {
+        SKILL_EVIDENCE_FAKE_CODEX_LEDGER: ledger,
+        SKILL_EVIDENCE_FAKE_CODEX_OUTPUT: candidate,
+        SKILL_EVIDENCE_FAKE_CODEX_SCENARIO: 'observation-complete',
+      },
+    });
+    const completed = await authorEvaluationBlueprint({
+      campaignId: 'observation-complete',
+      condition: { model: 'gpt-5.6-luna', reasoningEffort: 'max' },
+      invoke: createPromptfooAuthorInvoker({
+        codexHome: directory,
+        observation: completedObservation,
+        timeouts: { maxEvalTimeMs: 3_000, timeoutMs: 2_000 },
+        workingDirectory: directory,
+      }),
+      protocolVersion: 2,
+      snapshot,
+    });
+    expect(completed).toMatchObject({
+      providerObservation: {
+        cancellationObserved: false,
+        cancellationRequested: false,
+        lastObservedStage: 'TURN_COMPLETED',
+        progressObserved: true,
+        timeoutOwner: null,
+      },
+      status: 'COMPLETED',
+    });
+
+    const untrustedDirectory = await mkdtemp(join(directory, 'observation-untrusted-'));
+    const untrustedObservation = await createCodexObservationSession({
+      codexExecutable,
+      directory: untrustedDirectory,
+      environment: {
+        SKILL_EVIDENCE_FAKE_CODEX_LEDGER: ledger,
+        SKILL_EVIDENCE_FAKE_CODEX_OUTPUT: candidate,
+        SKILL_EVIDENCE_FAKE_CODEX_SCENARIO: 'observation-untrusted-type-complete',
+      },
+    });
+    await authorEvaluationBlueprint({
+      campaignId: 'observation-untrusted-type-complete',
+      condition: { model: 'gpt-5.6-luna', reasoningEffort: 'max' },
+      invoke: createPromptfooAuthorInvoker({
+        codexHome: directory,
+        observation: untrustedObservation,
+        timeouts: { maxEvalTimeMs: 300, timeoutMs: 200 },
+        workingDirectory: directory,
+      }),
+      protocolVersion: 2,
+      snapshot,
+    });
+    expect(await readFile(untrustedObservation.journalPath, 'utf8')).not.toMatch(/owner@example\.com|secret-token-value|private\/work/);
+
+    const missing = await readCodexObservation(
+      { codexPathOverride: '/not-used', environment: {}, journalPath: join(directory, 'missing-journal') },
+      'Evaluation timed out after 80ms',
+    );
+    expect(missing).toEqual({
+      cancellationObserved: null,
+      cancellationRequested: true,
+      firstProgressAtMs: null,
+      lastObservedStage: 'UNKNOWN',
+      lastProgressAtMs: null,
+      progressObserved: null,
+      timeoutOwner: 'PROMPTFOO_STEP',
+    });
+
+    const explicitEvaluationTimeout = createPromptfooAuthorInvoker({
+      codexHome: directory,
+      loadPromptfoo: () =>
+        Promise.resolve({
+          evaluate: () =>
+            Promise.resolve({
+              toEvaluateSummary: () => Promise.resolve({ results: [{ error: 'Evaluation exceeded max duration of 80ms' }] }),
+            }),
+        }),
+      observation: { codexPathOverride: '/not-used', environment: {}, journalPath: join(directory, 'missing-journal') },
+      workingDirectory: directory,
+    });
+    await expect(
+      explicitEvaluationTimeout({ maxRetries: 0, model: 'gpt-5.6-luna', prompt: '{}', reasoningEffort: 'max' }),
+    ).rejects.toMatchObject({
+      providerObservation: {
+        cancellationObserved: null,
+        cancellationRequested: true,
+        progressObserved: null,
+        timeoutOwner: 'PROMPTFOO_EVALUATION',
+      },
+    });
+
+    const noText = createPromptfooAuthorInvoker({
+      codexHome: directory,
+      loadPromptfoo: () =>
+        Promise.resolve({
+          evaluate: () =>
+            Promise.resolve({
+              toEvaluateSummary: () => Promise.resolve({ results: [{ response: { output: { not: 'text' } } }] }),
+            }),
+        }),
+      observation: { codexPathOverride: '/not-used', environment: {}, journalPath: join(directory, 'missing-journal') },
+      workingDirectory: directory,
+    });
+    await expect(noText({ maxRetries: 0, model: 'gpt-5.6-luna', prompt: '{}', reasoningEffort: 'max' })).rejects.toMatchObject({
+      diagnostic: { code: 'NO_TEXT', stage: 'OUTPUT' },
+      providerObservation: {
+        lastObservedStage: 'UNKNOWN',
+        progressObserved: null,
+      },
+    });
+  }, 20_000);
+
   it('normalizes available Promptfoo latency and token usage without inventing missing fields', async () => {
     const invoke = createPromptfooAuthorInvoker({
       codexHome: '/external/codex-home',
@@ -931,16 +1169,26 @@ describe('Evaluation Author v0', () => {
     expect(first).toMatchObject({
       codexSdkVersion: '0.147.0',
       externalProviderCalls: 0,
-      localProcessCalls: 6,
+      localProcessCalls: 12,
       promptfooVersion: '0.122.0',
       purpose: 'DEVELOPMENT',
       result: 'SUPPORTED_FOR_DEVELOPMENT',
       schemaVersion: 1,
     });
-    expect(first.cases).toHaveLength(6);
+    expect(first.cases).toHaveLength(12);
     expect(first.cases.every((entry) => entry.actual === entry.expected)).toBe(true);
+    expect(first.cases).toContainEqual({
+      actual: 'ERROR:PROMPTFOO_STEP:true:true:true:PROCESS_EXIT',
+      expected: 'ERROR:PROMPTFOO_STEP:true:true:true:PROCESS_EXIT',
+      id: 'observation-progress-timeout',
+    });
+    expect(first.cases).toContainEqual({
+      actual: 'ERROR:UNKNOWN:false:false:false:PROCESS_EXIT',
+      expected: 'ERROR:UNKNOWN:false:false:false:PROCESS_EXIT',
+      id: 'observation-evaluation-timeout-unresolved',
+    });
     expect(JSON.stringify(first)).not.toMatch(/owner@example\.com|secret-token-value|private\/work/);
-  });
+  }, 30_000);
 
   it('refuses the internal Author command without approval for exactly one provider invocation', async () => {
     await expect(

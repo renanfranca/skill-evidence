@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "expectedLifecycle": "BLOCKED",
+  "minimalChecks": [
+    "The result is a canonical protocol-v2 Evaluation Blueprint.",
+    "Lifecycle, provenance, identity, and snapshot fields remain system-controlled.",
+    "Requested Luna/max remains NOT_QUALIFIED and decision-ineligible.",
+    "Absent decision thresholds, population, severe-harm limits, and uncertainty are not presented as known facts.",
+    "The oracle and expected lifecycle are absent from the Author packet."
+  ]
+}

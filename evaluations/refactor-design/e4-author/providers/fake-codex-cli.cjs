@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-/* global process */
+/* global process, setInterval */
 
 'use strict';
 
@@ -17,6 +17,10 @@ if (!ledger || !scenario || process.argv[2] !== 'exec' || process.argv[3] !== '-
   appendFileSync(ledger, `${scenario}\n`, 'utf8');
   process.stdin.resume();
   process.stdin.on('end', () => {
+    if (scenario === 'observation-no-progress') {
+      setInterval(() => {}, 1_000);
+      return;
+    }
     if (scenario === 'process') {
       process.stderr.write('Codex Exec failed in the deterministic local fixture\n');
       process.exitCode = 1;
@@ -25,7 +29,21 @@ if (!ledger || !scenario || process.argv[2] !== 'exec' || process.argv[3] !== '-
 
     process.stdout.write(`${JSON.stringify({ thread_id: 'local-diagnostic-thread', type: 'thread.started' })}\n`);
     process.stdout.write(`${JSON.stringify({ type: 'turn.started' })}\n`);
-    if (scenario === 'success') {
+    if (scenario === 'observation-progress-timeout') {
+      process.stdout.write(`${JSON.stringify({ item: { id: 'local-progress', type: 'reasoning' }, type: 'item.started' })}\n`);
+      setInterval(() => {}, 1_000);
+      return;
+    }
+    if (scenario === 'observation-process-after-progress') {
+      process.stdout.write(`${JSON.stringify({ item: { id: 'local-progress', type: 'reasoning' }, type: 'item.started' })}\n`);
+      process.stderr.write('deterministic process failure\n');
+      process.exitCode = 1;
+      return;
+    }
+    if (scenario === 'observation-untrusted-type-complete') {
+      process.stdout.write(`${JSON.stringify({ type: 'owner@example.com secret-token-value /private/work' })}\n`);
+    }
+    if (scenario === 'success' || scenario === 'observation-complete' || scenario === 'observation-untrusted-type-complete') {
       process.stdout.write(
         `${JSON.stringify({ item: { id: 'local-diagnostic-message', text: output, type: 'agent_message' }, type: 'item.completed' })}\n`,
       );
@@ -40,6 +58,13 @@ if (!ledger || !scenario || process.argv[2] !== 'exec' || process.argv[3] !== '-
             reasoning_output_tokens: 0,
           },
         })}\n`,
+      );
+      return;
+    }
+
+    if (scenario === 'observation-turn-timeout') {
+      process.stdout.write(
+        `${JSON.stringify({ error: { message: 'request timed out in the deterministic Codex turn' }, type: 'turn.failed' })}\n`,
       );
       return;
     }
