@@ -77,6 +77,22 @@ function viabilityPreparation(): AuthorOperabilityCampaignPreparation {
   };
 }
 
+function terraPreparation(): AuthorOperabilityCampaignPreparation {
+  return {
+    ...viabilityPreparation(),
+    campaignId: 'e20-terra-xhigh-locale-catalog-20260813-r1',
+    condition: {
+      conditionFingerprint: fingerprint,
+      reasoningEffort: 'xhigh',
+      requestedModel: 'gpt-5.6-terra',
+    },
+    fingerprints: { ...viabilityPreparation().fingerprints, condition: fingerprint },
+    outputDirectory: '.skill-evidence/author-operability/e20-terra-xhigh-locale-catalog-20260813-r1',
+    reservationPath: '.skill-evidence/author-operability-reservations/e20-terra-xhigh-locale-catalog-20260813-r1.json',
+    sanitizedReportPath: 'docs/experiments/e20-terra-xhigh-locale-catalog-20260813-r1.json',
+  };
+}
+
 function evidence(): AuthorOperabilityPreflightEvidence {
   return {
     authentication: { codexHome: '/home/renanfranca/.codex', homeWritable: true, loginStatus: 'AUTHENTICATED' },
@@ -103,20 +119,29 @@ function evidence(): AuthorOperabilityPreflightEvidence {
 }
 
 describe('Evaluation Author operability canary', () => {
-  it('accepts the frozen 30-minute profile while preserving the exact E18 model-facing packet', async () => {
-    const [e18Value, e19Value] = await Promise.all([
+  it('accepts only the frozen campaign profiles while preserving the exact model-facing packet', async () => {
+    const [e18Value, e19Value, e20Value] = await Promise.all([
       readFile('evaluations/refactor-design/e5-author-operability/luna-max-canary-r1/campaign-preparation.json', 'utf8'),
       readFile('evaluations/refactor-design/e5-author-operability/luna-max-viability-r1/campaign-preparation.json', 'utf8'),
+      readFile('evaluations/refactor-design/e5-author-operability/terra-xhigh-controlled-r1/campaign-preparation.json', 'utf8'),
     ]);
     const e18 = JSON.parse(e18Value) as unknown;
     const e19 = JSON.parse(e19Value) as unknown;
+    const e20 = JSON.parse(e20Value) as unknown;
 
     expect(validateAuthorOperabilityCampaignPreparation(e18)).toBe(true);
     expect(validateAuthorOperabilityCampaignPreparation(e19)).toBe(true);
-    if (!validateAuthorOperabilityCampaignPreparation(e18) || !validateAuthorOperabilityCampaignPreparation(e19)) return;
-    const [e18Inspection, e19Inspection] = await Promise.all([
+    expect(validateAuthorOperabilityCampaignPreparation(e20)).toBe(true);
+    if (
+      !validateAuthorOperabilityCampaignPreparation(e18) ||
+      !validateAuthorOperabilityCampaignPreparation(e19) ||
+      !validateAuthorOperabilityCampaignPreparation(e20)
+    )
+      return;
+    const [e18Inspection, e19Inspection, e20Inspection] = await Promise.all([
       inspectAuthorOperabilityCampaign(process.cwd(), e18),
       inspectAuthorOperabilityCampaign(process.cwd(), e19),
+      inspectAuthorOperabilityCampaign(process.cwd(), e20),
     ]);
 
     expect(e19.timeouts).toEqual({ maxEvalTimeMs: 1_860_000, timeoutMs: 1_800_000 });
@@ -127,6 +152,20 @@ describe('Evaluation Author operability canary', () => {
     });
     expect(e19Inspection.invocationConfigurationValid).toBe(true);
     expect(e19Inspection.packetBlind).toBe(true);
+    expect(e20.condition).toEqual({
+      conditionFingerprint: e20.fingerprints.condition,
+      reasoningEffort: 'xhigh',
+      requestedModel: 'gpt-5.6-terra',
+    });
+    expect(e20.timeouts).toEqual(e19.timeouts);
+    expect(e20.oraclePath).toBe(e19.oraclePath);
+    expect(e20Inspection.packet).toBe(e19Inspection.packet);
+    expect(e20Inspection.fingerprints).toEqual({
+      ...e19Inspection.fingerprints,
+      condition: e20.fingerprints.condition,
+    });
+    expect(e20Inspection.invocationConfigurationValid).toBe(true);
+    expect(e20Inspection.packetBlind).toBe(true);
   });
 
   it('keeps the final command inert without literal one-call approval', async () => {
@@ -153,9 +192,10 @@ describe('Evaluation Author operability canary', () => {
 
     expect(report).toMatchObject({
       externalProviderCalls: 0,
-      localProcessCalls: 6,
+      localProcessCalls: 9,
       purpose: 'DEVELOPMENT',
       reviewWorkflowQualified: true,
+      reviewWorkflowCampaigns: ['e19-luna-max-locale-catalog-20260813-r1', 'e20-terra-xhigh-locale-catalog-20260813-r1'],
       result: 'SUPPORTED_FOR_DEVELOPMENT',
     });
     expect(report.cases).toEqual([
@@ -194,6 +234,27 @@ describe('Evaluation Author operability canary', () => {
         expected: 'INSUFFICIENT',
         id: 'e19-luna-max-locale-catalog-20260813-r1:process-failure',
         viabilityDecision: 'INSUFFICIENT',
+      },
+      {
+        actual: 'COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
+        comparisonConclusion: 'PENDING_SEMANTIC_REVIEW',
+        expected: 'COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
+        id: 'e20-terra-xhigh-locale-catalog-20260813-r1:completion',
+        viabilityDecision: null,
+      },
+      {
+        actual: 'NOT_COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
+        comparisonConclusion: 'TERRA_DOES_NOT_PASS_CURRENT_INSTRUMENT',
+        expected: 'NOT_COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
+        id: 'e20-terra-xhigh-locale-catalog-20260813-r1:codex-turn-timeout',
+        viabilityDecision: null,
+      },
+      {
+        actual: 'INSUFFICIENT',
+        comparisonConclusion: 'INSUFFICIENT',
+        expected: 'INSUFFICIENT',
+        id: 'e20-terra-xhigh-locale-catalog-20260813-r1:process-failure',
+        viabilityDecision: null,
       },
     ]);
   }, 20_000);
@@ -247,6 +308,7 @@ describe('Evaluation Author operability canary', () => {
 
   it('requires every frozen provider-free prerequisite without reserving or invoking the canary', () => {
     const ready = evaluateAuthorOperabilityPreflight(preparation(), evidence());
+    const terraReady = evaluateAuthorOperabilityPreflight(terraPreparation(), evidence());
     const drifted = evaluateAuthorOperabilityPreflight(preparation(), { ...evidence(), currentCommit: 'c'.repeat(40) });
 
     expect(ready).toMatchObject({
@@ -258,6 +320,8 @@ describe('Evaluation Author operability canary', () => {
       result: 'READY_FOR_AUTHORIZATION',
     });
     expect(ready.checks.every((check) => check.status === 'PASS')).toBe(true);
+    expect(terraReady.limitations).toContain('Preflight does not reserve the campaign or invoke gpt-5.6-terra.');
+    expect(terraReady.limitations.join(' ')).not.toContain('Luna/max');
     expect(drifted).toMatchObject({ result: 'BLOCKED' });
     expect(drifted.checks).toContainEqual({ id: 'EXACT_CLEAN_COMMIT', status: 'FAIL' });
 
@@ -521,6 +585,132 @@ describe('Evaluation Author operability canary', () => {
     expect(result.viabilityDecision).toBe('NOT_VIABLE_FOR_AUTHOR');
   });
 
+  it('identifies the exact shared evidence-taxonomy failure on the frozen Terra contrast', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-terra-shared-failure-'));
+    const campaign = terraPreparation();
+    const candidate = JSON.parse(await readFile('evaluations/refactor-design/e4-author/base-candidate.json', 'utf8')) as Record<
+      string,
+      unknown
+    >;
+    const claims = candidate.claims as Array<Record<string, unknown>>;
+    const contracts = candidate.contracts as Array<Record<string, unknown>>;
+    const evidencePlan = candidate.evidencePlan as Array<Record<string, unknown>>;
+    claims[0]!.id = 'claim_no_entries';
+    contracts[0]!.id = 'contract_no_entries';
+    contracts[0]!.claimIds = ['claim_no_entries'];
+    evidencePlan[0]!.id = 'evidence_no_entries';
+    evidencePlan[0]!.claimIds = ['claim_no_entries'];
+    evidencePlan[0]!.contractIds = ['contract_no_entries'];
+    evidencePlan[0]!.evidenceType = 'SEMANTIC';
+    candidate.unresolvedRequirements = [
+      {
+        blocking: true,
+        description: 'Decision context is absent from the supplied skill snapshot.',
+        id: 'decision-context-absent',
+        relatedSection: 'decisionContext',
+      },
+    ];
+    await mkdir(join(repositoryRoot, campaign.skillPath), { recursive: true });
+    await writeFile(join(repositoryRoot, campaign.skillPath, 'SKILL.md'), '# Controlled Terra fixture\n');
+
+    const result = await runAuthorOperabilityCampaign({
+      approval: '1',
+      currentCommit: () => Promise.resolve(commit),
+      expectedCommit: commit,
+      inspectCampaign: () =>
+        Promise.resolve({ fingerprints: campaign.fingerprints, invocationConfigurationValid: true, packet: '{}', packetBlind: true }),
+      invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(candidate) }),
+      preparation: campaign,
+      preflight: evaluateAuthorOperabilityPreflight(campaign, { ...evidence(), derivedFingerprints: campaign.fingerprints }),
+      repositoryRoot,
+      workingTreeClean: () => Promise.resolve(true),
+    });
+    const collection = JSON.parse(await readFile(join(repositoryRoot, campaign.outputDirectory, 'collection.json'), 'utf8')) as Record<
+      string,
+      unknown
+    >;
+
+    expect(result.comparisonConclusion).toBe('SHARED_INSTRUMENT_FAILURE_SUPPORTED');
+    expect(collection).toMatchObject({
+      actualLifecycle: 'DRAFT',
+      comparisonConclusion: 'SHARED_INSTRUMENT_FAILURE_SUPPORTED',
+      viabilityDecision: null,
+    });
+  });
+
+  it('keeps every non-review Terra terminal outcome inside the frozen diagnostic matrix', async () => {
+    const baseCandidate = JSON.parse(await readFile('evaluations/refactor-design/e4-author/base-candidate.json', 'utf8')) as Record<
+      string,
+      unknown
+    >;
+    const blockedCandidate = {
+      ...baseCandidate,
+      unresolvedRequirements: [
+        {
+          blocking: true,
+          description: 'Decision context is absent from the supplied snapshot.',
+          id: 'decision-context-absent',
+          relatedSection: 'decisionContext',
+        },
+      ],
+    };
+    const draftCandidate = { ...baseCandidate, evidencePlan: [] };
+    const scenarios: Array<{
+      expected: string;
+      id: string;
+      invoke: () => Promise<AuthorInvocationResponse>;
+    }> = [
+      {
+        expected: 'PENDING_SEMANTIC_REVIEW',
+        id: 'blocked',
+        invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(blockedCandidate) }),
+      },
+      {
+        expected: 'TERRA_DOES_NOT_PASS_CURRENT_INSTRUMENT',
+        id: 'other-draft',
+        invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(draftCandidate) }),
+      },
+      {
+        expected: 'TERRA_DOES_NOT_PASS_CURRENT_INSTRUMENT',
+        id: 'invalid-json',
+        invoke: () => Promise.resolve({ observedModel: null, output: 'not-json' }),
+      },
+      {
+        expected: 'TERRA_DOES_NOT_PASS_CURRENT_INSTRUMENT',
+        id: 'timeout',
+        invoke: () => Promise.reject(new AuthorProviderError({ category: 'TIMEOUT', code: 'ABORTED', stage: 'RESULT' })),
+      },
+      {
+        expected: 'INSUFFICIENT',
+        id: 'process',
+        invoke: () => Promise.reject(new AuthorProviderError({ category: 'PROCESS', code: 'EXIT_NONZERO', stage: 'RESULT' })),
+      },
+    ];
+
+    for (const scenario of scenarios) {
+      const repositoryRoot = await mkdtemp(join(tmpdir(), `skill-evidence-terra-${scenario.id}-`));
+      const campaign = terraPreparation();
+      await mkdir(join(repositoryRoot, campaign.skillPath), { recursive: true });
+      await writeFile(join(repositoryRoot, campaign.skillPath, 'SKILL.md'), '# Controlled Terra fixture\n');
+
+      const result = await runAuthorOperabilityCampaign({
+        approval: '1',
+        currentCommit: () => Promise.resolve(commit),
+        expectedCommit: commit,
+        inspectCampaign: () =>
+          Promise.resolve({ fingerprints: campaign.fingerprints, invocationConfigurationValid: true, packet: '{}', packetBlind: true }),
+        invoke: scenario.invoke,
+        preparation: campaign,
+        preflight: evaluateAuthorOperabilityPreflight(campaign, { ...evidence(), derivedFingerprints: campaign.fingerprints }),
+        repositoryRoot,
+        workingTreeClean: () => Promise.resolve(true),
+      });
+
+      expect(result.comparisonConclusion).toBe(scenario.expected);
+      expect(result.providerInvocations).toBe(1);
+    }
+  });
+
   it('keeps semantic review condition-blind and resolves only disagreements before viability', async () => {
     const candidate = JSON.parse(await readFile('evaluations/refactor-design/e4-author/base-candidate.json', 'utf8')) as Record<
       string,
@@ -677,6 +867,89 @@ describe('Evaluation Author operability canary', () => {
     await expect(
       scoreAuthorViability({ outputPath: campaign.sanitizedReportPath, preparation: campaign, repositoryRoot }),
     ).rejects.toMatchObject({ code: 'EEXIST' });
+  });
+
+  it('passes Terra only after a BLOCKED candidate completes independent semantic review', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-terra-review-'));
+    const campaign = terraPreparation();
+    const candidate = JSON.parse(await readFile('evaluations/refactor-design/e4-author/base-candidate.json', 'utf8')) as Record<
+      string,
+      unknown
+    >;
+    candidate.unresolvedRequirements = [
+      {
+        blocking: true,
+        description: 'Decision authority and release thresholds are absent.',
+        id: 'decision-authority-absent',
+        relatedSection: 'decisionContext',
+      },
+    ];
+    const skillDirectory = join(repositoryRoot, campaign.skillPath);
+    await mkdir(skillDirectory, { recursive: true });
+    await writeFile(join(skillDirectory, 'SKILL.md'), '# Locale catalog\n\nRender entries literally.\n');
+    await mkdir(dirname(join(repositoryRoot, campaign.oraclePath)), { recursive: true });
+    await writeFile(
+      join(repositoryRoot, campaign.oraclePath),
+      await readFile('evaluations/refactor-design/e5-author-operability/luna-max-viability-r1/oracle.json', 'utf8'),
+    );
+    const snapshot = await createSkillSnapshot({ rootDirectory: skillDirectory });
+    const run = await authorEvaluationBlueprint({
+      campaignId: campaign.campaignId,
+      condition: { model: 'gpt-5.6-terra', reasoningEffort: 'xhigh' },
+      invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(candidate) }),
+      protocolVersion: 2,
+      snapshot,
+    });
+    expect(run.status).toBe('COMPLETED');
+    if (run.status !== 'COMPLETED') return;
+    const outputDirectory = join(repositoryRoot, campaign.outputDirectory);
+    await mkdir(outputDirectory, { recursive: true });
+    await writeFile(
+      join(outputDirectory, 'collection.json'),
+      JSON.stringify({
+        actualLifecycle: 'BLOCKED',
+        blueprint: run.blueprint,
+        campaignFingerprint: sha256(campaign),
+        campaignId: campaign.campaignId,
+        comparisonConclusion: 'PENDING_SEMANTIC_REVIEW',
+        elapsedMs: 100_000,
+        operabilityOutcome: 'COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
+        providerInvocations: 1,
+        target1800SecondsMet: true,
+        target300SecondsMet: true,
+        target600SecondsMet: true,
+        tokenUsage: null,
+        viabilityDecision: null,
+      }),
+    );
+
+    const prepared = await prepareAuthorViabilityReview({ preparation: campaign, repositoryRoot });
+    const packet = JSON.parse(await readFile(join(prepared.reviewDirectory, 'reviewer-a.packet.json'), 'utf8')) as {
+      criteria: Array<{ id: string }>;
+    };
+    expect(JSON.stringify(packet)).not.toMatch(/gpt-5\.6-terra|xhigh|e19-|e20-|Luna|Terra/u);
+    const accepted = packet.criteria.map((criterion) => ({
+      criterionId: criterion.id,
+      evidencePaths: ['/candidate/contracts'],
+      rationale: 'The candidate preserves the observable contract.',
+      verdict: 'ACCEPT',
+    }));
+    await Promise.all([
+      writeFile(join(prepared.reviewDirectory, 'reviewer-a.input.json'), JSON.stringify({ judgments: accepted, reviewerId: 'reviewer-a' })),
+      writeFile(join(prepared.reviewDirectory, 'reviewer-b.input.json'), JSON.stringify({ judgments: accepted, reviewerId: 'reviewer-b' })),
+    ]);
+    await prepareAuthorViabilityResolution({ repositoryRoot, reviewDirectory: prepared.reviewDirectory });
+    const report = await scoreAuthorViability({
+      outputPath: campaign.sanitizedReportPath,
+      preparation: campaign,
+      repositoryRoot,
+    });
+
+    expect(report).toMatchObject({
+      authorCondition: { qualificationStatus: 'NOT_QUALIFIED', requestedModel: 'gpt-5.6-terra', requestedReasoning: 'xhigh' },
+      decisionEligible: false,
+      result: 'TERRA_PASSES_CURRENT_INSTRUMENT',
+    });
   });
 
   it('allows only one concurrent reservation and therefore at most one invocation', async () => {
