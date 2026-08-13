@@ -138,9 +138,10 @@ Run the repository's deterministic final validation without repeating any canary
 - [x] Receive separate authorization to prepare a novel canary without a provider invocation.
 - [x] Prepare and qualify the complete one-call canary runner offline: three deterministic local processes, zero external calls, and `SUPPORTED_FOR_DEVELOPMENT`.
 - [x] Complete the Milestone 3 behavior suite, post-GREEN design review, documentation reconciliation, and deterministic validation.
-- [ ] Freeze and preflight the one-call canary without invoking a provider.
-- [ ] Receive exact one-call authorization.
-- [ ] Execute and report the canary exactly once.
+- [x] Freeze and preflight the one-call canary without invoking a provider: commit `05b398f4a85996c5afa51f8652a0596d6275f6d9`, campaign fingerprint `c0636042ea641f5da10678110a606d4225326ec4a3b156eab9c819ec9285c7ff`, and every check green.
+- [x] Receive exact one-call authorization through the approved execution plan naming campaign, fingerprint, commit, and budget `1`.
+- [x] Execute and report the canary exactly once: `NOT_COMPLETED_WITHIN_DIAGNOSTIC_BUDGET` after 600,649 ms, with one invocation, zero retry, and no Blueprint.
+- [x] Complete Milestone 5 documentation reconciliation and deterministic final validation without repeating the canary.
 - [x] Complete the Milestone 2 post-GREEN design review, documentation reconciliation, and deterministic final validation.
 
 ## Decisions
@@ -197,6 +198,10 @@ Run the repository's deterministic final validation without repeating any canary
   Rationale: Promptfoo and the Codex SDK emit diagnostic logs even in local deterministic runs; subprocess isolation keeps the persisted preflight report canonical without hiding or mutating global process output.
   Date/Author: 2026-08-12 / implementation agent.
 
+- Decision: classify the terminal canary as operationally not completed and overall `INSUFFICIENT`, without a lifecycle or semantic judgment.
+  Rationale: Promptfoo's frozen 600-second step timer aborted the only invocation before a Blueprint existed; this directly measures noncompletion under the diagnostic budget but supplies no candidate to score.
+  Date/Author: 2026-08-12 / implementation agent.
+
 ## Risks and Mitigations
 
 - Risk: E5 is effectively rerun under a longer timeout. Mitigation: use a novel development fixture, new campaign and fingerprints, and report the 300-second miss separately without reclassifying E5.
@@ -220,6 +225,8 @@ Progress from immutable-report inspection to pinned dependency analysis, behavio
 
 Milestone 3 offline validation on 2026-08-12 passed 50 focused tests and the complete 155-test suite, strict typecheck, lint, Prettier, build, provider-free verification with zero provider imports, the E4 Author qualifier, the 12-process provider-boundary qualifier, the eight-case lifecycle qualifier, and the three-process operability qualifier. Every local qualifier reported `SUPPORTED_FOR_DEVELOPMENT` with zero external calls. The immutable E5 report tree remained byte-for-byte unchanged, and no real operability reservation, terminal receipt, or output existed.
 
+After the terminal canary, final validation passed `npm audit` with zero vulnerabilities, 50 focused tests, all 155 tests, strict typecheck, lint, Prettier, build, provider-free verification, and every deterministic Author, provider, lifecycle, archaeological, and operability qualifier. The live command was not repeated. The reservation, receipt, and collection remained local under `.skill-evidence/`; only the sanitized canonical report was added to `docs/experiments/`.
+
 ## Documentation Impact
 
 - This ExecPlan and `docs/execplans/README.md`: canonical roadmap and living diagnostic record.
@@ -231,6 +238,8 @@ Milestone 3 offline validation on 2026-08-12 passed 50 focused tests and the com
 - `AGENTS.md` and `package.json`: document only the new internal offline qualifier, provider-free preflight, and separately authorized one-call command after they exist.
 
 Milestone 3 preparation materializes campaign fingerprint `c0636042ea641f5da10678110a606d4225326ec4a3b156eab9c819ec9285c7ff`. This fingerprint excludes the future expected commit, which will be recorded separately by the exact-SHA preflight and reservation.
+
+Milestone 4 consumed that campaign once on commit `05b398f4a85996c5afa51f8652a0596d6275f6d9`. The only invocation ended after 600,649 ms with Promptfoo step-owned `TIMEOUT`/`ABORTED`; the sanitized proxy observed early local progress and local cancellation, but no Blueprint, token usage, or observed model identity. The result is `NOT_COMPLETED_WITHIN_DIAGNOSTIC_BUDGET`, the historical 300-second target was also missed, and semantic checks remain `NOT_OBSERVED`.
 
 ## Rollout and Recovery
 
@@ -249,3 +258,4 @@ There is no deployment. Land offline observability changes separately from any f
 - GitHub Actions run `31648333083` showed that an 80-millisecond synthetic deadline can expire before the proxy process starts under CI load, correctly leaving journal-backed fields `null`; it also showed that two complete local qualifications can exceed Vitest's default five-second test limit. These are test-budget defects, not evidence that the Author or future canary path failed.
 - A preflight report cannot safely share stdout with an in-process Promptfoo qualifier because dependency diagnostics precede the canonical JSON. Running that qualifier in a child process and parsing its final report preserves both diagnostic visibility and a single canonical preflight document.
 - Post-GREEN design review found no material defect or design risk requiring a behavior-preserving refactor. The campaign service is intentionally cohesive around one irreversible transaction; splitting its validation, reservation, collection, and terminalization would add coordination surfaces without reducing an observed risk.
+- The fresh protocol-v2 Luna/max canary reproduced the operational pattern under a doubled ceiling: local process progress was observed, but no Blueprint was returned before Promptfoo cancelled the step at 600 seconds. This weakens the hypothesis that the E5 failures were only a narrowly insufficient five-minute budget, while leaving remote model stage, effective identity, and semantic quality unresolved.
