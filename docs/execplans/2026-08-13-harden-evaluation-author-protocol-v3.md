@@ -110,6 +110,7 @@ Acceptance: all local and hosted gates pass, zero external calls occur, no campa
 - [x] Complete Milestone 1: schema-3, trusted context, fingerprints, API, and CLI gates.
 - [x] Complete Milestone 2: protected blockers, reserved IDs, evidence paths, and lifecycle precedence.
 - [x] Complete Milestone 3: fresh fixtures, six-call local qualifier, CI, design review, and documentation.
+- [x] Confirm PR #9 hosted validation green for implementation/documentation commit `3c8d412`.
 
 ## Decisions
 
