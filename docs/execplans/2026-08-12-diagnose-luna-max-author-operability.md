@@ -93,13 +93,17 @@ npm run lint
 
 ### Milestone 3 — Prepare and separately authorize one development canary
 
-Create a novel, non-E5 development skill whose snapshot is representative in packet size and Blueprint complexity but whose oracle tests only canonical completion, provenance, lifecycle control, and absence of invented context. Keep the oracle outside the nested skill root. Freeze one clean commit, campaign ID, snapshot, packet, protocol-v2 condition fingerprints, `gpt-5.6-luna`/`max`, multi-agent disabled, no retry, and a 600-second timeout.
+Create campaign `e18-luna-max-locale-catalog-20260812-r1` around a novel `locale-entry-catalog` skill whose snapshot is representative in packet size and Blueprint complexity. Its oracle remains outside the nested skill root and tests canonical completion, provenance, lifecycle control, and absence of invented context. `BLOCKED` is a secondary safety expectation; operational completion is reported separately and is never rewritten by semantic findings.
+
+Add three internal commands: `experiment:qualify:author-operability` traverses the final runner with deterministic local executables and zero external calls; `experiment:preflight:author-operability` checks the frozen campaign without reservation; and `experiment:canary:author-operability` is the final one-call path but remains unauthorized during this milestone. The final condition is protocol v2, `gpt-5.6-luna`/`max`, multi-agent disabled, zero retry, Promptfoo `timeoutMs:600000`, and `maxEvalTimeMs:660000`.
+
+The versioned campaign preparation contains all material identities except the expected Git commit. The future runner rechecks the exact clean commit immediately before atomically creating one reservation, uses one fresh temporary workspace and sanitized observation journal, and always attempts an adjacent terminal receipt after reservation. Tests and qualification may create reservations only inside temporary directories.
 
 Run provider-free preflight first. Stop and request explicit authorization naming all frozen identities and exactly one provider invocation. Planning, fixture creation, preflight, or offline qualification does not imply this authorization.
 
-Acceptance before authorization: clean exact commit; writable authenticated Codex home; absent API-key variables; correct pinned versions and fingerprints; no prior reservation or output; one-call budget; zero calls performed.
+Acceptance before authorization: the exact commit is pushed and CI-green; worktree and upstream are exact; `/home/renanfranca/.codex` is writable and `codex login status` succeeds without its output being persisted; API-key variables are absent; pinned versions, invocation configuration, packet blindness, and all fingerprints match; no reservation, receipt, or output exists; the local qualifier is `SUPPORTED_FOR_DEVELOPMENT`; and zero external calls were performed.
 
-Milestone 3 remains unauthorized. Milestones 1 and 2 produced no fixture, preflight, reservation, campaign output, or provider invocation.
+The user authorized preparation of Milestone 3 on 2026-08-12 while retaining PR #6 as the single review and CI vehicle for the complete ExecPlan. This does not authorize Milestone 4 or any real provider invocation.
 
 ### Milestone 4 — Execute once and report operational evidence
 
@@ -131,7 +135,9 @@ Run the repository's deterministic final validation without repeating any canary
 - [x] Complete offline diagnosis and observability qualification on `feat/e5-luna-max-operability-diagnosis`: 12 deterministic local processes, zero external calls, and `SUPPORTED_FOR_DEVELOPMENT`.
 - [x] Stabilize the synthetic timing budget locally: 147 tests green, provider qualifier green, and provider-free checkpoint green.
 - [x] Restore the public CI checkpoint: run `31649414070` completed all validation steps after the synthetic timing correction.
-- [ ] Receive separate authorization to prepare a novel canary.
+- [x] Receive separate authorization to prepare a novel canary without a provider invocation.
+- [x] Prepare and qualify the complete one-call canary runner offline: three deterministic local processes, zero external calls, and `SUPPORTED_FOR_DEVELOPMENT`.
+- [x] Complete the Milestone 3 behavior suite, post-GREEN design review, documentation reconciliation, and deterministic validation.
 - [ ] Freeze and preflight the one-call canary without invoking a provider.
 - [ ] Receive exact one-call authorization.
 - [ ] Execute and report the canary exactly once.
@@ -175,6 +181,22 @@ Run the repository's deterministic final validation without repeating any canary
   Rationale: the qualifier tests process-boundary behavior rather than scheduler speed; one second gives process startup a wide margin while retaining explicit ownership ordering, and per-test limits avoid weakening Vitest globally.
   Date/Author: 2026-08-12 / implementation agent.
 
+- Decision: keep Milestones 3–5 in PR #6 with commit-level freezes.
+  Rationale: one PR preserves a continuous review record; the exact commit used by the canary remains independently frozen and cannot change between preflight and reservation.
+  Date/Author: 2026-08-12 / user and implementation agent.
+
+- Decision: separate operational outcome from secondary lifecycle and fabrication checks.
+  Rationale: a valid completed Blueprint is direct completion evidence even when a semantic safety check fails; combining those dimensions would repeat E5's operability-versus-quality ambiguity.
+  Date/Author: 2026-08-12 / user and implementation agent.
+
+- Decision: rederive the snapshot, Author packet, condition, instructions, protocol, schema, oracle, and invocation configuration immediately before reservation.
+  Rationale: the clean-commit check protects repository identity, while an explicit second identity check makes any campaign-material or adapter drift fail with zero reservation and zero provider invocation.
+  Date/Author: 2026-08-12 / implementation agent.
+
+- Decision: run the offline qualifier as a subprocess during real preflight and parse only its final canonical report.
+  Rationale: Promptfoo and the Codex SDK emit diagnostic logs even in local deterministic runs; subprocess isolation keeps the persisted preflight report canonical without hiding or mutating global process output.
+  Date/Author: 2026-08-12 / implementation agent.
+
 ## Risks and Mitigations
 
 - Risk: E5 is effectively rerun under a longer timeout. Mitigation: use a novel development fixture, new campaign and fingerprints, and report the 300-second miss separately without reclassifying E5.
@@ -188,10 +210,15 @@ Run the repository's deterministic final validation without repeating any canary
 - Risk: a timing-sensitive qualifier becomes flaky. Mitigation: use one-second synthetic timeout margins, explicit 20- and 30-second integration-test budgets, and classify ownership from terminal messages and event types rather than deadline proximity.
 - Risk: provider-controlled event metadata leaks content into the temporary journal. Mitigation: persist only an explicit allowlist of event types and map every other value to `unknown`; regression tests use credential-like and absolute-path payloads.
 - Risk: Promptfoo projects a timeout just before the proxy journal records its cancellation signal. Mitigation: after an explicit Promptfoo cancellation only, read the journal within a fixed 250-millisecond settling window; never infer acknowledgement when the signal is absent.
+- Risk: a semantic oracle silently redefines operational completion. Mitigation: persist `operabilityOutcome` and minimal safety checks separately; neither lifecycle nor oracle findings can turn completion into timeout or qualification.
+- Risk: the final runner changes after authorization. Mitigation: finish and locally qualify the exact runner before freeze, exclude the expected SHA from campaign content, and require literal commit equality again immediately before reservation.
+- Risk: a valid preflight is reused after a fixture, oracle, prompt, or adapter identity changes. Mitigation: derive and compare every frozen fingerprint and packet/configuration safety property again immediately before the atomic reservation.
 
 ## Validation Strategy
 
 Progress from immutable-report inspection to pinned dependency analysis, behavior-focused timeout tests, the public provider-free checkpoint, deterministic local provider qualification, and an exact clean preflight. A real canary is optional and separately authorized only after every offline gate passes. Its terminal result is preserved without retry. Final validation never repeats it.
+
+Milestone 3 offline validation on 2026-08-12 passed 50 focused tests and the complete 155-test suite, strict typecheck, lint, Prettier, build, provider-free verification with zero provider imports, the E4 Author qualifier, the 12-process provider-boundary qualifier, the eight-case lifecycle qualifier, and the three-process operability qualifier. Every local qualifier reported `SUPPORTED_FOR_DEVELOPMENT` with zero external calls. The immutable E5 report tree remained byte-for-byte unchanged, and no real operability reservation, terminal receipt, or output existed.
 
 ## Documentation Impact
 
@@ -201,6 +228,9 @@ Progress from immutable-report inspection to pinned dependency analysis, behavio
 - Official OpenAI documentation: dated operational input about supported capabilities, not evidence of account access, latency, or E5 cause.
 - RFC 0001 and ADR 0002: unchanged unless direct inspection finds a normative contradiction.
 - E5 reports, bundle, preparation, reservations, packets, scoring, and adjudication: immutable.
+- `AGENTS.md` and `package.json`: document only the new internal offline qualifier, provider-free preflight, and separately authorized one-call command after they exist.
+
+Milestone 3 preparation materializes campaign fingerprint `c0636042ea641f5da10678110a606d4225326ec4a3b156eab9c819ec9285c7ff`. This fingerprint excludes the future expected commit, which will be recorded separately by the exact-SHA preflight and reservation.
 
 ## Rollout and Recovery
 
@@ -217,3 +247,5 @@ There is no deployment. Land offline observability changes separately from any f
 - Post-GREEN review found and removed an artificial response representation and returned to TDD for two missing safety behaviors: allowlisting journal event types and preserving observation on `NO_TEXT` terminal results.
 - Full-suite validation exposed that timeout projection and proxy signal journaling are asynchronous. A bounded settling read is required to make directly observed cancellation deterministic without converting a missing signal into inferred evidence.
 - GitHub Actions run `31648333083` showed that an 80-millisecond synthetic deadline can expire before the proxy process starts under CI load, correctly leaving journal-backed fields `null`; it also showed that two complete local qualifications can exceed Vitest's default five-second test limit. These are test-budget defects, not evidence that the Author or future canary path failed.
+- A preflight report cannot safely share stdout with an in-process Promptfoo qualifier because dependency diagnostics precede the canonical JSON. Running that qualifier in a child process and parsing its final report preserves both diagnostic visibility and a single canonical preflight document.
+- Post-GREEN design review found no material defect or design risk requiring a behavior-preserving refactor. The campaign service is intentionally cohesive around one irreversible transaction; splitting its validation, reservation, collection, and terminalization would add coordination surfaces without reducing an observed risk.
