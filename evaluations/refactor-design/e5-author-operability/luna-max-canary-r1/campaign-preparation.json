@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "e18-luna-max-locale-catalog-20260812-r1",
+  "condition": {
+    "conditionFingerprint": "a376dd77967181385cd83ac7e24b281b4290e9788f5b40a58142a338c5e1039a",
+    "requestedModel": "gpt-5.6-luna",
+    "reasoningEffort": "max"
+  },
+  "fingerprints": {
+    "condition": "a376dd77967181385cd83ac7e24b281b4290e9788f5b40a58142a338c5e1039a",
+    "instruction": "4ffaae564ec8d1d776ef6a7861cf0e9345e6c8b84925f662495e23da92a49cc3",
+    "oracle": "783981cf6865c5d11fd8d71c706f80f68417ee107270bfb5dc8999666c58dc3e",
+    "packet": "772b5ab8ab4f1798a927ef8221b5e06a4a89b1bed5d0e4752c0225ca9816dd23",
+    "protocol": "69b8693cc115dd7ef26594aeac7aead97be5311422d93de5fbabecc60a3547a6",
+    "schema": "ad2cf0bb8eb1af51e9e893799b5805c6061217839816a74405d972da30a779a5",
+    "snapshot": "4426ee52fae4052a660806ce1b674af1e4b1e3676dec7dd22dfdf63806dae639"
+  },
+  "invocationBudget": 1,
+  "oraclePath": "evaluations/refactor-design/e5-author-operability/luna-max-canary-r1/oracle.json",
+  "outputDirectory": ".skill-evidence/author-operability/e18-luna-max-locale-catalog-20260812-r1",
+  "protocolVersion": 2,
+  "reservationPath": ".skill-evidence/author-operability-reservations/e18-luna-max-locale-catalog-20260812-r1.json",
+  "sanitizedReportPath": "docs/experiments/e18-luna-max-locale-catalog-20260812-r1.json",
+  "skillPath": "evaluations/refactor-design/e5-author-operability/luna-max-canary-r1/skill",
+  "timeouts": {
+    "maxEvalTimeMs": 660000,
+    "timeoutMs": 600000
+  }
+}
