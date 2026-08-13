@@ -121,10 +121,10 @@ Archive only sanitized evidence, update this plan, its index, AGENTS.md, and the
 - [x] Complete Milestone 2: derive the diagnostic matrix, exact shared-taxonomy finding, and generalized blinded review/scoring.
 - [x] Complete the offline implementation and validation portion of Milestone 3: audit zero, 163 tests, nine-process local qualification, build, lint, formatting, and provider-free checkpoints green.
 - [x] Publish draft PR #8 and observe hosted CI green on implementation commit `00769d1337142f13c71712a94c152bdda45be828`.
-- [ ] Complete Milestone 3 and exact preflight.
-- [ ] Receive exact one-call authorization.
-- [ ] Complete Milestone 4 once.
-- [ ] Complete Milestone 5.
+- [x] Complete Milestone 3 and exact preflight at `aef52eee06c04c7cb86feff091d21003b9b880b0`.
+- [x] Receive exact one-call authorization for campaign fingerprint `9ee8ae89e362ca931f6f4d8fda0b097995b7b03e2d09ec26c2bfc475e12f9672`.
+- [x] Complete Milestone 4 once: one invocation completed in 136,475 ms and terminated as `TERRA_DOES_NOT_PASS_CURRENT_INSTRUMENT`; no review was warranted.
+- [x] Complete Milestone 5 without another provider call.
 
 ## Decisions
 
@@ -151,6 +151,10 @@ Archive only sanitized evidence, update this plan, its index, AGENTS.md, and the
 - Decision: centralize each frozen campaign's condition, timing, oracle, and diagnostic policy in one exact profile.
   Rationale: repeated campaign-ID branches made E18/E19/E20 behavior depend on synchronized literals across collection and review; one typed profile preserves the same observable contracts while preventing policy drift.
   Date/Author: 2026-08-13 / implementation agent after post-GREEN design review.
+
+- Decision: apply the prespecified lifecycle gate without semantic review.
+  Rationale: Terra recognized the missing decision context but marked all four unresolved requirements non-blocking, so the system composed a `READY` Blueprint. The frozen protocol requires `BLOCKED`; mechanical lifecycle checks have precedence and reviewers cannot repair that result.
+  Date/Author: 2026-08-13 / implementation agent.
 
 ## Risks and Mitigations
 
@@ -185,7 +189,16 @@ There is no deployment. Before reservation, E20 changes can be reverted normally
 - Instrument correction must follow, rather than precede, this contrast if the comparison is to remain controlled.
 - Explicit Terra and Luna conditions both use schema-2, so changing the provider condition changes the condition fingerprint while leaving schema and model-facing packet fingerprints identical.
 - A controlled contrast needs an exact failure signature as well as a shared packet; otherwise unrelated DRAFT outcomes would be overinterpreted as evidence about the same instrument defect.
+- Terra did not reproduce Luna's evidence-taxonomy failure. It instead over-promoted known missing decision context to `READY`, so the contrast supports two distinct model-facing failure modes under the same under-specified instrument.
 
 ## Offline Validation Evidence
 
-On 2026-08-13, before any E20 reservation or external call, the focused Author suites passed 58 tests and the complete repository passed 163 tests. `npm audit` reported zero vulnerabilities. Typecheck, lint, Prettier, build, `experiment:verify`, and the archaeological, Author, provider, lifecycle, and operability qualifiers all passed. The E18–E20 operability qualifier traversed nine local Promptfoo/Codex SDK processes, reported both review workflows qualified, and made zero external provider calls. The post-GREEN design review centralized frozen campaign policy without changing behavior. Draft PR #8 passed every hosted CI step at implementation commit `00769d1337142f13c71712a94c152bdda45be828`. E20 reservation, output, and report paths were absent. The campaign fingerprint is `9ee8ae89e362ca931f6f4d8fda0b097995b7b03e2d09ec26c2bfc475e12f9672`; the final documentation CI and exact literal-SHA preflight remain pending.
+On 2026-08-13, before any E20 reservation or external call, the focused Author suites passed 58 tests and the complete repository passed 163 tests. `npm audit` reported zero vulnerabilities. Typecheck, lint, Prettier, build, `experiment:verify`, and the archaeological, Author, provider, lifecycle, and operability qualifiers all passed. The E18–E20 operability qualifier traversed nine local Promptfoo/Codex SDK processes, reported both review workflows qualified, and made zero external provider calls. The post-GREEN design review centralized frozen campaign policy without changing behavior. Draft PR #8 passed every hosted CI step. The first preflight exposed an inaccurate historical Luna label in a limitation; behavior-focused TDD corrected it before authorization. The final literal-SHA preflight at `aef52eee06c04c7cb86feff091d21003b9b880b0` passed all twelve checks with zero calls and no campaign artifacts. The frozen campaign fingerprint is `9ee8ae89e362ca931f6f4d8fda0b097995b7b03e2d09ec26c2bfc475e12f9672`.
+
+## Live Result
+
+After the user authorized the exact campaign, fingerprint, commit, 1,800-second timeout, and one-call budget, E20 atomically reserved and invoked Terra/xhigh exactly once with zero retry. The call completed in 136,475 milliseconds, meeting the 300-, 600-, and 1,800-second targets. Requested model was `gpt-5.6-terra`; observed model remained explicitly unavailable. Usage was 18,981 input tokens, 5,820 output tokens, 1,382 reasoning-output tokens, and 24,801 total tokens.
+
+The composed Blueprint was schema-valid and preserved `NOT_QUALIFIED` plus `decisionEligible: false`. Terra explicitly recorded four unresolved requirements: absent release/adoption decision context, absent captured evaluation responses, absent qualified mechanical oracle, and unknown audit-record availability. However, it marked every requirement non-blocking and the system consequently derived `READY` instead of the required `BLOCKED`. Under the frozen matrix, inappropriate lifecycle is a critical mechanical failure, yielding terminal `TERRA_DOES_NOT_PASS_CURRENT_INSTRUMENT`. No reviewer packets or adjudication were permitted because semantic review applies only to canonical `BLOCKED` results.
+
+Terra therefore did not reproduce Luna's exact `MANDATORY_DIRECT_EVIDENCE_MISSING` failure, so `SHARED_INSTRUMENT_FAILURE_SUPPORTED` was not emitted. The controlled contrast instead found two different failures on the same packet: Luna produced `DRAFT` through evidence-taxonomy mismatch, while Terra produced `READY` through under-blocking known missing decision context. This does not identify a general intelligence limit or qualify either model; it supports correcting the Author protocol and then evaluating fresh cases. The sanitized report is `docs/experiments/e20-terra-xhigh-locale-catalog-20260813-r1.json`; local reservation, collection, and terminal receipt remain ignored append-only evidence, and E20 can never be repeated.
