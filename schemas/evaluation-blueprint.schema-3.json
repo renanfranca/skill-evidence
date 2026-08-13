@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skill-evidence.local/schemas/evaluation-blueprint.schema-3.json",
+  "title": "EvaluationBlueprint schema-3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "blueprintId",
+    "snapshotFingerprint",
+    "lifecycle",
+    "authorProvenance",
+    "skill",
+    "decisionContext",
+    "population",
+    "claims",
+    "exclusions",
+    "contracts",
+    "activationRegions",
+    "usageFamilies",
+    "stressFamilies",
+    "contrasts",
+    "evidencePlan",
+    "oracleQualificationPlan",
+    "samplingPlan",
+    "analysisPlan",
+    "policies",
+    "stoppingConditions",
+    "unresolvedRequirements",
+    "untestedRisks"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 3 },
+    "blueprintId": { "$ref": "evaluation-blueprint.schema.json#/$defs/nonEmptyString" },
+    "snapshotFingerprint": { "$ref": "evaluation-blueprint.schema.json#/$defs/digest" },
+    "lifecycle": { "$ref": "evaluation-blueprint.schema.json#/properties/lifecycle" },
+    "authorProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "conditionFingerprint",
+        "authoringContextFingerprint",
+        "requestedModel",
+        "observedModel",
+        "reasoningEffort",
+        "instructionDigest",
+        "theoryDigest",
+        "schemaDigest",
+        "protocolDigest",
+        "campaignId"
+      ],
+      "properties": {
+        "status": { "const": "NOT_QUALIFIED" },
+        "conditionFingerprint": { "$ref": "evaluation-blueprint.schema.json#/$defs/digest" },
+        "authoringContextFingerprint": { "$ref": "evaluation-blueprint.schema.json#/$defs/digest" },
+        "requestedModel": { "enum": ["gpt-5.6-terra", "gpt-5.6-luna"] },
+        "observedModel": { "type": ["string", "null"] },
+        "reasoningEffort": { "enum": ["xhigh", "max"] },
+        "instructionDigest": { "$ref": "evaluation-blueprint.schema.json#/$defs/digest" },
+        "theoryDigest": { "$ref": "evaluation-blueprint.schema.json#/$defs/digest" },
+        "schemaDigest": { "$ref": "evaluation-blueprint.schema.json#/$defs/digest" },
+        "protocolDigest": { "$ref": "evaluation-blueprint.schema.json#/$defs/digest" },
+        "campaignId": { "$ref": "evaluation-blueprint.schema.json#/$defs/nonEmptyString" }
+      },
+      "oneOf": [
+        { "properties": { "requestedModel": { "const": "gpt-5.6-terra" }, "reasoningEffort": { "const": "xhigh" } } },
+        { "properties": { "requestedModel": { "const": "gpt-5.6-luna" }, "reasoningEffort": { "const": "max" } } }
+      ]
+    },
+    "skill": { "$ref": "evaluation-blueprint.schema.json#/properties/skill" },
+    "decisionContext": { "$ref": "authoring-context.schema.json#/properties/decisionContext" },
+    "population": { "$ref": "authoring-context.schema.json#/properties/population" },
+    "claims": { "$ref": "evaluation-blueprint.schema.json#/properties/claims" },
+    "exclusions": { "$ref": "evaluation-blueprint.schema.json#/properties/exclusions" },
+    "contracts": { "$ref": "evaluation-blueprint.schema.json#/properties/contracts" },
+    "activationRegions": { "$ref": "evaluation-blueprint.schema.json#/properties/activationRegions" },
+    "usageFamilies": { "$ref": "evaluation-blueprint.schema.json#/properties/usageFamilies" },
+    "stressFamilies": { "$ref": "evaluation-blueprint.schema.json#/properties/stressFamilies" },
+    "contrasts": { "$ref": "evaluation-blueprint.schema.json#/properties/contrasts" },
+    "evidencePlan": { "type": "array", "items": { "$ref": "#/$defs/evidenceRequirement" } },
+    "oracleQualificationPlan": { "$ref": "evaluation-blueprint.schema.json#/properties/oracleQualificationPlan" },
+    "samplingPlan": { "$ref": "evaluation-blueprint.schema.json#/properties/samplingPlan" },
+    "analysisPlan": { "$ref": "evaluation-blueprint.schema.json#/properties/analysisPlan" },
+    "policies": { "$ref": "evaluation-blueprint.schema.json#/properties/policies" },
+    "stoppingConditions": { "$ref": "evaluation-blueprint.schema.json#/properties/stoppingConditions" },
+    "unresolvedRequirements": { "type": "array", "items": { "$ref": "#/$defs/composedRequirement" } },
+    "untestedRisks": { "$ref": "evaluation-blueprint.schema.json#/properties/untestedRisks" }
+  },
+  "$defs": {
+    "candidateId": {
+      "allOf": [
+        { "$ref": "evaluation-blueprint.schema.json#/$defs/nonEmptyString" },
+        { "not": { "pattern": "^system:authoring-context:" } }
+      ]
+    },
+    "observationPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "observable", "source", "capabilityRequired"],
+      "properties": {
+        "id": { "$ref": "#/$defs/candidateId" },
+        "observable": { "$ref": "evaluation-blueprint.schema.json#/$defs/nonEmptyString" },
+        "source": { "$ref": "evaluation-blueprint.schema.json#/$defs/nonEmptyString" },
+        "capabilityRequired": { "$ref": "evaluation-blueprint.schema.json#/$defs/nonEmptyString" }
+      }
+    },
+    "assessmentPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "method", "procedure"],
+      "properties": {
+        "id": { "$ref": "#/$defs/candidateId" },
+        "method": { "enum": ["MECHANICAL", "SEMANTIC", "JUDGMENT"] },
+        "procedure": { "$ref": "evaluation-blueprint.schema.json#/$defs/nonEmptyString" }
+      }
+    },
+    "evidencePath": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "observations", "assessments"],
+      "properties": {
+        "id": { "$ref": "#/$defs/candidateId" },
+        "observations": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/observationPlan" } },
+        "assessments": { "type": "array", "items": { "$ref": "#/$defs/assessmentPlan" } }
+      }
+    },
+    "evidenceRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "claimIds", "contractIds", "required", "paths"],
+      "properties": {
+        "id": { "$ref": "#/$defs/candidateId" },
+        "claimIds": { "$ref": "evaluation-blueprint.schema.json#/$defs/stringArray" },
+        "contractIds": { "$ref": "evaluation-blueprint.schema.json#/$defs/stringArray" },
+        "required": { "type": "boolean" },
+        "paths": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidencePath" } }
+      }
+    },
+    "composedRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "field", "reason", "status", "blocking", "evidenceNeeded", "source", "affectedClaimIds", "origin"],
+      "properties": {
+        "id": { "$ref": "evaluation-blueprint.schema.json#/$defs/nonEmptyString" },
+        "field": { "$ref": "evaluation-blueprint.schema.json#/$defs/nonEmptyString" },
+        "reason": { "$ref": "evaluation-blueprint.schema.json#/$defs/nonEmptyString" },
+        "status": { "enum": ["UNKNOWN", "UNSUPPORTED", "INSUFFICIENT_INFORMATION", "UNTESTABLE_FROM_AVAILABLE_ENVIRONMENT"] },
+        "blocking": { "type": "boolean" },
+        "evidenceNeeded": { "$ref": "evaluation-blueprint.schema.json#/$defs/nonEmptyString" },
+        "source": { "$ref": "evaluation-blueprint.schema.json#/$defs/nonEmptyString" },
+        "affectedClaimIds": { "$ref": "evaluation-blueprint.schema.json#/$defs/stringArray" },
+        "origin": { "enum": ["AUTHOR", "SYSTEM_AUTHORING_CONTEXT"] }
+      }
+    }
+  }
+}

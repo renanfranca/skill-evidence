@@ -9,6 +9,7 @@ import { constants } from 'node:fs';
 import {
   authorEvaluationBlueprint,
   prepareAuthorInvocation,
+  type AuthoringContext,
   type AuthorInvoker,
   type AuthorProtocolVersion,
 } from './author/evaluation-author.js';
@@ -56,6 +57,7 @@ export function renderAuthorCommandError(error: unknown): string {
 
 interface AuthorCommandArguments {
   approval: string | undefined;
+  authoringContext: string | undefined;
   campaign: string | undefined;
   out: string | undefined;
   protocol: string | undefined;
@@ -84,12 +86,17 @@ function parseArguments(args: string[]): AuthorCommandArguments {
     return index === -1 ? undefined : args[index + 1];
   };
   const protocolIndexes = args.flatMap((argument, index) => (argument === '--author-protocol' ? [index] : []));
+  const contextIndexes = args.flatMap((argument, index) => (argument === '--authoring-context' ? [index] : []));
   const protocol = protocolIndexes.length === 1 ? args[protocolIndexes[0]! + 1] : undefined;
   if (protocolIndexes.length > 1 || (protocolIndexes.length === 1 && (protocol === undefined || protocol.startsWith('--')))) {
-    throw new AuthorCommandError('AUTHOR_ARGUMENT_INVALID', '--author-protocol must be provided exactly once with value 1 or 2');
+    throw new AuthorCommandError('AUTHOR_ARGUMENT_INVALID', '--author-protocol must be provided exactly once with value 1, 2, or 3');
+  }
+  if (contextIndexes.length > 1) {
+    throw new AuthorCommandError('AUTHOR_ARGUMENT_INVALID', '--authoring-context must be provided at most once');
   }
   return {
     approval: value('--approve-provider-invocations'),
+    authoringContext: value('--authoring-context'),
     campaign: value('--campaign'),
     out: value('--out'),
     protocol,
@@ -104,7 +111,28 @@ function parseAuthorProtocol(value: string | undefined): AuthorProtocolVersion {
   if (value === '2') {
     return 2;
   }
-  throw new AuthorCommandError('AUTHOR_ARGUMENT_INVALID', '--author-protocol must be 1 or 2');
+  if (value === '3') {
+    return 3;
+  }
+  throw new AuthorCommandError('AUTHOR_ARGUMENT_INVALID', '--author-protocol must be 1, 2, or 3');
+}
+
+async function readAuthoringContext(
+  path: string | undefined,
+  protocolVersion: AuthorProtocolVersion,
+): Promise<AuthoringContext | undefined> {
+  if (protocolVersion === 3 && (path === undefined || path.startsWith('--'))) {
+    throw new AuthorCommandError('AUTHOR_ARGUMENT_INVALID', 'Author protocol 3 requires --authoring-context <json-file>');
+  }
+  if (protocolVersion !== 3 && path !== undefined) {
+    throw new AuthorCommandError('AUTHOR_ARGUMENT_INVALID', '--authoring-context is accepted only with Author protocol 3');
+  }
+  if (path === undefined) return undefined;
+  try {
+    return JSON.parse(await readFile(resolve(path), 'utf8')) as AuthoringContext;
+  } catch {
+    throw new AuthorCommandError('AUTHOR_ARGUMENT_INVALID', '--authoring-context must identify valid JSON');
+  }
 }
 
 async function gitOutput(repositoryRoot: string, args: string[]): Promise<string> {
@@ -162,6 +190,7 @@ export async function runAuthorCommand(args: string[], dependencies: AuthorComma
     throw new AuthorCommandError('AUTHOR_ARGUMENT_INVALID', 'Author execution requires --skill, --out, and --campaign');
   }
   const protocolVersion = parseAuthorProtocol(parsed.protocol);
+  const authoringContext = await readAuthoringContext(parsed.authoringContext, protocolVersion);
   const repositoryRoot = dependencies.repositoryRoot ?? process.cwd();
   const environment = dependencies.environment ?? process.env;
   const codexHome = await assertCodexHome(environment);
@@ -190,7 +219,15 @@ export async function runAuthorCommand(args: string[], dependencies: AuthorComma
   if (version !== '0.147.0') {
     throw new AuthorCommandError('AUTHOR_VERSION_MISMATCH', 'the Author canary requires Codex CLI 0.147.0');
   }
-  const prepared = prepareAuthorInvocation(snapshot, undefined, protocolVersion);
+  let prepared;
+  try {
+    prepared = prepareAuthorInvocation(snapshot, undefined, protocolVersion, authoringContext);
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('AUTHORING_CONTEXT_')) {
+      throw new AuthorCommandError('AUTHOR_ARGUMENT_INVALID', error.message);
+    }
+    throw error;
+  }
   const outputPath = resolve(parsed.out);
   const outputHandle = await claimBlueprintOutput(outputPath);
   const createWorkspace = dependencies.createWorkspace ?? defaultWorkspace;
@@ -209,7 +246,13 @@ export async function runAuthorCommand(args: string[], dependencies: AuthorComma
       },
     });
     const invoke = dependencies.invoke ?? createPromptfooAuthorInvoker({ codexHome, workingDirectory: workspace.path });
-    const run = await authorEvaluationBlueprint({ campaignId: parsed.campaign, invoke, protocolVersion, snapshot });
+    const run = await authorEvaluationBlueprint({
+      ...(authoringContext === undefined ? {} : { authoringContext }),
+      campaignId: parsed.campaign,
+      invoke,
+      protocolVersion,
+      snapshot,
+    });
     if (run.status === 'ERROR') {
       throw new AuthorCommandError(
         'AUTHOR_RUN_ERROR',

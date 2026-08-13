@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skill-evidence.local/schemas/authoring-context.schema.json",
+  "title": "AuthoringContext schema-1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "decisionContext", "population"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "decisionContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "minimumWorthwhileImprovement",
+        "maximumAcceptableRegression",
+        "severeHarmLimits",
+        "efficiencyBudgets",
+        "requiredUncertainty"
+      ],
+      "properties": {
+        "decision": { "$ref": "#/$defs/stringFact" },
+        "minimumWorthwhileImprovement": { "$ref": "#/$defs/stringFact" },
+        "maximumAcceptableRegression": { "$ref": "#/$defs/stringFact" },
+        "severeHarmLimits": { "$ref": "#/$defs/stringArrayFact" },
+        "efficiencyBudgets": { "$ref": "#/$defs/stringArrayFact" },
+        "requiredUncertainty": { "$ref": "#/$defs/stringFact" }
+      }
+    },
+    "population": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "excluded"],
+      "properties": {
+        "target": { "$ref": "#/$defs/stringFact" },
+        "excluded": { "$ref": "#/$defs/stringArrayFact" }
+      }
+    }
+  },
+  "$defs": {
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "stringArray": { "type": "array", "items": { "$ref": "#/$defs/nonEmptyString" } },
+    "requiredAbsent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["disposition", "status", "reason", "evidenceNeeded", "source"],
+      "properties": {
+        "disposition": { "const": "REQUIRED_ABSENT" },
+        "status": {
+          "enum": ["UNKNOWN", "UNSUPPORTED", "INSUFFICIENT_INFORMATION", "UNTESTABLE_FROM_AVAILABLE_ENVIRONMENT"]
+        },
+        "reason": { "$ref": "#/$defs/nonEmptyString" },
+        "evidenceNeeded": { "$ref": "#/$defs/nonEmptyString" },
+        "source": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "notRequired": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["disposition", "rationale", "source"],
+      "properties": {
+        "disposition": { "const": "NOT_REQUIRED" },
+        "rationale": { "$ref": "#/$defs/nonEmptyString" },
+        "source": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "stringFact": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["disposition", "value", "source"],
+          "properties": {
+            "disposition": { "const": "SUPPLIED" },
+            "value": { "$ref": "#/$defs/nonEmptyString" },
+            "source": { "$ref": "#/$defs/nonEmptyString" }
+          }
+        },
+        { "$ref": "#/$defs/requiredAbsent" },
+        { "$ref": "#/$defs/notRequired" }
+      ]
+    },
+    "stringArrayFact": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["disposition", "value", "source"],
+          "properties": {
+            "disposition": { "const": "SUPPLIED" },
+            "value": { "$ref": "#/$defs/stringArray" },
+            "source": { "$ref": "#/$defs/nonEmptyString" }
+          }
+        },
+        { "$ref": "#/$defs/requiredAbsent" },
+        { "$ref": "#/$defs/notRequired" }
+      ]
+    }
+  }
+}

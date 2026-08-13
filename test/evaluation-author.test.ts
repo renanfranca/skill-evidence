@@ -2,6 +2,8 @@ import { appendFile, chmod, mkdir, mkdtemp, readFile, symlink, writeFile } from 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import type { AnySchema } from 'ajv';
+import { Ajv2020 } from 'ajv/dist/2020.js';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -13,6 +15,7 @@ import {
 import {
   authorEvaluationBlueprint,
   prepareAuthorInvocation,
+  type AuthoringContext,
   type AuthorConditionSpec,
   type AuthorInvocationRequest,
 } from '../src/author/evaluation-author.js';
@@ -22,6 +25,7 @@ import { reserveAuthorInvocation } from '../src/author/reservation.js';
 import { qualifyEvaluationAuthor, runAuthorConformance } from '../src/author/qualify-author.js';
 import { qualifyAuthorProviderBoundary } from '../src/author/qualify-author-provider.js';
 import { qualifyAuthorLifecycle, runAuthorLifecycleConformance } from '../src/author/qualify-author-lifecycle.js';
+import { qualifyAuthorProtocolV3, runAuthorProtocolV3Conformance } from '../src/author/qualify-author-protocol-v3.js';
 import { createSkillSnapshot } from '../src/intake/skill-snapshot.js';
 import {
   createAuthorQualificationConditionEvidence,
@@ -119,6 +123,56 @@ function completeCandidate(): BlueprintCandidate {
     unresolvedRequirements: [],
     untestedRisks: [{ description: 'Behavior under unseen model changes remains untested.', id: 'risk-model-change', severity: 'MEDIUM' }],
     usageFamilies: [{ contractIds: ['contract-main'], description: 'Ordinary explicit request.', id: 'usage-main' }],
+  };
+}
+
+function protocolV3Candidate(): Record<string, unknown> {
+  const candidate: Record<string, unknown> = { ...completeCandidate() };
+  delete candidate.decisionContext;
+  delete candidate.evidencePlan;
+  delete candidate.population;
+  return {
+    ...candidate,
+    evidencePlan: [
+      {
+        claimIds: ['claim-observed'],
+        contractIds: ['contract-main'],
+        id: 'evidence-artifact',
+        paths: [
+          {
+            assessments: [{ id: 'assessment-artifact', method: 'SEMANTIC', procedure: 'Apply the qualified contract rubric.' }],
+            id: 'path-artifact',
+            observations: [
+              {
+                capabilityRequired: 'Capture the resulting artifact.',
+                id: 'observation-artifact',
+                observable: 'The resulting artifact and terminal status.',
+                source: 'Candidate execution output.',
+              },
+            ],
+          },
+        ],
+        required: true,
+      },
+    ],
+  };
+}
+
+function protocolV3Context(): AuthoringContext {
+  return {
+    decisionContext: {
+      decision: { disposition: 'SUPPLIED', source: 'operator', value: 'Characterize contract behavior.' },
+      efficiencyBudgets: { disposition: 'NOT_REQUIRED', rationale: 'No efficiency claim is intended.', source: 'operator' },
+      maximumAcceptableRegression: { disposition: 'NOT_REQUIRED', rationale: 'No change comparison is intended.', source: 'operator' },
+      minimumWorthwhileImprovement: { disposition: 'NOT_REQUIRED', rationale: 'No improvement claim is intended.', source: 'operator' },
+      requiredUncertainty: { disposition: 'SUPPLIED', source: 'operator', value: 'Report every development case.' },
+      severeHarmLimits: { disposition: 'SUPPLIED', source: 'operator', value: ['No unauthorized external effects.'] },
+    },
+    population: {
+      excluded: { disposition: 'SUPPLIED', source: 'operator', value: ['Decision runs'] },
+      target: { disposition: 'SUPPLIED', source: 'operator', value: 'Development contract cases' },
+    },
+    schemaVersion: 1,
   };
 }
 
@@ -403,6 +457,176 @@ describe('Evaluation Author v0', () => {
     );
   });
 
+  it('requires trusted context for protocol v3 while preserving the historical protocols', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-protocol-v3-root-'));
+    await writeFile(join(root, 'SKILL.md'), '# Trusted authoring context\n');
+    const snapshot = await createSkillSnapshot({ rootDirectory: root });
+    const condition = { model: 'gpt-5.6-terra', reasoningEffort: 'xhigh' } as const;
+    const context = protocolV3Context();
+    const historicalV1 = prepareAuthorInvocation(snapshot, condition, 1);
+    const historicalV2 = prepareAuthorInvocation(snapshot, condition, 2);
+
+    expect(() => prepareAuthorInvocation(snapshot, condition, 3)).toThrowError('AUTHORING_CONTEXT_REQUIRED');
+    expect(() => prepareAuthorInvocation(snapshot, condition, 2, context)).toThrowError('AUTHORING_CONTEXT_UNSUPPORTED');
+    const v3 = prepareAuthorInvocation(snapshot, condition, 3, context);
+    const packet = JSON.parse(v3.request.prompt) as Record<string, unknown>;
+
+    expect(v3).toMatchObject({ protocolVersion: 3, schemaVersion: 3 });
+    expect(v3.authoringContextFingerprint).toMatch(/^[a-f0-9]{64}$/u);
+    expect(packet).toMatchObject({ authoringContext: context, protocol: { authorProtocolVersion: 3 } });
+    expect(JSON.stringify((packet.candidateSchema as { properties: object }).properties)).not.toMatch(/decisionContext|population/u);
+    expect(() => new Ajv2020({ strict: false }).compile(packet.candidateSchema as AnySchema)).not.toThrow();
+    expect(prepareAuthorInvocation(snapshot, condition, 1)).toEqual(historicalV1);
+    expect(prepareAuthorInvocation(snapshot, condition, 2)).toEqual(historicalV2);
+  });
+
+  it('rejects invalid protocol v3 context and model-controlled context fields before invocation', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-protocol-v3-invalid-context-root-'));
+    await writeFile(join(root, 'SKILL.md'), '# Invalid trusted context\n');
+    const snapshot = await createSkillSnapshot({ rootDirectory: root });
+    const invalidContext = structuredClone(protocolV3Context()) as unknown as AuthoringContext;
+    invalidContext.population.target = { disposition: 'SUPPLIED', source: '', value: '' };
+    let invocations = 0;
+
+    await expect(
+      authorEvaluationBlueprint({
+        authoringContext: invalidContext,
+        campaignId: 'protocol-v3-invalid-context',
+        invoke: () => {
+          invocations += 1;
+          return Promise.resolve({ observedModel: null, output: '{}' });
+        },
+        protocolVersion: 3,
+        snapshot,
+      }),
+    ).rejects.toThrowError('AUTHORING_CONTEXT_INVALID');
+
+    const controlled = { ...protocolV3Candidate(), decisionContext: protocolV3Context().decisionContext };
+    const result = await authorEvaluationBlueprint({
+      authoringContext: protocolV3Context(),
+      campaignId: 'protocol-v3-controlled-context',
+      invoke: () => {
+        invocations += 1;
+        return Promise.resolve({ observedModel: null, output: JSON.stringify(controlled) });
+      },
+      protocolVersion: 3,
+      snapshot,
+    });
+
+    expect(invocations).toBe(1);
+    expect(result).toMatchObject({ error: { code: 'CANDIDATE_STRUCTURALLY_INVALID' }, status: 'ERROR' });
+  });
+
+  it('derives protected system blockers from required absent context', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-protocol-v3-blocker-root-'));
+    await writeFile(join(root, 'SKILL.md'), '# System blocker composition\n');
+    const snapshot = await createSkillSnapshot({ rootDirectory: root });
+    const context = protocolV3Context();
+    context.decisionContext.minimumWorthwhileImprovement = {
+      disposition: 'REQUIRED_ABSENT',
+      evidenceNeeded: 'A prespecified threshold from the decision owner.',
+      reason: 'No threshold was supplied.',
+      source: 'operator',
+      status: 'INSUFFICIENT_INFORMATION',
+    };
+
+    const result = await authorEvaluationBlueprint({
+      authoringContext: context,
+      campaignId: 'protocol-v3-system-blocker',
+      condition: { model: 'gpt-5.6-terra', reasoningEffort: 'xhigh' },
+      invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(protocolV3Candidate()) }),
+      protocolVersion: 3,
+      snapshot,
+    });
+
+    expect(result).toMatchObject({
+      blueprint: {
+        authorProvenance: { status: 'NOT_QUALIFIED' },
+        decisionContext: context.decisionContext,
+        lifecycle: { decisionEligible: false, state: 'BLOCKED' },
+        population: context.population,
+        schemaVersion: 3,
+        unresolvedRequirements: [
+          {
+            affectedClaimIds: [],
+            blocking: true,
+            field: 'decisionContext.minimumWorthwhileImprovement',
+            id: 'system:authoring-context:minimum-worthwhile-improvement',
+            origin: 'SYSTEM_AUTHORING_CONTEXT',
+            status: 'INSUFFICIENT_INFORMATION',
+          },
+        ],
+      },
+      status: 'COMPLETED',
+    });
+    if (result.status !== 'COMPLETED') throw new Error('expected a composed Blueprint');
+    expect(result.blueprint.authorProvenance.authoringContextFingerprint).toMatch(/^[a-f0-9]{64}$/u);
+    expect(validateComposedEvaluationBlueprint(result.blueprint)).toEqual({ diagnostics: [], valid: true });
+  });
+
+  it('keeps protocol v3 lifecycle under system policy and protects nested system IDs', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-protocol-v3-policy-root-'));
+    await writeFile(join(root, 'SKILL.md'), '# Protocol v3 policy\n');
+    const snapshot = await createSkillSnapshot({ rootDirectory: root });
+    const context = protocolV3Context();
+    const run = async (candidate: Record<string, unknown>) =>
+      await authorEvaluationBlueprint({
+        authoringContext: context,
+        campaignId: 'protocol-v3-policy',
+        invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(candidate) }),
+        protocolVersion: 3,
+        snapshot,
+      });
+
+    const ready = await run(protocolV3Candidate());
+    expect(ready).toMatchObject({ blueprint: { lifecycle: { state: 'READY' } }, status: 'COMPLETED' });
+
+    const brokenReference = structuredClone(protocolV3Candidate());
+    (brokenReference.evidencePlan as Array<{ claimIds: string[] }>)[0]!.claimIds = ['missing-claim'];
+    await expect(run(brokenReference)).resolves.toMatchObject({ blueprint: { lifecycle: { state: 'DRAFT' } }, status: 'COMPLETED' });
+
+    const assessmentWithoutObservation = structuredClone(protocolV3Candidate());
+    (assessmentWithoutObservation.evidencePlan as Array<{ paths: Array<{ observations: unknown[] }> }>)[0]!.paths[0]!.observations = [];
+    await expect(run(assessmentWithoutObservation)).resolves.toMatchObject({
+      error: { code: 'CANDIDATE_STRUCTURALLY_INVALID' },
+      status: 'ERROR',
+    });
+
+    const spoofed = structuredClone(protocolV3Candidate());
+    (spoofed.evidencePlan as Array<{ paths: Array<{ observations: Array<{ id: string }> }> }>)[0]!.paths[0]!.observations[0]!.id =
+      'system:authoring-context:decision';
+    await expect(run(spoofed)).resolves.toMatchObject({ error: { code: 'CANDIDATE_STRUCTURALLY_INVALID' }, status: 'ERROR' });
+  });
+
+  it('rejects tampering with composed protocol v3 system blockers', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-protocol-v3-integrity-root-'));
+    await writeFile(join(root, 'SKILL.md'), '# Protocol v3 integrity\n');
+    const snapshot = await createSkillSnapshot({ rootDirectory: root });
+    const context = protocolV3Context();
+    context.population.target = {
+      disposition: 'REQUIRED_ABSENT',
+      evidenceNeeded: 'A declared target population.',
+      reason: 'The target population was not supplied.',
+      source: 'operator',
+      status: 'UNKNOWN',
+    };
+    const result = await authorEvaluationBlueprint({
+      authoringContext: context,
+      campaignId: 'protocol-v3-integrity',
+      invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(protocolV3Candidate()) }),
+      protocolVersion: 3,
+      snapshot,
+    });
+    if (result.status !== 'COMPLETED') throw new Error('expected a composed Blueprint');
+    const tampered = structuredClone(result.blueprint) as unknown as { unresolvedRequirements: Array<{ blocking: boolean }> };
+    tampered.unresolvedRequirements[0]!.blocking = false;
+
+    expect(validateComposedEvaluationBlueprint(tampered)).toMatchObject({
+      diagnostics: [{ code: 'SYSTEM_BLOCKER_INTEGRITY' }],
+      valid: false,
+    });
+  });
+
   it('rejects an unsupported Author protocol before invoking a provider', async () => {
     const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-protocol-invalid-root-'));
     await writeFile(join(root, 'SKILL.md'), '# Invalid protocol\n');
@@ -416,7 +640,7 @@ describe('Evaluation Author v0', () => {
           invocations += 1;
           return Promise.resolve({ observedModel: null, output: '{}' });
         },
-        protocolVersion: 3 as 1,
+        protocolVersion: 4 as 1,
         snapshot,
       }),
     ).rejects.toThrowError('UNSUPPORTED_AUTHOR_PROTOCOL');
@@ -1190,6 +1414,31 @@ describe('Evaluation Author v0', () => {
     expect(JSON.stringify(first)).not.toMatch(/owner@example\.com|secret-token-value|private\/work/);
   }, 30_000);
 
+  it('qualifies protocol v3 composition and lifecycle mechanics with deterministic local candidates', async () => {
+    const report = await qualifyAuthorProtocolV3(runAuthorProtocolV3Conformance);
+
+    expect(report).toMatchObject({
+      externalProviderCalls: 0,
+      localProviderCalls: 6,
+      packetLeakageFindings: 0,
+      protocolVersion: 3,
+      purpose: 'DEVELOPMENT',
+      result: 'SUPPORTED_FOR_DEVELOPMENT',
+      schemaVersion: 1,
+    });
+    expect(report.cases.map(({ actual, expected, id }) => ({ actual, expected, id }))).toEqual([
+      { actual: 'READY', expected: 'READY', id: 'ready-supplied-context' },
+      { actual: 'BLOCKED', expected: 'BLOCKED', id: 'blocked-missing-population' },
+      { actual: 'BLOCKED', expected: 'BLOCKED', id: 'blocked-author-gap' },
+      { actual: 'DRAFT', expected: 'DRAFT', id: 'draft-broken-reference' },
+      { actual: 'ERROR', expected: 'ERROR', id: 'error-reserved-namespace' },
+      { actual: 'ERROR', expected: 'ERROR', id: 'error-assessment-without-observation' },
+    ]);
+    expect(report.limitations).toContain(
+      'This adaptable corpus is not blind decision evidence and does not qualify Author protocol v3 on a model.',
+    );
+  }, 30_000);
+
   it('refuses the internal Author command without approval for exactly one provider invocation', async () => {
     await expect(
       runAuthorCommand([
@@ -1327,6 +1576,54 @@ describe('Evaluation Author v0', () => {
     expect(reservation).toMatchObject({ invocationBudget: 1, status: 'RESERVED' });
   });
 
+  it('requires and forwards trusted context through the protocol v3 CLI', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-command-v3-repository-'));
+    const skillRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-command-v3-skill-'));
+    const codexHome = await mkdtemp(join(tmpdir(), 'skill-evidence-command-v3-codex-home-'));
+    const workspace = await mkdtemp(join(tmpdir(), 'skill-evidence-command-v3-workspace-'));
+    const outputPath = join(repositoryRoot, 'blueprint-v3.json');
+    const contextPath = join(repositoryRoot, 'authoring-context.json');
+    await Promise.all([
+      writeFile(join(skillRoot, 'SKILL.md'), '# Protocol v3 command\n'),
+      writeFile(join(codexHome, 'auth.json'), '{"auth":"fixture"}\n'),
+      writeFile(contextPath, JSON.stringify(protocolV3Context())),
+    ]);
+    let packet: Record<string, unknown> | undefined;
+
+    const result = await runAuthorCommand(
+      [
+        '--skill',
+        skillRoot,
+        '--out',
+        outputPath,
+        '--campaign',
+        'protocol-v3-command',
+        '--author-protocol',
+        '3',
+        '--authoring-context',
+        contextPath,
+        '--approve-provider-invocations',
+        '1',
+      ],
+      {
+        codexCliVersion: () => Promise.resolve('0.147.0'),
+        createWorkspace: () => Promise.resolve({ cleanup: () => Promise.resolve(), path: workspace }),
+        currentCommit: () => Promise.resolve('a'.repeat(40)),
+        environment: { SKILL_EVIDENCE_AUTHOR_CODEX_HOME: codexHome },
+        invoke: (request) => {
+          packet = JSON.parse(request.prompt) as Record<string, unknown>;
+          return Promise.resolve({ observedModel: null, output: JSON.stringify(protocolV3Candidate()) });
+        },
+        repositoryRoot,
+        workingTreeClean: () => Promise.resolve(true),
+      },
+    );
+
+    expect(result).toMatchObject({ lifecycle: 'READY', status: 'COMPLETED' });
+    expect(packet).toMatchObject({ authoringContext: protocolV3Context(), protocol: { authorProtocolVersion: 3 } });
+    expect(JSON.parse(await readFile(outputPath, 'utf8'))).toMatchObject({ schemaVersion: 3 });
+  });
+
   it('runs deterministic Author qualifications in CI after the archaeological corpus', async () => {
     const workflow = await readFile('.github/workflows/ci.yml', 'utf8');
 
@@ -1334,10 +1631,12 @@ describe('Evaluation Author v0', () => {
     const author = workflow.indexOf('npm run experiment:qualify:author');
     const provider = workflow.indexOf('npm run experiment:qualify:author-provider');
     const lifecycle = workflow.indexOf('npm run experiment:qualify:author-lifecycle');
+    const protocolV3 = workflow.indexOf('npm run experiment:qualify:author-protocol-v3');
     expect(archaeological).toBeGreaterThan(-1);
     expect(author).toBeGreaterThan(archaeological);
     expect(provider).toBeGreaterThan(author);
     expect(lifecycle).toBeGreaterThan(provider);
+    expect(protocolV3).toBeGreaterThan(lifecycle);
     expect(workflow).not.toContain('experiment:author --');
   });
 

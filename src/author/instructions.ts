@@ -30,4 +30,15 @@ export const authorInstructionsV2 = [
   'Do not invent missing policy, authority, expected answers, thresholds, or external state to make a Blueprint READY; expose any authoring-critical absence as a blocking unresolved requirement.',
 ] as const;
 
+export const authorInstructionsV3 = [
+  ...authorInstructionsV2,
+  'The trusted Authoring Context is controlled by Skill Evidence. Do not return decisionContext or population.',
+  'Do not use an ID beginning with system:authoring-context:; that namespace is reserved for system-derived requirements.',
+  'Describe evidence as alternative paths. Within one path, every observation is required together.',
+  'An observation plan states what independently inspectable output, state, action, constraint, temporal relation, or provenance fact will be captured and which capability is needed.',
+  'An assessment states how captured observations will be evaluated: MECHANICAL, SEMANTIC, or JUDGMENT.',
+  'A semantic or judgment assessment may evaluate a directly captured observation; capture and interpretation are not competing evidence classes.',
+  'Do not claim that planned observations already exist or that required capabilities are available. Capability eligibility is checked later.',
+] as const;
+
 export const authorProtocolVersion = 1;

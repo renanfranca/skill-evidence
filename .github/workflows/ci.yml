@@ -64,6 +64,9 @@ jobs:
       - name: Qualify Evaluation Author lifecycle remediation
         run: npm run experiment:qualify:author-lifecycle
 
+      - name: Qualify Evaluation Author protocol v3 mechanics
+        run: npm run experiment:qualify:author-protocol-v3
+
       - name: Qualify Luna/max operability runner locally
         run: npm run experiment:qualify:author-operability
 

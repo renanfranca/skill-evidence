@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    { "id": "ready-supplied-context", "kind": "READY", "expected": "READY" },
+    { "id": "blocked-missing-population", "kind": "SYSTEM_BLOCKER", "expected": "BLOCKED" },
+    { "id": "blocked-author-gap", "kind": "AUTHOR_BLOCKER", "expected": "BLOCKED" },
+    { "id": "draft-broken-reference", "kind": "BROKEN_REFERENCE", "expected": "DRAFT" },
+    { "id": "error-reserved-namespace", "kind": "RESERVED_ID", "expected": "ERROR" },
+    { "id": "error-assessment-without-observation", "kind": "NO_OBSERVATION", "expected": "ERROR" }
+  ]
+}
