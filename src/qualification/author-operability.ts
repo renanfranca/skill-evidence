@@ -339,7 +339,7 @@ export function evaluateAuthorOperabilityPreflight(
     expectedCommit: evidence.expectedCommit,
     externalProviderCalls: 0,
     limitations: [
-      'Preflight does not reserve the campaign or invoke Luna/max.',
+      `Preflight does not reserve the campaign or invoke ${campaign.condition.requestedModel}.`,
       'ChatGPT login status does not prove account-specific model availability.',
       'READY_FOR_AUTHORIZATION requires separate approval for exactly one provider invocation.',
     ],

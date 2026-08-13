@@ -308,6 +308,7 @@ describe('Evaluation Author operability canary', () => {
 
   it('requires every frozen provider-free prerequisite without reserving or invoking the canary', () => {
     const ready = evaluateAuthorOperabilityPreflight(preparation(), evidence());
+    const terraReady = evaluateAuthorOperabilityPreflight(terraPreparation(), evidence());
     const drifted = evaluateAuthorOperabilityPreflight(preparation(), { ...evidence(), currentCommit: 'c'.repeat(40) });
 
     expect(ready).toMatchObject({
@@ -319,6 +320,8 @@ describe('Evaluation Author operability canary', () => {
       result: 'READY_FOR_AUTHORIZATION',
     });
     expect(ready.checks.every((check) => check.status === 'PASS')).toBe(true);
+    expect(terraReady.limitations).toContain('Preflight does not reserve the campaign or invoke gpt-5.6-terra.');
+    expect(terraReady.limitations.join(' ')).not.toContain('Luna/max');
     expect(drifted).toMatchObject({ result: 'BLOCKED' });
     expect(drifted.checks).toContainEqual({ id: 'EXACT_CLEAN_COMMIT', status: 'FAIL' });
 
