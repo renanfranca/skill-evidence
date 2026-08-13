@@ -19,7 +19,9 @@ import {
   type AuthorViabilityReviewerSubmission,
 } from './author-viability-review.js';
 import {
+  authorOperabilityCampaignPolicy,
   validateAuthorOperabilityCampaignPreparation,
+  type AuthorComparisonConclusion,
   type AuthorOperabilityCampaignPreparation,
   type AuthorViabilityDecision,
 } from './author-operability.js';
@@ -29,6 +31,7 @@ interface CompletedViabilityCollection {
   blueprint: EvaluationBlueprint;
   campaignFingerprint: string;
   campaignId: string;
+  comparisonConclusion: AuthorComparisonConclusion | null;
   elapsedMs: number;
   operabilityOutcome: string;
   providerInvocations: number;
@@ -59,8 +62,24 @@ async function readJson(path: string): Promise<unknown> {
   return JSON.parse(await readFile(path, 'utf8')) as unknown;
 }
 
-function assertE19(preparation: AuthorOperabilityCampaignPreparation): void {
-  if (preparation.campaignId !== 'e19-luna-max-locale-catalog-20260813-r1') throw new Error('AUTHOR_VIABILITY_CAMPAIGN_REQUIRED');
+function isTerraContrast(preparation: AuthorOperabilityCampaignPreparation): boolean {
+  return authorOperabilityCampaignPolicy(preparation) === 'TERRA_CONTRAST';
+}
+
+function assertReviewCampaign(preparation: AuthorOperabilityCampaignPreparation): void {
+  if (authorOperabilityCampaignPolicy(preparation) === 'HISTORICAL_OPERABILITY') {
+    throw new Error('AUTHOR_VIABILITY_CAMPAIGN_REQUIRED');
+  }
+}
+
+function collectionDecision(
+  value: object,
+  preparation: AuthorOperabilityCampaignPreparation,
+): AuthorComparisonConclusion | AuthorViabilityDecision | undefined {
+  const collection = value as Record<string, unknown>;
+  return isTerraContrast(preparation)
+    ? (collection.comparisonConclusion as AuthorComparisonConclusion | undefined)
+    : (collection.viabilityDecision as AuthorViabilityDecision | undefined);
 }
 
 function parseCompletedCollection(value: unknown, preparation: AuthorOperabilityCampaignPreparation): CompletedViabilityCollection {
@@ -71,8 +90,7 @@ function parseCompletedCollection(value: unknown, preparation: AuthorOperability
     value.campaignId !== preparation.campaignId ||
     !('campaignFingerprint' in value) ||
     value.campaignFingerprint !== sha256(preparation) ||
-    !('viabilityDecision' in value) ||
-    value.viabilityDecision !== 'PENDING_SEMANTIC_REVIEW' ||
+    collectionDecision(value, preparation) !== 'PENDING_SEMANTIC_REVIEW' ||
     !('blueprint' in value) ||
     !validateComposedEvaluationBlueprint(value.blueprint).valid
   ) {
@@ -99,7 +117,7 @@ export async function prepareAuthorViabilityReview(input: {
   preparation: AuthorOperabilityCampaignPreparation;
   repositoryRoot: string;
 }): Promise<{ packetFingerprint: string; reviewDirectory: string }> {
-  assertE19(input.preparation);
+  assertReviewCampaign(input.preparation);
   const collection = parseCompletedCollection(
     await readJson(resolve(input.repositoryRoot, input.preparation.outputDirectory, 'collection.json')),
     input.preparation,
@@ -169,13 +187,13 @@ export async function scoreAuthorViability(input: {
   preparation: AuthorOperabilityCampaignPreparation;
   repositoryRoot: string;
 }): Promise<Record<string, unknown>> {
-  assertE19(input.preparation);
+  assertReviewCampaign(input.preparation);
   if (input.outputPath !== input.preparation.sanitizedReportPath) throw new Error('AUTHOR_VIABILITY_REPORT_PATH_INVALID');
   const collectionValue = await readJson(resolve(input.repositoryRoot, input.preparation.outputDirectory, 'collection.json'));
   if (
     typeof collectionValue !== 'object' ||
     collectionValue === null ||
-    !('viabilityDecision' in collectionValue) ||
+    collectionDecision(collectionValue, input.preparation) === undefined ||
     !('campaignId' in collectionValue) ||
     collectionValue.campaignId !== input.preparation.campaignId ||
     !('campaignFingerprint' in collectionValue) ||
@@ -185,7 +203,7 @@ export async function scoreAuthorViability(input: {
   ) {
     throw new Error('AUTHOR_VIABILITY_COLLECTION_INVALID');
   }
-  let decision = collectionValue.viabilityDecision as AuthorViabilityDecision;
+  let decision = collectionDecision(collectionValue, input.preparation)!;
   let review: Record<string, unknown> | null = null;
   if (decision === 'PENDING_SEMANTIC_REVIEW') {
     const collection = parseCompletedCollection(collectionValue, input.preparation);
@@ -202,14 +220,20 @@ export async function scoreAuthorViability(input: {
     const resolutions =
       resolutionPacket.disagreements.length === 0 ? [] : parseResolutions(await readJson(join(reviewDirectory, 'resolver.input.json')));
     const resolved = resolveAuthorViabilityReview(packet, submissions, resolutions);
-    decision = resolved.decision;
+    decision = isTerraContrast(input.preparation)
+      ? resolved.decision === 'VIABLE_CANDIDATE'
+        ? 'TERRA_PASSES_CURRENT_INSTRUMENT'
+        : 'TERRA_DOES_NOT_PASS_CURRENT_INSTRUMENT'
+      : resolved.decision;
     review = {
       packetFingerprint: packet.fingerprint,
       resolutionFingerprint: resolved.fingerprint,
       reviewerSubmissionFingerprints: submissions.map((submission) => submission.fingerprint).sort(),
       judgments: resolved.judgments,
     };
-    if (collection.blueprint.lifecycle.state !== 'BLOCKED') decision = 'NOT_VIABLE_FOR_AUTHOR';
+    if (collection.blueprint.lifecycle.state !== 'BLOCKED') {
+      decision = isTerraContrast(input.preparation) ? 'TERRA_DOES_NOT_PASS_CURRENT_INSTRUMENT' : 'NOT_VIABLE_FOR_AUTHOR';
+    }
   }
   const collection = collectionValue as Record<string, unknown>;
   const report = {
@@ -228,11 +252,17 @@ export async function scoreAuthorViability(input: {
     decisionEligible: false,
     elapsedMs: collection.elapsedMs ?? null,
     fingerprints: input.preparation.fingerprints,
-    limitations: [
-      'This adaptive development gate applies only to Luna/max with Author protocol v2 and the frozen locale-catalog packet.',
-      'VIABLE_CANDIDATE does not qualify the Author or establish reliability on blind cases.',
-      'A terminal result never authorizes reuse of this campaign, reservation, or output.',
-    ],
+    limitations: isTerraContrast(input.preparation)
+      ? [
+          'This controlled development contrast applies only to Terra/xhigh on the frozen E19 protocol-v2 packet.',
+          'Passing the current instrument does not qualify Terra or prove a general intelligence difference from Luna.',
+          'A terminal result never authorizes reuse of this campaign, reservation, or output.',
+        ]
+      : [
+          'This adaptive development gate applies only to Luna/max with Author protocol v2 and the frozen locale-catalog packet.',
+          'VIABLE_CANDIDATE does not qualify the Author or establish reliability on blind cases.',
+          'A terminal result never authorizes reuse of this campaign, reservation, or output.',
+        ],
     operabilityOutcome: collection.operabilityOutcome,
     providerInvocations: collection.providerInvocations,
     purpose: 'DEVELOPMENT',
@@ -254,6 +284,6 @@ export async function loadAuthorViabilityPreparation(
 ): Promise<AuthorOperabilityCampaignPreparation> {
   const value = await readJson(resolve(repositoryRoot, preparationPath));
   if (!validateAuthorOperabilityCampaignPreparation(value)) throw new Error('OPERABILITY_PREPARATION_INVALID');
-  assertE19(value);
+  assertReviewCampaign(value);
   return value;
 }

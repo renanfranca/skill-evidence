@@ -17,6 +17,7 @@ import { prepareAuthorViabilityResolution, prepareAuthorViabilityReview, scoreAu
 
 interface QualificationCase {
   actual: AuthorOperabilityOutcome;
+  comparisonConclusion?: string | null;
   expected: AuthorOperabilityOutcome;
   id: string;
   viabilityDecision?: string | null;
@@ -28,6 +29,7 @@ export interface AuthorOperabilityQualificationReport {
   limitations: string[];
   localProcessCalls: number;
   purpose: 'DEVELOPMENT';
+  reviewWorkflowCampaigns: string[];
   reviewWorkflowQualified: boolean;
   result: 'BLOCKED' | 'INSUFFICIENT' | 'SUPPORTED_FOR_DEVELOPMENT';
   schemaVersion: 1;
@@ -60,7 +62,7 @@ export async function qualifyAuthorOperabilityRunner(root = process.cwd()): Prom
   const fakeExecutable = join(temporaryRoot, 'codex');
   const ledger = join(temporaryRoot, 'calls.log');
   const preparationValues = await Promise.all(
-    ['luna-max-canary-r1', 'luna-max-viability-r1'].map(
+    ['luna-max-canary-r1', 'luna-max-viability-r1', 'terra-xhigh-controlled-r1'].map(
       async (directory) =>
         JSON.parse(
           await readFile(resolve(root, `evaluations/refactor-design/e5-author-operability/${directory}/campaign-preparation.json`), 'utf8'),
@@ -74,6 +76,7 @@ export async function qualifyAuthorOperabilityRunner(root = process.cwd()): Prom
       limitations: ['The committed campaign preparation is invalid.'],
       localProcessCalls: 0,
       purpose: 'DEVELOPMENT',
+      reviewWorkflowCampaigns: [],
       reviewWorkflowQualified: false,
       result: 'BLOCKED',
       schemaVersion: 1,
@@ -82,7 +85,7 @@ export async function qualifyAuthorOperabilityRunner(root = process.cwd()): Prom
   const campaigns = preparationValues as AuthorOperabilityCampaignPreparation[];
   let cases: QualificationCase[] = [];
   let localProcessCalls = 0;
-  let reviewWorkflowQualified = false;
+  const reviewWorkflowCampaigns: string[] = [];
   try {
     await Promise.all([
       copyFile(resolve(root, 'evaluations/refactor-design/e4-author/providers/fake-codex-cli.cjs'), fakeExecutable),
@@ -159,16 +162,17 @@ export async function qualifyAuthorOperabilityRunner(root = process.cwd()): Prom
           workingTreeClean: () => Promise.resolve(true),
         });
         const expected =
-          campaign.campaignId === 'e19-luna-max-locale-catalog-20260813-r1' && scenario.id === 'codex-turn-timeout'
+          campaign.campaignId !== 'e18-luna-max-locale-catalog-20260812-r1' && scenario.id === 'codex-turn-timeout'
             ? 'NOT_COMPLETED_WITHIN_DIAGNOSTIC_BUDGET'
             : scenario.expected;
         cases.push({
           actual: result.operabilityOutcome,
+          ...(result.comparisonConclusion === null ? {} : { comparisonConclusion: result.comparisonConclusion }),
           expected,
           id: `${campaign.campaignId}:${scenario.id}`,
           viabilityDecision: result.viabilityDecision,
         });
-        if (campaign.campaignId === 'e19-luna-max-locale-catalog-20260813-r1' && scenario.id === 'completion') {
+        if (campaign.campaignId !== 'e18-luna-max-locale-catalog-20260812-r1' && scenario.id === 'completion') {
           const prepared = await prepareAuthorViabilityReview({ preparation: campaign, repositoryRoot });
           const packet = JSON.parse(await readFile(join(prepared.reviewDirectory, 'reviewer-a.packet.json'), 'utf8')) as {
             criteria: Array<{ id: string }>;
@@ -192,7 +196,11 @@ export async function qualifyAuthorOperabilityRunner(root = process.cwd()): Prom
             preparation: campaign,
             repositoryRoot,
           });
-          reviewWorkflowQualified = resolution.disagreements.length === 0 && report.result === 'VIABLE_CANDIDATE';
+          const expectedResult =
+            campaign.campaignId === 'e19-luna-max-locale-catalog-20260813-r1' ? 'VIABLE_CANDIDATE' : 'TERRA_PASSES_CURRENT_INSTRUMENT';
+          if (resolution.disagreements.length === 0 && report.result === expectedResult) {
+            reviewWorkflowCampaigns.push(campaign.campaignId);
+          }
         }
       }
     }
@@ -202,6 +210,8 @@ export async function qualifyAuthorOperabilityRunner(root = process.cwd()): Prom
   } finally {
     await rm(temporaryRoot, { force: true, recursive: true });
   }
+  const expectedReviewCampaigns = ['e19-luna-max-locale-catalog-20260813-r1', 'e20-terra-xhigh-locale-catalog-20260813-r1'];
+  const reviewWorkflowQualified = canonicalJson(reviewWorkflowCampaigns.sort()) === canonicalJson(expectedReviewCampaigns);
   const matches =
     cases.length === scenarios.length * campaigns.length &&
     cases.every((entry) => entry.actual === entry.expected) &&
@@ -211,7 +221,7 @@ export async function qualifyAuthorOperabilityRunner(root = process.cwd()): Prom
     cases,
     externalProviderCalls: 0,
     limitations: [
-      'The deterministic executable opens no network connection and does not prove Luna availability.',
+      'The deterministic executable opens no network connection and does not prove Luna or Terra availability.',
       'The qualifier tests terminal orchestration and sanitized persistence, not Author semantic quality.',
       'The E19 timeout process exits immediately; it validates classification without simulating 30 minutes of wall time.',
       'Synthetic reviewer acceptance qualifies artifact routing and resolution mechanics, not human semantic judgment.',
@@ -219,6 +229,7 @@ export async function qualifyAuthorOperabilityRunner(root = process.cwd()): Prom
     ],
     localProcessCalls,
     purpose: 'DEVELOPMENT',
+    reviewWorkflowCampaigns,
     reviewWorkflowQualified,
     result: matches ? 'SUPPORTED_FOR_DEVELOPMENT' : cases.length === 0 ? 'BLOCKED' : 'INSUFFICIENT',
     schemaVersion: 1,
