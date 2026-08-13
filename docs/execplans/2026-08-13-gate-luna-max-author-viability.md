@@ -136,10 +136,10 @@ Archive only sanitized reports and review evidence. Update this plan, index, PR 
 - [x] Complete Milestone 2: derive time targets, viability states, blind packets, independent submissions, and disagreement-only resolution.
 - [x] Complete the offline implementation and validation portion of Milestone 3: audit zero, 160 tests, deterministic qualifiers, build, lint, formatting, and provider-free checkpoint green.
 - [x] Publish draft PR #7 and observe hosted CI green on the complete implementation.
-- [ ] Complete Milestone 3 and exact preflight.
-- [ ] Receive exact one-call authorization.
-- [ ] Complete Milestone 4 once.
-- [ ] Complete Milestone 5.
+- [x] Complete Milestone 3 and exact preflight at `c5f7b22475b0de4f9d429311367ae7e8442a609c` with all checks passing.
+- [x] Receive exact one-call authorization for campaign fingerprint `a1d97c5b5590b912b9c604063c995ff5dc664334428c47ce94ef60b97b523674`.
+- [x] Complete Milestone 4 once: one invocation completed in 569,958 ms and terminated as `NOT_VIABLE_FOR_AUTHOR`; no review was warranted.
+- [x] Complete Milestone 5 without another provider call.
 
 ## Decisions
 
@@ -179,6 +179,10 @@ Archive only sanitized reports and review evidence. Update this plan, index, PR 
   Rationale: the joint qualifier proves that the historical E18 classification remains unchanged while E19 adds its distinct timeout decision and review workflow; it waits no wall-clock diagnostic interval and makes zero external calls.
   Date/Author: 2026-08-13 / implementation agent.
 
+- Decision: apply the prespecified mechanical lifecycle gate before semantic review.
+  Rationale: the completed Blueprint was schema-valid and included genuine blockers, but semantic validation found `MANDATORY_DIRECT_EVIDENCE_MISSING` at `/contracts/4/evidenceRequired`, producing system lifecycle `DRAFT` instead of the required `BLOCKED`. The frozen matrix therefore terminates as `NOT_VIABLE_FOR_AUTHOR`, and reviewers cannot reverse that critical mechanical failure.
+  Date/Author: 2026-08-13 / implementation agent.
+
 ## Risks and Mitigations
 
 - Risk: a favorable adapted follow-up is mistaken for blind confirmation. Mitigation: label E19 development evidence and require future untouched cases for qualification.
@@ -189,6 +193,7 @@ Archive only sanitized reports and review evidence. Update this plan, index, PR 
 - Risk: a completed but invalid candidate is mislabeled infrastructure failure. Mitigation: JSON/candidate/schema failures are Author output failures and therefore `NOT_VIABLE_FOR_AUTHOR`; only failures outside valid measurement are `INSUFFICIENT`.
 - Risk: 30-minute foreground execution is interrupted locally. Mitigation: exact preflight, terminal receipt, isolated workspace, sanitized proxy, and conservative `INSUFFICIENT` classification; a consumed reservation never permits repetition.
 - Risk: a global provider failure is recorded as failure to meet a time target. Mitigation: timing gates remain `null` unless a Blueprint completes or a timeout is directly observed.
+- Risk: eventual completion is mistaken for viability. Mitigation: preserve separate operability and semantic outcomes; E19 completed within the time budget but failed the mechanical Blueprint gate.
 
 ## Validation Strategy
 
@@ -214,7 +219,17 @@ There is no deployment. Before reservation, commits can be reverted normally. Af
 - Operability and semantic quality must both pass for a condition to remain viable, but neither one-run result establishes reliability or qualification.
 - A reviewer packet should not include system fields merely to ask humans to re-check deterministic policy; removing them strengthens blindness and leaves provenance validation with the system that composes the Blueprint.
 - The same local executable can qualify timeout classification without reproducing 1,800 seconds of elapsed wall time, provided the report states that it qualifies routing rather than live latency.
+- Extending the ceiling answered the operability question: Luna/max can complete this packet in under ten minutes. It did not rescue viability because the returned Blueprint still violated a critical completeness contract.
+- A real blocker in `unresolvedRequirements` does not force `BLOCKED` when another required section is semantically incomplete; lifecycle precedence correctly keeps such a candidate at `DRAFT`.
 
 ## Offline Validation Evidence
 
 On 2026-08-13, before any E19 reservation or external call, the focused Author suites passed 55 tests and the complete repository passed 160 tests. `npm audit` reported zero vulnerabilities. Typecheck, lint, Prettier, build, `experiment:verify`, and the archaeological, Author, provider, lifecycle, and operability qualifiers all passed. The E19 operability qualifier traversed six local Promptfoo/Codex SDK processes, reported `reviewWorkflowQualified: true`, and made zero external provider calls. The post-GREEN design review consolidated the repeated E19 profile check without changing behavior. Draft PR #7 then passed every hosted CI step. The frozen campaign fingerprint is `a1d97c5b5590b912b9c604063c995ff5dc664334428c47ce94ef60b97b523674`; the exact final commit and provider-free preflight remain the final handoff evidence.
+
+## Live Result
+
+The literal-SHA preflight at `c5f7b22475b0de4f9d429311367ae7e8442a609c` returned `READY_FOR_AUTHORIZATION` with all twelve checks passing, zero invocations, and no reservation, receipt, output, or report. After the user authorized that exact handoff, E19 atomically reserved and made exactly one Luna/max call with zero retry.
+
+The invocation completed after 569,958 milliseconds: it missed 300 seconds, met 600 seconds, and met the 1,800-second ceiling. Requested model was `gpt-5.6-luna`; observed model remained explicitly unavailable. Usage was 16,928 input tokens, 31,197 output tokens, 22,487 reasoning-output tokens, and 48,125 total tokens.
+
+The composed Blueprint was schema-valid and preserved `NOT_QUALIFIED` plus `decisionEligible: false`. It contained a genuine blocking unresolved requirement for missing decision context. However, candidate validation found `MANDATORY_DIRECT_EVIDENCE_MISSING` at `/contracts/4/evidenceRequired`, so lifecycle was mechanically derived as `DRAFT`, not the required `BLOCKED`. Under the frozen decision matrix this is a critical Blueprint failure and the terminal result is `NOT_VIABLE_FOR_AUTHOR`. Semantic reviewer packets and adjudication were correctly not created because mechanical checks take precedence. The sanitized report is `docs/experiments/e19-luna-max-locale-catalog-20260813-r1.json`; local reservation, collection, and receipt remain ignored evidence and the campaign can never be repeated.
