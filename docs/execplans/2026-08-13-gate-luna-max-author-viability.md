@@ -135,6 +135,7 @@ Archive only sanitized reports and review evidence. Update this plan, index, PR 
 - [x] Complete Milestone 1: freeze the E19 profile, oracle, unchanged skill snapshot, and packet identity.
 - [x] Complete Milestone 2: derive time targets, viability states, blind packets, independent submissions, and disagreement-only resolution.
 - [x] Complete the offline implementation and validation portion of Milestone 3: audit zero, 160 tests, deterministic qualifiers, build, lint, formatting, and provider-free checkpoint green.
+- [x] Publish draft PR #7 and observe hosted CI green on the complete implementation.
 - [ ] Complete Milestone 3 and exact preflight.
 - [ ] Receive exact one-call authorization.
 - [ ] Complete Milestone 4 once.
@@ -216,4 +217,4 @@ There is no deployment. Before reservation, commits can be reverted normally. Af
 
 ## Offline Validation Evidence
 
-On 2026-08-13, before any E19 reservation or external call, the focused Author suites passed 55 tests and the complete repository passed 160 tests. `npm audit` reported zero vulnerabilities. Typecheck, lint, Prettier, build, `experiment:verify`, and the archaeological, Author, provider, lifecycle, and operability qualifiers all passed. The E19 operability qualifier traversed six local Promptfoo/Codex SDK processes, reported `reviewWorkflowQualified: true`, and made zero external provider calls. The post-GREEN design review consolidated the repeated E19 profile check without changing behavior. Hosted CI and the exact literal-SHA preflight remain pending.
+On 2026-08-13, before any E19 reservation or external call, the focused Author suites passed 55 tests and the complete repository passed 160 tests. `npm audit` reported zero vulnerabilities. Typecheck, lint, Prettier, build, `experiment:verify`, and the archaeological, Author, provider, lifecycle, and operability qualifiers all passed. The E19 operability qualifier traversed six local Promptfoo/Codex SDK processes, reported `reviewWorkflowQualified: true`, and made zero external provider calls. The post-GREEN design review consolidated the repeated E19 profile check without changing behavior. Draft PR #7 then passed every hosted CI step. The frozen campaign fingerprint is `a1d97c5b5590b912b9c604063c995ff5dc664334428c47ce94ef60b97b523674`; the exact final commit and provider-free preflight remain the final handoff evidence.
