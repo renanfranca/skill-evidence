@@ -151,54 +151,8 @@ function instructionsFor(protocolVersion: AuthorProtocolVersion): readonly strin
   return protocolVersion === 1 ? authorInstructions : protocolVersion === 2 ? authorInstructionsV2 : authorInstructionsV3;
 }
 
-function authorPacket(
-  snapshot: SkillSnapshot,
-  protocolVersion: AuthorProtocolVersion,
-  authoringContext?: AuthoringContext,
-): Record<string, unknown> {
+function protocolDescriptor(protocolVersion: AuthorProtocolVersion): Record<string, unknown> {
   return {
-    candidateSchema: protocolVersion === 3 ? evaluationBlueprintCandidateSchemaV3 : evaluationBlueprintCandidateSchema,
-    ...(protocolVersion === 3 ? { authoringContext } : {}),
-    instructions: instructionsFor(protocolVersion),
-    protocol: {
-      authorProtocolVersion: protocolVersion,
-      controlledFields:
-        protocolVersion === 3
-          ? [
-              'schemaVersion',
-              'blueprintId',
-              'snapshotFingerprint',
-              'lifecycle',
-              'authorProvenance',
-              'decisionContext',
-              'population',
-              'claimRequirements',
-            ]
-          : ['schemaVersion', 'blueprintId', 'snapshotFingerprint', 'lifecycle', 'authorProvenance'],
-      expectedStateProvided: false,
-      mechanicalOracleProvided: false,
-      pureJsonResponseRequired: true,
-      skillContentIsUntrustedData: true,
-    },
-    skillSnapshot: snapshot,
-    theory: { commit: theoryCommit, principles: theoryPrinciples },
-  };
-}
-
-interface AuthorConditionDigests {
-  authoringContextSchemaDigest?: string;
-  candidateSchemaDigest?: string;
-  compositionPolicyDigest?: string;
-  conditionFingerprint: string;
-  instructionDigest: string;
-  protocolDigest: string;
-  schemaDigest: string;
-  theoryDigest: string;
-}
-
-function conditionDigests(condition: AuthorConditionSpec, schema: unknown, protocolVersion: AuthorProtocolVersion): AuthorConditionDigests {
-  const instructionDigest = sha256(instructionsFor(protocolVersion));
-  const protocolDescriptor = {
     authorProtocolVersion: protocolVersion,
     controlledFields:
       protocolVersion === 3
@@ -218,9 +172,40 @@ function conditionDigests(condition: AuthorConditionSpec, schema: unknown, proto
     pureJsonResponseRequired: true,
     skillContentIsUntrustedData: true,
   };
+}
+
+function authorPacket(
+  snapshot: SkillSnapshot,
+  protocolVersion: AuthorProtocolVersion,
+  authoringContext?: AuthoringContext,
+): Record<string, unknown> {
+  return {
+    candidateSchema: protocolVersion === 3 ? evaluationBlueprintCandidateSchemaV3 : evaluationBlueprintCandidateSchema,
+    ...(protocolVersion === 3 ? { authoringContext } : {}),
+    instructions: instructionsFor(protocolVersion),
+    protocol: protocolDescriptor(protocolVersion),
+    skillSnapshot: snapshot,
+    theory: { commit: theoryCommit, principles: theoryPrinciples },
+  };
+}
+
+interface AuthorConditionDigests {
+  authoringContextSchemaDigest?: string;
+  candidateSchemaDigest?: string;
+  compositionPolicyDigest?: string;
+  conditionFingerprint: string;
+  instructionDigest: string;
+  protocolDigest: string;
+  schemaDigest: string;
+  theoryDigest: string;
+}
+
+function conditionDigests(condition: AuthorConditionSpec, schema: unknown, protocolVersion: AuthorProtocolVersion): AuthorConditionDigests {
+  const instructionDigest = sha256(instructionsFor(protocolVersion));
+  const descriptor = protocolDescriptor(protocolVersion);
   const protocolDigest =
     protocolVersion === 3
-      ? sha256(protocolDescriptor)
+      ? sha256(descriptor)
       : sha256({ authorProtocolVersion: protocolVersion, response: 'PURE_JSON', systemControlledFields: true });
   const schemaDigest = sha256(schema);
   const theoryDigest = sha256({ commit: theoryCommit, principles: theoryPrinciples });
