@@ -6,7 +6,7 @@ import blueprintSchema2 from '../../schemas/evaluation-blueprint.schema-2.json' 
 import blueprintSchema3 from '../../schemas/evaluation-blueprint.schema-3.json' with { type: 'json' };
 import authoringContextSchema from '../../schemas/authoring-context.schema.json' with { type: 'json' };
 
-import { canonicalJson } from '../canonical-json.js';
+import { canonicalJson, sha256 } from '../canonical-json.js';
 import {
   deriveSystemAuthoringContextRequirements,
   type AuthoringContext,
@@ -151,12 +151,19 @@ export interface EvidenceRequirementV3 extends EvidenceRequirementCandidateV3 {
   missingEvidenceSemantics: 'INCONCLUSIVE_WHEN_ELIGIBLE_PATH_EVIDENCE_IS_MISSING';
 }
 
+export interface BlueprintPoliciesV3 {
+  criticalViolationPrecedence: string;
+  expectationBlindness: string;
+  semanticEquivalence: string;
+}
+
 export interface BlueprintCandidateV3 extends Omit<
   BlueprintCandidate,
-  'claims' | 'decisionContext' | 'evidencePlan' | 'population' | 'unresolvedRequirements'
+  'claims' | 'decisionContext' | 'evidencePlan' | 'policies' | 'population' | 'unresolvedRequirements'
 > {
   claims?: BlueprintClaimCandidateV3[];
   evidencePlan?: EvidenceRequirementCandidateV3[];
+  policies?: BlueprintPoliciesV3;
   unresolvedRequirements?: Array<{
     affectedClaimIds: string[];
     blocking: boolean;
@@ -172,6 +179,14 @@ export interface BlueprintCandidateV3 extends Omit<
 export interface ComposedBlueprintValidation {
   diagnostics: BlueprintDiagnostic[];
   valid: boolean;
+}
+
+export function deriveBlueprintLifecycleV3(
+  completenessDiagnostics: readonly BlueprintDiagnostic[],
+  unresolvedRequirements: readonly { blocking: boolean }[],
+): BlueprintLifecycle {
+  if (completenessDiagnostics.length > 0) return 'DRAFT';
+  return unresolvedRequirements.some((requirement) => requirement.blocking) ? 'BLOCKED' : 'READY';
 }
 
 export interface AuthorProvenance {
@@ -233,6 +248,28 @@ export type EvaluationBlueprintV3 = Required<Omit<BlueprintCandidateV3, 'claims'
 };
 
 export type EvaluationBlueprint = EvaluationBlueprintV1V2 | EvaluationBlueprintV3;
+
+export function deriveEvaluationBlueprintIdV3(
+  semanticContent: Record<string, unknown>,
+  identity: {
+    authorInstrumentFingerprint: string;
+    authoringContextFingerprint: string;
+    conditionFingerprint: string;
+    snapshotFingerprint: string;
+  },
+): string {
+  return `ebp-${sha256({ candidate: semanticContent, ...identity })}`;
+}
+
+function semanticContentFromEvaluationBlueprintV3(blueprint: Record<string, unknown>): Record<string, unknown> {
+  const { authorProvenance, blueprintId, lifecycle, schemaVersion, snapshotFingerprint, ...semanticContent } = blueprint;
+  void authorProvenance;
+  void blueprintId;
+  void lifecycle;
+  void schemaVersion;
+  void snapshotFingerprint;
+  return semanticContent;
+}
 
 const controlledFields = new Set([
   'authorProvenance',
@@ -365,11 +402,28 @@ export function validateComposedEvaluationBlueprint(value: unknown): ComposedBlu
   if (schemaVersion !== 3) return { diagnostics: [], valid: true };
   const blueprint = value as Record<string, unknown>;
   const lifecycle = blueprint.lifecycle as { state: BlueprintLifecycle };
-  const semanticDiagnostics =
-    lifecycle.state === 'DRAFT'
-      ? []
-      : evaluationBlueprintV3Diagnostics(blueprint as unknown as BlueprintCandidateV3, authoringContextFromBlueprint(blueprint));
-  const diagnostics = [...semanticDiagnostics, ...validateSystemBlockerIntegrity(blueprint), ...validateComposedClaimIntegrity(blueprint)];
+  const semanticDiagnostics = evaluationBlueprintV3Diagnostics(
+    blueprint as unknown as BlueprintCandidateV3,
+    authoringContextFromBlueprint(blueprint),
+  );
+  const derivedLifecycle = deriveBlueprintLifecycleV3(
+    semanticDiagnostics,
+    blueprint.unresolvedRequirements as Array<{ blocking: boolean }>,
+  );
+  const provenance = blueprint.authorProvenance as AuthorProvenanceV3;
+  const expectedBlueprintId = deriveEvaluationBlueprintIdV3(semanticContentFromEvaluationBlueprintV3(blueprint), {
+    authorInstrumentFingerprint: provenance.authorInstrumentFingerprint,
+    authoringContextFingerprint: provenance.authoringContextFingerprint,
+    conditionFingerprint: provenance.conditionFingerprint,
+    snapshotFingerprint: blueprint.snapshotFingerprint as string,
+  });
+  const diagnostics = [
+    ...(lifecycle.state === 'DRAFT' ? [] : semanticDiagnostics),
+    ...(lifecycle.state === derivedLifecycle ? [] : [{ code: 'LIFECYCLE_INTEGRITY', path: '/lifecycle/state' }]),
+    ...(blueprint.blueprintId === expectedBlueprintId ? [] : [{ code: 'BLUEPRINT_ID_INTEGRITY', path: '/blueprintId' }]),
+    ...validateSystemBlockerIntegrity(blueprint),
+    ...validateComposedClaimIntegrity(blueprint),
+  ];
   return { diagnostics, valid: diagnostics.length === 0 };
 }
 
@@ -524,7 +578,6 @@ function evaluationBlueprintV3Diagnostics(candidate: BlueprintCandidateV3, conte
     addBrokenReferences(evidence.contractIds, contractIds, `/evidencePlan/${index}/contractIds`, diagnostics);
     evidence.observabilityRequirement.paths.forEach((path, pathIndex) => {
       const observationIds = new Set(path.observations.map((observation) => observation.id));
-      const assessed = new Set<string>();
       path.assessments.forEach((assessment, assessmentIndex) => {
         if (assessment.observationIds.length === 0) {
           diagnostics.push({
@@ -538,15 +591,6 @@ function evaluationBlueprintV3Diagnostics(candidate: BlueprintCandidateV3, conte
           `/evidencePlan/${index}/observabilityRequirement/paths/${pathIndex}/assessments/${assessmentIndex}/observationIds`,
           diagnostics,
         );
-        assessment.observationIds.forEach((id) => assessed.add(id));
-      });
-      path.observations.forEach((observation, observationIndex) => {
-        if (!assessed.has(observation.id)) {
-          diagnostics.push({
-            code: 'OBSERVATION_UNASSESSED',
-            path: `/evidencePlan/${index}/observabilityRequirement/paths/${pathIndex}/observations/${observationIndex}/id`,
-          });
-        }
       });
     });
   });

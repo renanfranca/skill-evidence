@@ -51,12 +51,22 @@
     "oracleQualificationPlan": { "$ref": "evaluation-blueprint.schema.json#/properties/oracleQualificationPlan" },
     "samplingPlan": { "$ref": "evaluation-blueprint.schema.json#/properties/samplingPlan" },
     "analysisPlan": { "$ref": "evaluation-blueprint.schema.json#/properties/analysisPlan" },
-    "policies": { "$ref": "evaluation-blueprint.schema.json#/properties/policies" },
+    "policies": { "$ref": "#/$defs/protocolV3Policies" },
     "stoppingConditions": { "$ref": "evaluation-blueprint.schema.json#/properties/stoppingConditions" },
     "unresolvedRequirements": { "type": "array", "items": { "$ref": "#/$defs/composedRequirement" } },
     "untestedRisks": { "$ref": "evaluation-blueprint.schema.json#/properties/untestedRisks" }
   },
   "$defs": {
+    "protocolV3Policies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["criticalViolationPrecedence", "semanticEquivalence", "expectationBlindness"],
+      "properties": {
+        "criticalViolationPrecedence": { "$ref": "evaluation-blueprint.schema.json#/$defs/nonEmptyString" },
+        "semanticEquivalence": { "$ref": "evaluation-blueprint.schema.json#/$defs/nonEmptyString" },
+        "expectationBlindness": { "$ref": "evaluation-blueprint.schema.json#/$defs/nonEmptyString" }
+      }
+    },
     "candidateId": {
       "allOf": [
         { "$ref": "evaluation-blueprint.schema.json#/$defs/nonEmptyString" },
@@ -159,7 +169,7 @@
       "properties": {
         "id": { "$ref": "#/$defs/candidateId" },
         "observations": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/observation" } },
-        "assessments": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/assessment" } }
+        "assessments": { "type": "array", "items": { "$ref": "#/$defs/assessment" } }
       }
     },
     "observabilityRequirement": {

@@ -39,6 +39,7 @@ export const authorInstructionsV3 = [
   'Describe evidence under one observabilityRequirement whose paths are alternatives. Within one path, every observation and assessment is required together.',
   'An observation states what directly inspectable output, state, action, constraint, temporal relation, or provenance fact will be captured, its evidence origin, and the capability required for that purpose.',
   'An assessment references the observations it interprets and states its assessment origin, required capability, and evidence kind: STRUCTURED_DETERMINISTIC_INFERENCE, SEMANTIC, or JUDGMENT.',
+  'Use assessments: [] when direct observations exhaust the measured property. When interpretation remains necessary, provide every required assessment and reference its observations.',
   'A semantic or judgment assessment may evaluate a directly captured observation; capture and interpretation are not competing evidence classes.',
   'Do not claim that planned observations already exist or that required capabilities are available. Capability eligibility is checked later.',
 ] as const;

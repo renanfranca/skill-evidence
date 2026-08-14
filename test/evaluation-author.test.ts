@@ -131,6 +131,7 @@ function protocolV3Candidate(): Record<string, unknown> {
   delete candidate.decisionContext;
   delete candidate.evidencePlan;
   delete candidate.population;
+  delete (candidate.policies as Record<string, unknown>).missingEvidence;
   candidate.claims = [
     {
       claimRequirementId: 'system:authoring-context:claim-requirement:observable-contract',
@@ -693,6 +694,31 @@ describe('Evaluation Author v0', () => {
     await expect(run(spoofed)).resolves.toMatchObject({ error: { code: 'CANDIDATE_STRUCTURALLY_INVALID' }, status: 'ERROR' });
   });
 
+  it('uses evidence requirements as the sole protocol v3 missing-evidence authority', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-protocol-v3-missing-evidence-root-'));
+    await writeFile(join(root, 'SKILL.md'), '# Protocol v3 missing evidence authority\n');
+    const snapshot = await createSkillSnapshot({ rootDirectory: root });
+    const run = async (candidate: Record<string, unknown>) =>
+      await authorEvaluationBlueprint({
+        authoringContext: protocolV3Context(),
+        campaignId: 'protocol-v3-missing-evidence-authority',
+        invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(candidate) }),
+        protocolVersion: 3,
+        snapshot,
+      });
+    const candidate = protocolV3Candidate();
+    delete (candidate.policies as Record<string, unknown>).missingEvidence;
+
+    const result = await run(candidate);
+
+    expect(result).toMatchObject({ blueprint: { lifecycle: { state: 'READY' } }, status: 'COMPLETED' });
+    if (result.status !== 'COMPLETED') throw new Error('expected protocol-v3 Blueprint');
+    expect(result.blueprint.policies).not.toHaveProperty('missingEvidence');
+    const legacyMirror = structuredClone(candidate);
+    (legacyMirror.policies as Record<string, unknown>).missingEvidence = 'A second, conflicting authority.';
+    await expect(run(legacyMirror)).resolves.toMatchObject({ error: { code: 'CANDIDATE_STRUCTURALLY_INVALID' }, status: 'ERROR' });
+  });
+
   it('requires a consistent claim to contract to evidence chain before protocol v3 can become READY', async () => {
     const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-protocol-v3-chain-root-'));
     await writeFile(join(root, 'SKILL.md'), '# Evidence chain integrity\n');
@@ -810,6 +836,34 @@ describe('Evaluation Author v0', () => {
     });
   });
 
+  it('allows a protocol v3 evidence path to rely only on direct observations', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-protocol-v3-direct-only-root-'));
+    await writeFile(join(root, 'SKILL.md'), '# Direct-only evidence path\n');
+    const snapshot = await createSkillSnapshot({ rootDirectory: root });
+    const candidate = protocolV3Candidate();
+    (
+      candidate.evidencePlan as Array<{
+        observabilityRequirement: { paths: Array<{ assessments: unknown[] }> };
+      }>
+    )[0]!.observabilityRequirement.paths[0]!.assessments = [];
+
+    const result = await authorEvaluationBlueprint({
+      authoringContext: protocolV3Context(),
+      campaignId: 'protocol-v3-direct-only',
+      invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(candidate) }),
+      protocolVersion: 3,
+      snapshot,
+    });
+
+    expect(result).toMatchObject({
+      blueprint: {
+        evidencePlan: [{ observabilityRequirement: { paths: [{ assessments: [], observations: [expect.any(Object)] }] } }],
+        lifecycle: { state: 'READY' },
+      },
+      status: 'COMPLETED',
+    });
+  });
+
   it('freezes protocol v3 inputs and fingerprints the exact prompt handed to the Author invoker', async () => {
     const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-protocol-v3-freeze-root-'));
     await writeFile(join(root, 'SKILL.md'), '# Frozen protocol inputs\n');
@@ -876,10 +930,93 @@ describe('Evaluation Author v0', () => {
     const tampered = structuredClone(result.blueprint) as unknown as { unresolvedRequirements: Array<{ blocking: boolean }> };
     tampered.unresolvedRequirements[0]!.blocking = false;
 
-    expect(validateComposedEvaluationBlueprint(tampered)).toMatchObject({
-      diagnostics: [{ code: 'SYSTEM_BLOCKER_INTEGRITY' }],
-      valid: false,
+    const validation = validateComposedEvaluationBlueprint(tampered);
+    expect(validation.valid).toBe(false);
+    expect(validation.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'SYSTEM_BLOCKER_INTEGRITY' }),
+        expect.objectContaining({ code: 'LIFECYCLE_INTEGRITY' }),
+      ]),
+    );
+  });
+
+  it('rejects persisted protocol v3 lifecycle states that differ from the derived state', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-protocol-v3-lifecycle-integrity-root-'));
+    await writeFile(join(root, 'SKILL.md'), '# Protocol v3 lifecycle integrity\n');
+    const snapshot = await createSkillSnapshot({ rootDirectory: root });
+    const run = async (candidate: Record<string, unknown>, context = protocolV3Context()) =>
+      await authorEvaluationBlueprint({
+        authoringContext: context,
+        campaignId: 'protocol-v3-lifecycle-integrity',
+        invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(candidate) }),
+        protocolVersion: 3,
+        snapshot,
+      });
+
+    const ready = await run(protocolV3Candidate());
+    if (ready.status !== 'COMPLETED' || ready.blueprint.schemaVersion !== 3) throw new Error('expected READY protocol-v3 Blueprint');
+    const readyAsBlocked = structuredClone(ready.blueprint);
+    readyAsBlocked.lifecycle.state = 'BLOCKED';
+    const readyAsDraft = structuredClone(ready.blueprint);
+    readyAsDraft.lifecycle.state = 'DRAFT';
+
+    const blockedContext = protocolV3Context();
+    blockedContext.decisionContext.minimumWorthwhileImprovement = {
+      dependency: { scope: 'DECISION' },
+      disposition: 'REQUIRED_ABSENT',
+      evidenceNeeded: 'A decision-owner threshold.',
+      reason: 'The threshold was not supplied.',
+      source: 'operator',
+      status: 'INSUFFICIENT_INFORMATION',
+    };
+    const blocked = await run(protocolV3Candidate(), blockedContext);
+    if (blocked.status !== 'COMPLETED' || blocked.blueprint.schemaVersion !== 3) throw new Error('expected BLOCKED protocol-v3 Blueprint');
+    const blockedAsReady = structuredClone(blocked.blueprint);
+    blockedAsReady.lifecycle.state = 'READY';
+
+    const incompleteCandidate = protocolV3Candidate();
+    (incompleteCandidate.evidencePlan as Array<{ claimIds: string[] }>)[0]!.claimIds = ['missing-claim'];
+    const draft = await run(incompleteCandidate);
+    if (draft.status !== 'COMPLETED') throw new Error('expected DRAFT protocol-v3 Blueprint');
+
+    for (const tampered of [readyAsBlocked, readyAsDraft, blockedAsReady]) {
+      const validation = validateComposedEvaluationBlueprint(tampered);
+      expect(validation.valid).toBe(false);
+      expect(validation.diagnostics).toContainEqual({ code: 'LIFECYCLE_INTEGRITY', path: '/lifecycle/state' });
+    }
+    expect(validateComposedEvaluationBlueprint(draft.blueprint)).toEqual({ diagnostics: [], valid: true });
+  });
+
+  it('rejects protocol v3 semantic content that no longer matches its persisted blueprintId', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-protocol-v3-content-identity-root-'));
+    await writeFile(join(root, 'SKILL.md'), '# Protocol v3 content identity\n');
+    const snapshot = await createSkillSnapshot({ rootDirectory: root });
+    const result = await authorEvaluationBlueprint({
+      authoringContext: protocolV3Context(),
+      campaignId: 'protocol-v3-content-identity',
+      invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(protocolV3Candidate()) }),
+      protocolVersion: 3,
+      snapshot,
     });
+    if (result.status !== 'COMPLETED' || result.blueprint.schemaVersion !== 3) throw new Error('expected protocol-v3 Blueprint');
+
+    const changedClaim = structuredClone(result.blueprint);
+    changedClaim.claims[0]!.statement = 'A different claim.';
+    const changedContract = structuredClone(result.blueprint);
+    changedContract.contracts[0]!.stimulus = 'A different stimulus.';
+    const changedPolicy = structuredClone(result.blueprint);
+    changedPolicy.policies.expectationBlindness = 'A different blindness policy.';
+    const changedContext = structuredClone(result.blueprint);
+    changedContext.decisionContext.decision = { disposition: 'SUPPLIED', source: 'operator', value: 'A different decision.' };
+    const changedEvidence = structuredClone(result.blueprint);
+    changedEvidence.evidencePlan[0]!.property = 'A different measured property.';
+
+    for (const tampered of [changedClaim, changedContract, changedPolicy, changedContext, changedEvidence]) {
+      const validation = validateComposedEvaluationBlueprint(tampered);
+      expect(validation.valid).toBe(false);
+      expect(validation.diagnostics).toContainEqual({ code: 'BLUEPRINT_ID_INTEGRITY', path: '/blueprintId' });
+    }
+    expect(validateComposedEvaluationBlueprint(result.blueprint)).toEqual({ diagnostics: [], valid: true });
   });
 
   it('validates trusted claim cardinality again at the composed Blueprint authority boundary', async () => {
@@ -903,10 +1040,14 @@ describe('Evaluation Author v0', () => {
 
     const brokenEvidenceChain = structuredClone(result.blueprint);
     brokenEvidenceChain.contracts[0]!.claimIds = [];
-    expect(validateComposedEvaluationBlueprint(brokenEvidenceChain)).toMatchObject({
-      diagnostics: [{ code: 'EVIDENCE_LINK_MISMATCH' }],
-      valid: false,
-    });
+    const brokenEvidenceValidation = validateComposedEvaluationBlueprint(brokenEvidenceChain);
+    expect(brokenEvidenceValidation.valid).toBe(false);
+    expect(brokenEvidenceValidation.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'EVIDENCE_LINK_MISMATCH' }),
+        expect.objectContaining({ code: 'LIFECYCLE_INTEGRITY' }),
+      ]),
+    );
   });
 
   it('rejects an unsupported Author protocol before invoking a provider', async () => {
@@ -1701,7 +1842,7 @@ describe('Evaluation Author v0', () => {
 
     expect(report).toMatchObject({
       externalProviderCalls: 0,
-      localProviderCalls: 6,
+      localProviderCalls: 7,
       packetLeakageFindings: 0,
       protocolVersion: 3,
       purpose: 'DEVELOPMENT',
@@ -1710,6 +1851,7 @@ describe('Evaluation Author v0', () => {
     });
     expect(report.cases.map(({ actual, expected, id }) => ({ actual, expected, id }))).toEqual([
       { actual: 'READY', expected: 'READY', id: 'ready-supplied-context' },
+      { actual: 'READY', expected: 'READY', id: 'ready-direct-only-observation' },
       { actual: 'BLOCKED', expected: 'BLOCKED', id: 'blocked-missing-population' },
       { actual: 'BLOCKED', expected: 'BLOCKED', id: 'blocked-author-gap' },
       { actual: 'DRAFT', expected: 'DRAFT', id: 'draft-broken-reference' },

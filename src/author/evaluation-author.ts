@@ -5,6 +5,8 @@ import authoringContextSchema from '../../schemas/authoring-context.schema.json'
 
 import {
   deriveBlueprintLifecycle,
+  deriveBlueprintLifecycleV3,
+  deriveEvaluationBlueprintIdV3,
   evaluationBlueprintCandidateSchema,
   evaluationBlueprintCandidateSchemaV3,
   validateEvaluationBlueprint,
@@ -131,12 +133,14 @@ const compositionPolicyV3 = {
   claimRequirementCardinality: 'ONE_TO_ONE',
   lifecyclePrecedence: ['ERROR', 'DRAFT', 'BLOCKED', 'READY'],
   missingEvidenceSemantics: 'INCONCLUSIVE_WHEN_ELIGIBLE_PATH_EVIDENCE_IS_MISSING',
-  pathAssessmentInputCardinality: 'AT_LEAST_ONE_OBSERVATION',
+  pathAssessmentInputCardinality: 'WHEN_PRESENT_AT_LEAST_ONE_OBSERVATION',
+  pathDirectOnly: 'ALLOWED_WHEN_OBSERVATION_EXHAUSTS_PROPERTY',
   pathAssessmentOperator: 'ALL',
   pathObservationOperator: 'ALL',
   pathOperator: 'ANY',
+  policyMissingEvidenceAuthority: 'EVIDENCE_REQUIREMENT_ONLY',
   systemControlledClaimFields: ['mandatory', 'decisionCritical', 'populationScopeIds', 'status'],
-  version: 2,
+  version: 3,
 } as const;
 
 function canonicalFrozenCopy<T>(value: T): T {
@@ -410,19 +414,21 @@ export async function authorEvaluationBlueprint(input: AuthorInput): Promise<Aut
       : (candidate as Record<string, unknown>);
   const lifecycle =
     prepared.protocolVersion === 3
-      ? !validation.complete || validation.diagnostics.length > 0
-        ? 'DRAFT'
-        : (composedCandidate.unresolvedRequirements as ComposedRequirementV3[]).some((requirement) => requirement.blocking)
-          ? 'BLOCKED'
-          : 'READY'
+      ? deriveBlueprintLifecycleV3(validation.diagnostics, composedCandidate.unresolvedRequirements as ComposedRequirementV3[])
       : deriveBlueprintLifecycle(candidate, validation);
-  const semanticIdentity = {
-    candidate: composedCandidate,
-    conditionFingerprint: digests.conditionFingerprint,
-    ...(prepared.authoringContextFingerprint === undefined ? {} : { authoringContextFingerprint: prepared.authoringContextFingerprint }),
-    ...(prepared.authorInstrumentFingerprint === undefined ? {} : { authorInstrumentFingerprint: prepared.authorInstrumentFingerprint }),
-    snapshotFingerprint: prepared.preparedSnapshotFingerprint,
-  };
+  const blueprintId =
+    prepared.protocolVersion === 3
+      ? deriveEvaluationBlueprintIdV3(composedCandidate, {
+          authorInstrumentFingerprint: prepared.authorInstrumentFingerprint!,
+          authoringContextFingerprint: prepared.authoringContextFingerprint!,
+          conditionFingerprint: digests.conditionFingerprint,
+          snapshotFingerprint: prepared.preparedSnapshotFingerprint,
+        })
+      : `ebp-${sha256({
+          candidate: composedCandidate,
+          conditionFingerprint: digests.conditionFingerprint,
+          snapshotFingerprint: prepared.preparedSnapshotFingerprint,
+        })}`;
   const blueprintValue: Record<string, unknown> = {
     ...composedCandidate,
     authorProvenance: {
@@ -445,7 +451,7 @@ export async function authorEvaluationBlueprint(input: AuthorInput): Promise<Aut
       status: 'NOT_QUALIFIED',
       theoryDigest: digests.theoryDigest,
     },
-    blueprintId: `ebp-${sha256(semanticIdentity)}`,
+    blueprintId,
     lifecycle: { decisionEligible: false, scope: 'DEVELOPMENT_AUTHORING', state: lifecycle },
     schemaVersion: prepared.schemaVersion,
     snapshotFingerprint: prepared.preparedSnapshotFingerprint,

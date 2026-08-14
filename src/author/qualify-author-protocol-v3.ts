@@ -9,7 +9,7 @@ import { createSkillSnapshot } from '../intake/skill-snapshot.js';
 import { authorEvaluationBlueprint, type AuthoringContext } from './evaluation-author.js';
 
 type ActualState = 'BLOCKED' | 'DRAFT' | 'ERROR' | 'READY';
-type CaseKind = 'AUTHOR_BLOCKER' | 'BROKEN_REFERENCE' | 'NO_OBSERVATION' | 'READY' | 'RESERVED_ID' | 'SYSTEM_BLOCKER';
+type CaseKind = 'AUTHOR_BLOCKER' | 'BROKEN_REFERENCE' | 'DIRECT_ONLY' | 'NO_OBSERVATION' | 'READY' | 'RESERVED_ID' | 'SYSTEM_BLOCKER';
 
 interface FixtureCase {
   expected: ActualState;
@@ -51,7 +51,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function loadCases(value: unknown): FixtureCase[] {
-  if (!isRecord(value) || value.schemaVersion !== 1 || !Array.isArray(value.cases) || value.cases.length !== 6) {
+  if (!isRecord(value) || value.schemaVersion !== 1 || !Array.isArray(value.cases) || value.cases.length !== 7) {
     throw new Error('Author protocol v3 fixture manifest is invalid');
   }
   const cases = value.cases as unknown[];
@@ -63,7 +63,9 @@ function loadCases(value: unknown): FixtureCase[] {
         isRecord(entry) &&
         typeof entry.id === 'string' &&
         ['BLOCKED', 'DRAFT', 'ERROR', 'READY'].includes(String(entry.expected)) &&
-        ['AUTHOR_BLOCKER', 'BROKEN_REFERENCE', 'NO_OBSERVATION', 'READY', 'RESERVED_ID', 'SYSTEM_BLOCKER'].includes(String(entry.kind)),
+        ['AUTHOR_BLOCKER', 'BROKEN_REFERENCE', 'DIRECT_ONLY', 'NO_OBSERVATION', 'READY', 'RESERVED_ID', 'SYSTEM_BLOCKER'].includes(
+          String(entry.kind),
+        ),
     )
   ) {
     throw new Error('Author protocol v3 fixture manifest is invalid');
@@ -221,7 +223,6 @@ function candidateFor(kind: CaseKind, source: string): Record<string, unknown> {
     policies: {
       criticalViolationPrecedence: 'Critical fabrication overrides favorable aggregates.',
       expectationBlindness: 'Expected states remain hidden.',
-      missingEvidence: 'Missing required observations block the dependent claim.',
       semanticEquivalence: 'Equivalent outputs are accepted.',
     },
     samplingPlan: {
@@ -267,6 +268,11 @@ function candidateFor(kind: CaseKind, source: string): Record<string, unknown> {
     (
       candidate.evidencePlan as Array<{ observabilityRequirement: { paths: Array<{ observations: unknown[] }> } }>
     )[0]!.observabilityRequirement.paths[0]!.observations = [];
+  }
+  if (kind === 'DIRECT_ONLY') {
+    (
+      candidate.evidencePlan as Array<{ observabilityRequirement: { paths: Array<{ assessments: unknown[] }> } }>
+    )[0]!.observabilityRequirement.paths[0]!.assessments = [];
   }
   return candidate;
 }
@@ -380,9 +386,9 @@ export async function qualifyAuthorProtocolV3(
   const wellFormed =
     evidence.promptfooVersion === '0.122.0' &&
     evidence.externalProviderCalls === 0 &&
-    evidence.localProviderCalls === 6 &&
+    evidence.localProviderCalls === 7 &&
     evidence.packetLeakageFindings === 0 &&
-    evidence.cases.length === 6 &&
+    evidence.cases.length === 7 &&
     evidence.cases.every(
       (fixture) =>
         /^[a-f0-9]{64}$/u.test(fixture.packetFingerprint) &&
