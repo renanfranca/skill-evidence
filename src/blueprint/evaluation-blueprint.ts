@@ -1,11 +1,12 @@
 import { Ajv, type ErrorObject } from 'ajv';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 
-import blueprintSchema from '../../schemas/evaluation-blueprint.schema.json' with { type: 'json' };
-import blueprintSchema2 from '../../schemas/evaluation-blueprint.schema-2.json' with { type: 'json' };
-import blueprintSchema3 from '../../schemas/evaluation-blueprint.schema-3.json' with { type: 'json' };
-import authoringContextSchema from '../../schemas/authoring-context.schema.json' with { type: 'json' };
+import authoringContextSchemaInput from '../../schemas/authoring-context.schema.json' with { type: 'json' };
+import blueprintSchemaInput from '../../schemas/evaluation-blueprint.schema.json' with { type: 'json' };
+import blueprintSchema2Input from '../../schemas/evaluation-blueprint.schema-2.json' with { type: 'json' };
+import blueprintSchema3Input from '../../schemas/evaluation-blueprint.schema-3.json' with { type: 'json' };
 
+import { canonicalFrozenCopy } from '../canonical-frozen.js';
 import { canonicalJson, sha256 } from '../canonical-json.js';
 import {
   deriveSystemAuthoringContextRequirements,
@@ -16,6 +17,11 @@ import {
   validateAuthoringContextSemantics,
 } from '../author/authoring-context.js';
 import { deriveAuthorProtocolV3Provenance } from '../author/author-protocol-v3.js';
+
+const authoringContextSchema = canonicalFrozenCopy(authoringContextSchemaInput);
+const blueprintSchema = canonicalFrozenCopy(blueprintSchemaInput);
+const blueprintSchema2 = canonicalFrozenCopy(blueprintSchema2Input);
+const blueprintSchema3 = canonicalFrozenCopy(blueprintSchema3Input);
 
 export type BlueprintLifecycle = 'BLOCKED' | 'DRAFT' | 'READY';
 
@@ -191,8 +197,7 @@ export function deriveBlueprintLifecycleV3(
   return unresolvedRequirements.some((requirement) => requirement.blocking) ? 'BLOCKED' : 'READY';
 }
 
-export interface AuthorProvenance {
-  authoringContextFingerprint?: string;
+interface AuthorProvenanceBase {
   campaignId: string;
   conditionFingerprint: string;
   instructionDigest: string;
@@ -205,7 +210,17 @@ export interface AuthorProvenance {
   theoryDigest: string;
 }
 
-export interface AuthorProvenanceV3 extends AuthorProvenance {
+export interface AuthorProvenance extends AuthorProvenanceBase {
+  authorInstrumentFingerprint?: never;
+  authoringContextFingerprint?: never;
+  authoringContextSchemaDigest?: never;
+  candidateSchemaDigest?: never;
+  compositionPolicyDigest?: never;
+  packetEvidenceKind?: never;
+  packetFingerprint?: never;
+}
+
+export interface AuthorProvenanceV3 extends AuthorProvenanceBase {
   authorInstrumentFingerprint: string;
   authoringContextFingerprint: string;
   authoringContextSchemaDigest: string;
@@ -334,7 +349,7 @@ const localizeBlueprintReference = (reference: string): string => {
   return reference;
 };
 
-export const evaluationBlueprintCandidateSchemaV3 = {
+export const evaluationBlueprintCandidateSchemaV3 = canonicalFrozenCopy({
   $id: 'https://skill-evidence.local/schemas/evaluation-blueprint-candidate.schema-3.json',
   $defs: {
     ...(rewriteSchemaReferences(blueprintSchema3.$defs, localizeBlueprintReference) as typeof blueprintSchema3.$defs),
@@ -375,7 +390,7 @@ export const evaluationBlueprintCandidateSchemaV3 = {
     (field) => !controlledFields.has(field) && field !== 'decisionContext' && field !== 'population',
   ),
   type: 'object',
-};
+});
 
 const candidateV3Ajv = new Ajv2020({ allErrors: true, strict: false });
 const validateStructureV3 = candidateV3Ajv.compile(evaluationBlueprintCandidateSchemaV3);

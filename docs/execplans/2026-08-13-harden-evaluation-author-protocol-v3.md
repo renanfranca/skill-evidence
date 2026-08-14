@@ -283,6 +283,7 @@ Acceptance: all six invalid decision dependencies emit `AUTHORING_CONTEXT_INTEGR
 - [x] Demonstrate the truncated `decisionContext` dependency paths through one behavior-focused RED test, then restore GREEN without changing validation semantics; 63 focused tests and the provider-free checkpoint pass.
 - [x] Complete the scoped post-GREEN design review; explicit complete pointers remove the fragile dotted-label transformation without introducing another justified refactor.
 - [x] Complete final validation and documentation reconciliation with 63 focused tests, 184 repository tests, every prescribed gate green, and no new campaign artifact or reservation.
+- [x] Record the post-completion PR #9 protocol-v3 P2 remediation under approved ExecPlan 23: immutable repository-owned instrument snapshots, one order-preserving frozen-copy utility, and version-discriminated v1/v2 versus v3 provenance are GREEN in the 68-test focused Author suite, typecheck, and the public provider-free checkpoint. This appended evidence does not revise E21 behavior, fingerprints, qualification reports, or campaign claims.
 
 ## Decisions
 
@@ -442,3 +443,4 @@ Milestone 13 requires no migration: valid Blueprints are byte-identical, while i
 - Exact packet bytes belong in protocol-v3 content identity even though execution labels and observed model metadata remain unverifiable provenance outside that identity.
 - Capability identifiers and entity identifiers occupy different domains: reusing a requirement capability is legitimate, while reusing an observation or assessment identity remains incomplete authorship.
 - Diagnostic paths are public locations, not display labels; constructing complete JSON Pointers at the source prevents enclosing-object context from being lost during later string transformations.
+- Post-completion defensive findings should move to a new approved remediation contract and append current execution evidence here; rewriting E21's historical instrument, fingerprints, reports, or campaign conclusions would erase the condition under which its original evidence was collected.

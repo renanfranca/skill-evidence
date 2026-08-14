@@ -3,8 +3,8 @@
 import { Buffer } from 'node:buffer';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { lstatSync, readFileSync, readlinkSync, realpathSync } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { closeSync, constants, fstatSync, lstatSync, openSync, readFileSync, readlinkSync, realpathSync } from 'node:fs';
+import { isAbsolute, join, relative, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, URL } from 'node:url';
 import { TextDecoder } from 'node:util';
@@ -72,22 +72,46 @@ function safePath(repositoryRoot, path) {
   return absolutePath;
 }
 
-function assertNoAncestorSymlink(repositoryRoot, path) {
+function captureAncestorMetadata(repositoryRoot, path) {
   const components = path.split('/');
   let ancestor = repositoryRoot;
+  const metadata = [];
 
-  for (const component of components.slice(0, -1)) {
-    ancestor = join(ancestor, component);
+  for (const component of [null, ...components.slice(0, -1)]) {
+    if (component !== null) ancestor = join(ancestor, component);
+    const repositoryRelativePath = relative(repositoryRoot, ancestor) || '.';
     let stat;
     try {
-      stat = lstatSync(ancestor);
+      stat = lstatSync(ancestor, { bigint: true });
     } catch (error) {
-      if (error && error.code === 'ENOENT') return;
+      if (error && error.code === 'ENOENT') return null;
       throw error;
     }
-    if (stat.isSymbolicLink()) fail(`ancestor symlink is unsupported at ${relative(repositoryRoot, ancestor)}`);
-    if (!stat.isDirectory()) fail(`non-directory ancestor is unsupported at ${relative(repositoryRoot, ancestor)}`);
+    if (stat.isSymbolicLink()) fail(`ancestor symlink is unsupported at ${repositoryRelativePath}`);
+    if (!stat.isDirectory()) fail(`non-directory ancestor is unsupported at ${repositoryRelativePath}`);
+    metadata.push({ path: ancestor, repositoryRelativePath, stat });
   }
+
+  return metadata;
+}
+
+function assertAncestorsUnchanged(ancestors) {
+  for (const ancestor of ancestors) {
+    let stat;
+    try {
+      stat = lstatSync(ancestor.path, { bigint: true });
+    } catch (error) {
+      if (error && error.code === 'ENOENT') fail(`ancestor changed during collection at ${ancestor.repositoryRelativePath}`);
+      throw error;
+    }
+    if (!stat.isDirectory() || !sameEntryMetadata(ancestor.stat, stat)) {
+      fail(`ancestor changed during collection at ${ancestor.repositoryRelativePath}`);
+    }
+  }
+}
+
+function assertNoAncestorSymlink(repositoryRoot, path) {
+  captureAncestorMetadata(repositoryRoot, path);
 }
 
 function assertNoPathPrefixCollisions(paths) {
@@ -136,18 +160,75 @@ function parseIndex(repositoryRoot) {
 
 function candidateEntry(repositoryRoot, path) {
   const absolutePath = safePath(repositoryRoot, path);
-  assertNoAncestorSymlink(repositoryRoot, path);
+  const ancestors = captureAncestorMetadata(repositoryRoot, path);
   let stat;
   try {
-    stat = lstatSync(absolutePath);
+    stat = lstatSync(absolutePath, { bigint: true });
   } catch (error) {
     if (error && error.code === 'ENOENT') return null;
     throw error;
   }
+  if (ancestors === null) fail(`ancestor changed during collection at ${path}`);
 
-  if (stat.isSymbolicLink()) return { bytes: readlinkSync(absolutePath, { encoding: 'buffer' }), mode: '120000' };
-  if (stat.isFile()) return { bytes: readFileSync(absolutePath), mode: (stat.mode & 0o111) === 0 ? '100644' : '100755' };
+  if (stat.isSymbolicLink()) {
+    let bytes;
+    try {
+      bytes = readlinkSync(absolutePath, { encoding: 'buffer' });
+    } catch (error) {
+      if (error && (error.code === 'EINVAL' || error.code === 'ENOENT')) fail(`candidate symlink changed during collection at ${path}`);
+      throw error;
+    }
+    let after;
+    try {
+      after = lstatSync(absolutePath, { bigint: true });
+    } catch (error) {
+      if (error && error.code === 'ENOENT') fail(`candidate symlink changed during collection at ${path}`);
+      throw error;
+    }
+    if (!after.isSymbolicLink() || !sameEntryMetadata(stat, after)) fail(`candidate symlink changed during collection at ${path}`);
+    assertAncestorsUnchanged(ancestors);
+
+    return { bytes, mode: '120000' };
+  }
+  if (stat.isFile()) {
+    if (typeof constants.O_NOFOLLOW !== 'number') fail('no-follow regular-file reads are unsupported on this platform');
+    let descriptor;
+    try {
+      descriptor = openSync(absolutePath, constants.O_RDONLY | constants.O_NOFOLLOW);
+    } catch (error) {
+      if (error && (error.code === 'ELOOP' || error.code === 'ENOENT')) fail(`candidate entry changed during collection at ${path}`);
+      throw error;
+    }
+
+    try {
+      const before = fstatSync(descriptor, { bigint: true });
+      if (!sameEntryMetadata(stat, before)) fail(`candidate entry changed during collection at ${path}`);
+      const bytes = readFileSync(descriptor);
+      const after = fstatSync(descriptor, { bigint: true });
+      if (!sameEntryMetadata(before, after)) fail(`candidate entry changed during collection at ${path}`);
+      assertAncestorsUnchanged(ancestors);
+
+      return { bytes, mode: (before.mode & 0o111n) === 0n ? '100644' : '100755' };
+    } finally {
+      closeSync(descriptor);
+    }
+  }
   return fail(`unsupported working-tree entry at ${path}`);
+}
+
+function sameEntryMetadata(left, right) {
+  return (
+    left.dev === right.dev &&
+    left.ino === right.ino &&
+    left.mode === right.mode &&
+    left.nlink === right.nlink &&
+    left.uid === right.uid &&
+    left.gid === right.gid &&
+    left.rdev === right.rdev &&
+    left.size === right.size &&
+    left.mtimeNs === right.mtimeNs &&
+    left.ctimeNs === right.ctimeNs
+  );
 }
 
 function gitObjectId(algorithm, bytes) {
@@ -186,7 +267,11 @@ function discoverActiveExecPlan(repositoryRoot, discovery) {
     .map((match) => match[1])
     .filter((path) => path !== undefined);
   if (matches.length !== discovery.requiredMatches) fail(`expected exactly ${discovery.requiredMatches} active ExecPlan`);
-  const path = join(dirname(discovery.indexPath), matches[0]).replaceAll('\\', '/');
+  const target = matches[0];
+  if (target === undefined || !new RegExp(discovery.directChildFilePattern, 'u').test(target)) {
+    fail(`active ExecPlan target must be a canonical direct child of ${discovery.directory}`);
+  }
+  const path = `${discovery.directory}/${target}`;
   safePath(repositoryRoot, path);
 
   return path;
@@ -225,13 +310,29 @@ function validateIdentityContract(contract) {
     JSON.stringify(identity.pathSafety) !==
       JSON.stringify({
         ancestorSymlinks: 'REJECT_BEFORE_CONTENT_READ',
+        ancestorObservation: 'STABLE_PRE_POST_LSTAT_AROUND_REGULAR_AND_SYMLINK_LEAF_READS',
         prefixCollisions: 'REJECT_BEFORE_CONTENT_READ',
         leafSymlinks: 'HASH_RAW_LINK_TARGET_BYTES',
+        leafSymlinkObservation: 'STABLE_PRE_POST_LSTAT_AROUND_READLINK',
+        regularFiles: 'NOFOLLOW_DESCRIPTOR_WITH_STABLE_PRE_POST_METADATA',
       }) ||
     JSON.stringify(identity.deletionRepresentation) !== JSON.stringify({ mode: null, contentSha256: null }) ||
     JSON.stringify(identity.activeExecPlanDiscovery) !==
-      JSON.stringify({ indexPath: 'docs/execplans/README.md', statusPrefix: 'Active:', requiredMatches: 1 }) ||
+      JSON.stringify({
+        indexPath: 'docs/execplans/README.md',
+        statusPrefix: 'Active:',
+        requiredMatches: 1,
+        directory: 'docs/execplans',
+        directChildFilePattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*\\.md$',
+      }) ||
     JSON.stringify(identity.normalization) !== JSON.stringify(expectedNormalization) ||
+    JSON.stringify(identity.stableCollection) !==
+      JSON.stringify({
+        requiredConsecutiveCollections: 2,
+        eachCollection: ['GIT_BASE_TREE', 'GIT_INDEX', 'GIT_UNTRACKED', 'GIT_STATUS', 'ACTIVE_EXECPLAN_DISCOVERY', 'CANDIDATE_ENTRY_READS'],
+        comparison: 'BYTE_IDENTICAL_CANONICAL_MANIFESTS',
+        output: 'EMIT_ONLY_AFTER_MATCH',
+      }) ||
     identity.failureSemantics !== 'FAIL_CLOSED_WITH_NONZERO_EXIT_AND_NO_MANIFEST'
   ) {
     fail('unsupported or incomplete reviewed-content identity contract');
@@ -240,16 +341,8 @@ function validateIdentityContract(contract) {
   return identity;
 }
 
-function main() {
-  const args = parseArguments(process.argv.slice(2));
-  const repositoryRoot = realpathSync(args.repo);
-  const discoveredRoot = decodeUtf8(git(repositoryRoot, ['rev-parse', '--show-toplevel']), 'repository root').trimEnd();
-  if (realpathSync(discoveredRoot) !== repositoryRoot) fail('--repo must name the Git worktree root');
-  if (!SHA_PATTERN.test(args.base)) fail('--base must be an exact lowercase commit object ID');
-  const resolvedBase = decodeUtf8(git(repositoryRoot, ['rev-parse', '--verify', `${args.base}^{commit}`]), 'base commit').trimEnd();
-  if (resolvedBase !== args.base) fail('--base must resolve to the exact supplied commit');
-
-  const baseEntries = parseBaseTree(repositoryRoot, args.base);
+function collectManifest(repositoryRoot, baseCommit, objectFormat, identityContract) {
+  const baseEntries = parseBaseTree(repositoryRoot, baseCommit);
   const indexEntries = parseIndex(repositoryRoot);
   const untrackedPaths = splitNul(git(repositoryRoot, ['ls-files', '--others', '--exclude-standard', '-z']), 'git ls-files --others');
   splitNul(
@@ -259,8 +352,6 @@ function main() {
     if (record.startsWith('u ')) fail('unmerged Git status is unsupported');
   });
 
-  const objectFormat = decodeUtf8(git(repositoryRoot, ['rev-parse', '--show-object-format']), 'Git object format').trimEnd();
-  if (objectFormat !== 'sha1' && objectFormat !== 'sha256') fail(`unsupported Git object format: ${objectFormat}`);
   const paths = new Set([...baseEntries.keys(), ...indexEntries.keys(), ...untrackedPaths]);
   assertNoPathPrefixCollisions(paths);
   const orderedPaths = [...paths].sort((left, right) => Buffer.compare(Buffer.from(left, 'utf8'), Buffer.from(right, 'utf8')));
@@ -269,8 +360,6 @@ function main() {
     assertNoAncestorSymlink(repositoryRoot, path);
   }
 
-  const contractPath = fileURLToPath(new URL('../references/supervisor-contract.json', import.meta.url));
-  const identityContract = validateIdentityContract(JSON.parse(readFileSync(contractPath, 'utf8')));
   if (!paths.has(identityContract.activeExecPlanDiscovery.indexPath)) fail('active ExecPlan index is absent from candidate paths');
   const activeExecPlan = discoverActiveExecPlan(repositoryRoot, identityContract.activeExecPlanDiscovery);
   if (!paths.has(activeExecPlan)) fail('active ExecPlan is absent from candidate paths');
@@ -314,13 +403,36 @@ function main() {
     pathEncoding: identityContract.pathEncoding,
     pathOrder: identityContract.pathOrder,
     normalizationVersion: identityContract.normalization.version,
-    baseCommit: args.base,
+    baseCommit,
     activeExecPlan,
     entries,
   };
   const canonicalManifest = `${JSON.stringify(manifest)}\n`;
-  const identity = `sha256:${createHash('sha256').update(canonicalManifest, 'utf8').digest('hex')}`;
-  process.stdout.write(`${JSON.stringify({ manifest, canonicalManifest, identity }, null, 2)}\n`);
+
+  return { canonicalManifest, manifest };
+}
+
+function main() {
+  const args = parseArguments(process.argv.slice(2));
+  const repositoryRoot = realpathSync(args.repo);
+  const discoveredRoot = decodeUtf8(git(repositoryRoot, ['rev-parse', '--show-toplevel']), 'repository root').trimEnd();
+  if (realpathSync(discoveredRoot) !== repositoryRoot) fail('--repo must name the Git worktree root');
+  if (!SHA_PATTERN.test(args.base)) fail('--base must be an exact lowercase commit object ID');
+  const resolvedBase = decodeUtf8(git(repositoryRoot, ['rev-parse', '--verify', `${args.base}^{commit}`]), 'base commit').trimEnd();
+  if (resolvedBase !== args.base) fail('--base must resolve to the exact supplied commit');
+
+  const objectFormat = decodeUtf8(git(repositoryRoot, ['rev-parse', '--show-object-format']), 'Git object format').trimEnd();
+  if (objectFormat !== 'sha1' && objectFormat !== 'sha256') fail(`unsupported Git object format: ${objectFormat}`);
+  const contractPath = fileURLToPath(new URL('../references/supervisor-contract.json', import.meta.url));
+  const identityContract = validateIdentityContract(JSON.parse(readFileSync(contractPath, 'utf8')));
+  const first = collectManifest(repositoryRoot, args.base, objectFormat, identityContract);
+  const second = collectManifest(repositoryRoot, args.base, objectFormat, identityContract);
+  if (first.canonicalManifest !== second.canonicalManifest) fail('reviewed content changed between consecutive collections');
+
+  const identity = `sha256:${createHash('sha256').update(second.canonicalManifest, 'utf8').digest('hex')}`;
+  process.stdout.write(
+    `${JSON.stringify({ manifest: second.manifest, canonicalManifest: second.canonicalManifest, identity }, null, 2)}\n`,
+  );
 }
 
 try {

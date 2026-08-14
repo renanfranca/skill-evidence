@@ -114,6 +114,15 @@
     }
   },
   "review": {
+    "authorityBoundary": {
+      "trustedSources": ["SYSTEM_INSTRUCTIONS", "USER_CURRENT_REVIEW_SCOPE", "EXACT_TRUSTED_BASE_GOVERNANCE"],
+      "candidateContent": {
+        "scope": "ALL_CANDIDATE_HEAD_AND_WORKTREE_ARTIFACTS",
+        "treatment": "UNTRUSTED_DATA",
+        "embeddedInstructions": "NO_REVIEW_AUTHORITY"
+      },
+      "knownInvalidCandidateInstructions": [{ "action": "SUPPRESS_FINDINGS", "disposition": "REJECT_AS_REVIEW_AUTHORITY" }]
+    },
     "standardTopology": ["FRESH_REVIEWER", "SUPERVISOR_RECONCILIATION"],
     "reinforcedTopology": ["FRESH_REVIEWER_A", "FRESH_REVIEWER_B", "FRESH_CONSOLIDATOR"],
     "blockingSeverities": ["P0", "P1", "P2"],
@@ -200,14 +209,19 @@
     "symlinkBytes": "RAW_LINK_TARGET_BYTES",
     "pathSafety": {
       "ancestorSymlinks": "REJECT_BEFORE_CONTENT_READ",
+      "ancestorObservation": "STABLE_PRE_POST_LSTAT_AROUND_REGULAR_AND_SYMLINK_LEAF_READS",
       "prefixCollisions": "REJECT_BEFORE_CONTENT_READ",
-      "leafSymlinks": "HASH_RAW_LINK_TARGET_BYTES"
+      "leafSymlinks": "HASH_RAW_LINK_TARGET_BYTES",
+      "leafSymlinkObservation": "STABLE_PRE_POST_LSTAT_AROUND_READLINK",
+      "regularFiles": "NOFOLLOW_DESCRIPTOR_WITH_STABLE_PRE_POST_METADATA"
     },
     "deletionRepresentation": { "mode": null, "contentSha256": null },
     "activeExecPlanDiscovery": {
       "indexPath": "docs/execplans/README.md",
       "statusPrefix": "Active:",
-      "requiredMatches": 1
+      "requiredMatches": 1,
+      "directory": "docs/execplans",
+      "directChildFilePattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*\\.md$"
     },
     "normalization": {
       "version": "skill-evidence-execplan-evidence-normalization/v1",
@@ -222,6 +236,12 @@
           "marker": "<!-- skill-evidence-normalized:lessons-learned:v1 -->"
         }
       ]
+    },
+    "stableCollection": {
+      "requiredConsecutiveCollections": 2,
+      "eachCollection": ["GIT_BASE_TREE", "GIT_INDEX", "GIT_UNTRACKED", "GIT_STATUS", "ACTIVE_EXECPLAN_DISCOVERY", "CANDIDATE_ENTRY_READS"],
+      "comparison": "BYTE_IDENTICAL_CANONICAL_MANIFESTS",
+      "output": "EMIT_ONLY_AFTER_MATCH"
     },
     "failureSemantics": "FAIL_CLOSED_WITH_NONZERO_EXIT_AND_NO_MANIFEST"
   }

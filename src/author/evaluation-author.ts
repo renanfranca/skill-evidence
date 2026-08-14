@@ -14,7 +14,9 @@ import {
   type BlueprintCandidate,
   type BlueprintCandidateV3,
   type EvaluationBlueprint,
+  type EvaluationBlueprintV3,
 } from '../blueprint/evaluation-blueprint.js';
+import { canonicalFrozenCopy } from '../canonical-frozen.js';
 import { canonicalJson, sha256, sha256Bytes } from '../canonical-json.js';
 import type { SkillSnapshot } from '../intake/skill-snapshot.js';
 import {
@@ -109,9 +111,12 @@ type AuthorRunError =
   | { code: 'CANDIDATE_STRUCTURALLY_INVALID' | 'COMPOSED_BLUEPRINT_INVALID' | 'INVALID_JSON' }
   | { code: 'PROVIDER_ERROR'; diagnostic: AuthorProviderDiagnostic };
 
-export type AuthorRunResult =
-  | (AuthorRunEvidence & { blueprint: EvaluationBlueprint; error?: never; status: 'COMPLETED' })
+type AuthorRunResultFor<TBlueprint extends EvaluationBlueprint> =
+  | (AuthorRunEvidence & { blueprint: TBlueprint; error?: never; status: 'COMPLETED' })
   | (AuthorRunEvidence & { blueprint?: never; error: AuthorRunError; status: 'ERROR' });
+
+export type AuthorRunResult = AuthorRunResultFor<EvaluationBlueprint>;
+export type AuthorRunResultV3 = AuthorRunResultFor<EvaluationBlueprintV3>;
 
 export interface PreparedAuthorInvocation {
   authorInstrumentFingerprint?: string;
@@ -125,17 +130,6 @@ export interface PreparedAuthorInvocation {
   protocolVersion: AuthorProtocolVersion;
   request: AuthorInvocationRequest;
   schemaVersion: 1 | 2 | 3;
-}
-
-function canonicalFrozenCopy<T>(value: T): T {
-  const copy = JSON.parse(canonicalJson(value)) as T;
-  const freeze = (item: unknown): void => {
-    if (typeof item !== 'object' || item === null || Object.isFrozen(item)) return;
-    Object.values(item).forEach(freeze);
-    Object.freeze(item);
-  };
-  freeze(copy);
-  return copy;
 }
 
 function instructionsFor(protocolVersion: AuthorProtocolVersion): readonly string[] {
@@ -332,6 +326,10 @@ function composeProtocolV3Candidate(candidate: BlueprintCandidateV3, authoringCo
   };
 }
 
+export function authorEvaluationBlueprint(
+  input: AuthorInput & { authoringContext: AuthoringContext; protocolVersion: 3 },
+): Promise<AuthorRunResultV3>;
+export function authorEvaluationBlueprint(input: AuthorInput): Promise<AuthorRunResult>;
 export async function authorEvaluationBlueprint(input: AuthorInput): Promise<AuthorRunResult> {
   const prepared = prepareAuthorInvocation(input.snapshot, input.condition, input.protocolVersion, input.authoringContext);
   const preparedCampaignId = canonicalFrozenCopy(input.campaignId);

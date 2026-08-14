@@ -52,24 +52,19 @@ Out of scope:
 
 ## Existing Context
 
-PR #9 is a separate draft on `feat/e21-author-protocol-v3` at `6664f59`. This implementation uses `codex/supervise-skill-evidence` in `/home/renanfranca/projects/skill-evidence-supervisor` so it cannot mutate that task's working tree. The branch is stacked on the current PR #9 head so the supervisor can describe the repository as it will exist after that work lands; publication must remain a separate decision and may require rebasing after PR #9 merges.
+The supervisor implementation was committed as `2246ad5` on `codex/supervise-skill-evidence`, published through draft PR #10, and merged into the still-draft PR #9. PR #9 now has base `95d9cd3441bbe91649270f3ef71166ce6c75b533` and head `e916f049f39a509fa590d99b6c3ca63288e3b29f` on `feat/e21-author-protocol-v3`. The repository therefore contains the repo-local `.agents/skills/supervise-skill-evidence` package together with protocol-v3 work from ExecPlan 21.
 
-The repository has no repo-local `.agents/skills` directory. Existing durable progress is recorded in living ExecPlans and their index. Codex supports Goals, task compaction, subagents, Git/GitHub operations, and remote task interaction, but a user's computer must remain online for local execution.
+The final reinforced review of the combined PR #9 head retained eight P2 findings spanning both increments. Their decision-complete remediation contract is approved ExecPlan 23 revision 1. This plan remains the inactive historical implementation record for approved supervisor revision 2; ExecPlan 23 exclusively owns all current execution, validation, review, publication, and eventual merge-gate readiness.
 
 ## Supervisor Record
 
-- State: `PUBLISH_DRAFT`
-- Evidence refreshed: 2026-08-14 after reinforced acceptance of exact identity `3c5c…ca755`
+- State: `INTEGRATED`; inactive historical record, with current execution exclusively owned by ExecPlan 23 revision 1
+- Evidence refreshed: 2026-08-14 after the second ExecPlan 23 Milestone 4 reinforced review
 - Contract: revision 2, `APPROVED`
-- Worktree: `/home/renanfranca/projects/skill-evidence-supervisor`
-- Branch / base / head: `codex/supervise-skill-evidence` / `6664f59f50b97b82419ac8967775c0f19bcd3d22` / `6664f59f50b97b82419ac8967775c0f19bcd3d22`
-- Working tree: uncommitted remediated revision 2 candidate across 11 changed paths relative to the exact base; prior identity `276d…78c1` is invalidated by the bounded serializer/test changes
-- Reviewed content identity: `sha256:3c5c4110b8cfa9ccb2647624869ccaabf55ea9a4178713864711269ae63ca755`; two real-worktree invocations emitted byte-identical manifests for 11 paths without changing Git status
-- Validation: 17 focused supervisor/CI tests, skill validation, typecheck, lint, Prettier, build, isolated 200-test repository suite, `experiment:verify`, archaeological, Author, provider-adapter, lifecycle, protocol-v3, operability, benchmark-offline, benchmark-runner, `npm audit`, and diff check all pass provider-free; every qualifier reports zero external provider calls and audit reports zero vulnerabilities
-- Review: two independent fresh reviewers inspected `3c5c…ca755` and a fresh consolidator retained no P0–P3. The consolidator rejected Reviewer A's proposed exact-stderr P2 because each substring uniquely discriminates its topology guard and byte-exact stderr is not an approved invariant; Reviewer B accepted with no findings.
-- Pull request: none for this branch; PR #9 remains separate
-- Pending gate: none
-- Operational blocker: none
+- Integration: the supervisor increment was incorporated into draft PR #9; exact current worktree, branch, base, head, pull-request, and merge-context facts are maintained only in ExecPlan 23
+- Historical validation: after the first-review technical remediations, the complete provider-free matrix was collected GREEN with 211/211 repository tests across 19 files and zero external provider calls
+- Historical review: the first ExecPlan 23 Milestone 4 review of `feca…688c` retained three P2 findings. The subsequent technical remediations completed, and the second reinforced review closed the ancestor-stability and provenance-compatibility findings while retaining one documentation-handoff P2
+- Current locator: consult ExecPlan 23 for the exact state, material identity, validation binding, review disposition, pending gate, and operational blockers
 
 ## Desired End State
 
@@ -162,9 +157,11 @@ Acceptance: known-valid skill/package/contract fixtures pass; each named known-i
 - [x] Remediate only the three confirmed serializer/test P2 findings through three expected REDs, restore 17/17 focused and 200/200 repository GREEN, and repeat every provider-free validation checkpoint.
 - [x] Complete a scoped post-GREEN design review; the preflight snapshot remains cohesive and no behavior-preserving refactor is justified.
 - [x] Complete the bounded reinforced review of exact identity `3c5c…ca755`; two independent reviewers plus a fresh consolidator retain no P0–P3.
-- [ ] Commit the exact reviewed content, verify post-commit identity equivalence, push, open the stacked draft PR, and confirm hosted checks.
-- [ ] Complete final fresh-context forward tests and reinforced review on the remediated content identity.
-- [ ] Complete final reinforced review and evidence-based consolidation on one exact reviewed-content manifest.
+- [x] Commit exact reviewed supervisor content, verify post-commit equivalence, push, publish draft PR #10, and merge that branch into draft PR #9 without merging to `main`.
+- [x] Complete final combined-head validation and reinforced review on PR #9 identity `102ef…82c52`; retain eight P2 findings.
+- [x] Transfer the combined remediation to ExecPlan 23 revision 1 and stop at its approval gate.
+- [x] Observe approval of ExecPlan 23 revision 1 and complete its local authority/serializer, protocol-v3 compatibility, and post-GREEN design remediations.
+- [x] Record the post-remediation 211/211 provider-free matrix and the second reinforced review, which closed the two technical P2 findings and retained one documentation-handoff P2; delegate every current identity, validation, review, publication, and merge-gate fact exclusively to ExecPlan 23.
 
 ## Decisions
 
@@ -273,3 +270,5 @@ The change is additive and repo-local. Remove or disable the skill by deleting i
 - The existing prose revision rule now has a structural oracle: material changes increment the positive revision, set `PENDING`, select `WAIT_PLAN_APPROVAL`, and implementation requires `APPROVED` for that exact current revision.
 - A combined safety fixture can hide a missing guard when either of two diagnostics satisfies the assertion. Prefix collision and ancestor-symlink behavior now use separate public CLI fixtures with exact diagnostics, and both prove topology preflight precedes candidate-content decoding.
 - Active-plan discovery must prove membership in the base/index/non-ignored-untracked candidate path set; a README link alone is not evidence that the executable approval contract is present in the reviewed material.
+- A review that is green for an isolated stacked branch does not qualify the later combined PR head: protocol-v3 and supervisor surfaces created new authority, identity, compatibility, and documentation interactions when merged together.
+- A historical implementation plan must record integration into the actual delivery PR and transfer current execution authority to the approved remediation plan; retaining a stale approval gate or clean-head claim after local remediation begins makes compaction recovery choose the wrong state.

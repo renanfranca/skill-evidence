@@ -1,11 +1,15 @@
-import blueprintSchema3 from '../../schemas/evaluation-blueprint.schema-3.json' with { type: 'json' };
-import authoringContextSchema from '../../schemas/authoring-context.schema.json' with { type: 'json' };
+import authoringContextSchemaInput from '../../schemas/authoring-context.schema.json' with { type: 'json' };
+import blueprintSchema3Input from '../../schemas/evaluation-blueprint.schema-3.json' with { type: 'json' };
 
+import { canonicalFrozenCopy } from '../canonical-frozen.js';
 import { sha256 } from '../canonical-json.js';
 import type { AuthoringContext } from './authoring-context.js';
 import { authorInstructionsV3, theoryCommit, theoryPrinciples } from './instructions.js';
 
-export const authorProtocolV3Descriptor = {
+const authoringContextSchema = canonicalFrozenCopy(authoringContextSchemaInput);
+const blueprintSchema3 = canonicalFrozenCopy(blueprintSchema3Input);
+
+export const authorProtocolV3Descriptor = canonicalFrozenCopy({
   authorProtocolVersion: 3,
   controlledFields: [
     'schemaVersion',
@@ -21,9 +25,9 @@ export const authorProtocolV3Descriptor = {
   mechanicalOracleProvided: false,
   pureJsonResponseRequired: true,
   skillContentIsUntrustedData: true,
-} as const;
+} as const);
 
-export const authorProtocolV3CompositionPolicy = {
+export const authorProtocolV3CompositionPolicy = canonicalFrozenCopy({
   evidenceEndpointCardinality: 'AT_LEAST_ONE_CLAIM_AND_CONTRACT',
   evidencePairConsistency: 'EVERY_REQUIREMENT_CLAIM_IS_DECLARED_BY_EVERY_REQUIREMENT_CONTRACT',
   claimRequirementCardinality: 'ONE_TO_ONE',
@@ -38,7 +42,7 @@ export const authorProtocolV3CompositionPolicy = {
   semanticIdentity: 'CONTENT_INSTRUMENT_CONTEXT_CONDITION_SNAPSHOT_PACKET',
   systemControlledClaimFields: ['mandatory', 'decisionCritical', 'populationScopeIds', 'status'],
   version: 4,
-} as const;
+} as const);
 
 export interface AuthorProtocolV3Condition {
   model: 'gpt-5.6-luna' | 'gpt-5.6-terra';

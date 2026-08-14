@@ -88,15 +88,16 @@ function parseArguments(args: string[]): AuthorCommandArguments {
   const protocolIndexes = args.flatMap((argument, index) => (argument === '--author-protocol' ? [index] : []));
   const contextIndexes = args.flatMap((argument, index) => (argument === '--authoring-context' ? [index] : []));
   const protocol = protocolIndexes.length === 1 ? args[protocolIndexes[0]! + 1] : undefined;
+  const authoringContext = contextIndexes.length === 1 ? args[contextIndexes[0]! + 1] : undefined;
   if (protocolIndexes.length > 1 || (protocolIndexes.length === 1 && (protocol === undefined || protocol.startsWith('--')))) {
     throw new AuthorCommandError('AUTHOR_ARGUMENT_INVALID', '--author-protocol must be provided exactly once with value 1, 2, or 3');
   }
-  if (contextIndexes.length > 1) {
-    throw new AuthorCommandError('AUTHOR_ARGUMENT_INVALID', '--authoring-context must be provided at most once');
+  if (contextIndexes.length > 1 || (contextIndexes.length === 1 && (authoringContext === undefined || authoringContext.startsWith('--')))) {
+    throw new AuthorCommandError('AUTHOR_ARGUMENT_INVALID', '--authoring-context must be provided at most once with a JSON-file value');
   }
   return {
     approval: value('--approve-provider-invocations'),
-    authoringContext: value('--authoring-context'),
+    authoringContext,
     campaign: value('--campaign'),
     out: value('--out'),
     protocol,
