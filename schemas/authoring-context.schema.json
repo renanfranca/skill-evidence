@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skill-evidence.local/schemas/authoring-context.schema.json",
+  "title": "AuthoringContext schema-2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "decisionContext", "population", "claimRequirements"],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "decisionContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "minimumWorthwhileImprovement",
+        "maximumAcceptableRegression",
+        "severeHarmLimits",
+        "efficiencyBudgets",
+        "requiredUncertainty"
+      ],
+      "properties": {
+        "decision": { "$ref": "#/$defs/stringFact" },
+        "minimumWorthwhileImprovement": { "$ref": "#/$defs/stringFact" },
+        "maximumAcceptableRegression": { "$ref": "#/$defs/stringFact" },
+        "severeHarmLimits": { "$ref": "#/$defs/stringArrayFact" },
+        "efficiencyBudgets": { "$ref": "#/$defs/stringArrayFact" },
+        "requiredUncertainty": { "$ref": "#/$defs/stringFact" }
+      }
+    },
+    "population": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "excluded", "defaultScopeId", "scopes"],
+      "properties": {
+        "target": { "$ref": "#/$defs/stringFact" },
+        "excluded": { "$ref": "#/$defs/stringArrayFact" },
+        "defaultScopeId": { "$ref": "#/$defs/populationScopeId" },
+        "scopes": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/populationScope" } }
+      }
+    },
+    "claimRequirements": { "type": "array", "items": { "$ref": "#/$defs/claimRequirement" } }
+  },
+  "$defs": {
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "stringArray": { "type": "array", "items": { "$ref": "#/$defs/nonEmptyString" } },
+    "claimType": {
+      "enum": [
+        "OBSERVED_BEHAVIOR",
+        "ACTIVATION_QUALITY",
+        "INSTRUCTIONAL_FIDELITY",
+        "OUTCOME_QUALITY",
+        "PROCESS_COMPLIANCE",
+        "SAFETY_NONINTERFERENCE",
+        "OPERATIONAL_EFFICIENCY",
+        "DISCRIMINATORY_POWER",
+        "SKILL_CONTRIBUTION",
+        "CHANGE_EFFECT",
+        "STABILITY",
+        "ROBUSTNESS",
+        "REGRESSION_PROTECTION",
+        "GENERALIZATION"
+      ]
+    },
+    "claimRequirementId": { "type": "string", "pattern": "^system:authoring-context:claim-requirement:[^:]+$" },
+    "populationScopeId": { "type": "string", "pattern": "^system:authoring-context:population:[^:]+$" },
+    "dependency": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["scope"],
+          "properties": { "scope": { "const": "DECISION" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["scope", "claimRequirementId"],
+          "properties": {
+            "scope": { "const": "CLAIM_REQUIREMENT" },
+            "claimRequirementId": { "$ref": "#/$defs/claimRequirementId" }
+          }
+        }
+      ]
+    },
+    "requiredAbsent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["disposition", "status", "reason", "evidenceNeeded", "source", "dependency"],
+      "properties": {
+        "disposition": { "const": "REQUIRED_ABSENT" },
+        "status": { "enum": ["UNKNOWN", "UNSUPPORTED", "INSUFFICIENT_INFORMATION", "UNTESTABLE_FROM_AVAILABLE_ENVIRONMENT"] },
+        "reason": { "$ref": "#/$defs/nonEmptyString" },
+        "evidenceNeeded": { "$ref": "#/$defs/nonEmptyString" },
+        "source": { "$ref": "#/$defs/nonEmptyString" },
+        "dependency": { "$ref": "#/$defs/dependency" }
+      }
+    },
+    "notRequired": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["disposition", "rationale", "source"],
+      "properties": {
+        "disposition": { "const": "NOT_REQUIRED" },
+        "rationale": { "$ref": "#/$defs/nonEmptyString" },
+        "source": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "stringFact": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["disposition", "value", "source"],
+          "properties": {
+            "disposition": { "const": "SUPPLIED" },
+            "value": { "$ref": "#/$defs/nonEmptyString" },
+            "source": { "$ref": "#/$defs/nonEmptyString" }
+          }
+        },
+        { "$ref": "#/$defs/requiredAbsent" },
+        { "$ref": "#/$defs/notRequired" }
+      ]
+    },
+    "stringArrayFact": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["disposition", "value", "source"],
+          "properties": {
+            "disposition": { "const": "SUPPLIED" },
+            "value": { "$ref": "#/$defs/stringArray" },
+            "source": { "$ref": "#/$defs/nonEmptyString" }
+          }
+        },
+        { "$ref": "#/$defs/requiredAbsent" },
+        { "$ref": "#/$defs/notRequired" }
+      ]
+    },
+    "populationScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "target", "excluded", "source"],
+      "properties": {
+        "id": { "$ref": "#/$defs/populationScopeId" },
+        "target": { "$ref": "#/$defs/nonEmptyString" },
+        "excluded": { "$ref": "#/$defs/stringArray" },
+        "source": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "claimRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "claimBoundary", "mandatory", "decisionCritical", "populationScopeIds", "rationale", "source"],
+      "properties": {
+        "id": { "$ref": "#/$defs/claimRequirementId" },
+        "type": { "$ref": "#/$defs/claimType" },
+        "claimBoundary": { "$ref": "#/$defs/nonEmptyString" },
+        "mandatory": { "type": "boolean" },
+        "decisionCritical": { "type": "boolean" },
+        "populationScopeIds": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/populationScopeId" } },
+        "rationale": { "$ref": "#/$defs/nonEmptyString" },
+        "source": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    }
+  }
+}

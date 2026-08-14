@@ -18,6 +18,7 @@
     "experiment:qualify:codex-otel": "npm run build --silent && node dist/experiments/qualify-codex-otel.js",
     "experiment:qualify:author": "npm run build --silent && node dist/src/author/qualify-author.js",
     "experiment:qualify:author-lifecycle": "npm run build --silent && node dist/src/author/qualify-author-lifecycle.js",
+    "experiment:qualify:author-protocol-v3": "npm run build --silent && node dist/src/author/qualify-author-protocol-v3.js",
     "experiment:qualify:author-provider": "npm run build --silent && node dist/src/author/qualify-author-provider.js",
     "experiment:qualify:author-operability": "npm run build --silent && node dist/src/qualification/qualify-author-operability.js",
     "experiment:qualify:author-benchmark:offline": "npm run build --silent && node dist/src/qualification/qualify-author-benchmark.js",
@@ -36,8 +37,8 @@
     "experiment:verify": "npm run build --silent && node dist/experiments/cli.js verify",
     "experiment:verify:tracing": "npm run build --silent && node dist/experiments/verify-tracing.js",
     "lint": "eslint .",
-    "prettier:check": "prettier --check .github AGENTS.md docs/execplans evaluations experiments schemas src test .prettierrc.json eslint.config.mjs package.json package-lock.json tsconfig.json tsconfig.build.json vitest.config.ts",
-    "prettier:format": "prettier --write .github AGENTS.md docs/execplans evaluations experiments schemas src test .prettierrc.json eslint.config.mjs package.json package-lock.json tsconfig.json tsconfig.build.json vitest.config.ts",
+    "prettier:check": "prettier --check .agents .github AGENTS.md docs/execplans evaluations experiments schemas src test .prettierrc.json eslint.config.mjs package.json package-lock.json tsconfig.json tsconfig.build.json vitest.config.ts",
+    "prettier:format": "prettier --write .agents .github AGENTS.md docs/execplans evaluations experiments schemas src test .prettierrc.json eslint.config.mjs package.json package-lock.json tsconfig.json tsconfig.build.json vitest.config.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
