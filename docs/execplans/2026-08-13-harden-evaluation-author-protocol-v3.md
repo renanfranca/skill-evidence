@@ -116,10 +116,12 @@ Acceptance: all local and hosted gates pass, zero external calls occur, no campa
 - [x] Complete Milestone 3: fresh fixtures, six-call local qualifier, CI, design review, and documentation.
 - [x] Confirm PR #9 hosted validation green for implementation/documentation commit `3c8d412`.
 - [x] Reopen E21 after normative review found gaps in claim authority, evidence coverage, type versioning, freeze, identity, and composed validation.
-- [ ] Revise ADR 0003 and the living plan before corrective behavior changes.
-- [ ] Implement atomic trusted claims and complete evidence-path contracts through behavior TDD.
-- [ ] Enforce frozen composition, discriminated Blueprint types, precise identities, and mandatory composed validation.
-- [ ] Requalify offline, complete post-GREEN design review, and restore all validation gates.
+- [x] Revise ADR 0003 and the living plan before corrective behavior changes.
+- [x] Implement atomic trusted claims and complete evidence-path contracts through behavior TDD.
+- [x] Enforce frozen composition, discriminated Blueprint types, precise identities, and mandatory composed validation.
+- [x] Requalify offline and complete the post-GREEN design review; the six-call local corpus remains `SUPPORTED_FOR_DEVELOPMENT` with zero external calls.
+- [x] Restore every final local validation gate after the behavior and design commits.
+- [ ] Push the corrected branch and confirm hosted CI.
 
 ## Decisions
 
@@ -169,10 +171,13 @@ Acceptance: all local and hosted gates pass, zero external calls occur, no campa
 - Risk: E21 expands indefinitely into future runtime policy. Mitigation: freeze its boundary at representation, composition, identity, validation, and authoring lifecycle; defer capability catalogs, preflight, compiler, execution, aggregation, and decisions.
 - Risk: requirement-level prose contradicts path-level evidence. Mitigation: persist evidence kind, source, and capability only in observation and assessment steps under one `observabilityRequirement`.
 - Risk: mutable inputs diverge from their fingerprints while a provider invocation is pending. Mitigation: compose and identify exclusively from canonical frozen copies prepared before invocation.
+- Risk: protocol descriptor and its digest diverge. Mitigation: packet construction and `protocolDigest` now use one authoritative transformation; post-GREEN design review verified this consolidation.
 
 ## Validation Strategy
 
 Use behavior-focused quiet TDD through the public Author API and CLI. Run the full Author suite per cycle and `experiment:verify` at least every two cycles. After all behavior and the public checkpoint are green, run `refactor-design`, reconcile canonical documentation, and execute the complete validation sequence. No live command belongs to E21.
+
+The normative hardening completed 53 focused Author tests and 174 repository tests. `npm audit --json` reported zero vulnerabilities; typecheck, lint, Prettier, build, the provider-free checkpoint, archaeological qualifier, Author/provider/lifecycle/operability qualifiers, and the six-call protocol-v3 qualifier all passed. Every qualifier used deterministic local processes and zero external provider calls. Post-GREEN design review classified the duplicated protocol descriptor as a design risk and consolidated packet construction with `protocolDigest`; the focused suite and provider-free checkpoint remained green afterward.
 
 ## Documentation Impact
 
@@ -181,6 +186,7 @@ Use behavior-focused quiet TDD through the public Author API and CLI. Run the fu
 - `AGENTS.md`: protocol-v3 CLI, offline qualifier, and E22 boundary.
 - RFC 0001 and ADR 0002: unchanged because v3 implements their existing lifecycle and capability boundaries.
 - E5/E18/E19/E20 reports and plans: immutable historical evidence.
+- RFC 0001 and ADR 0002 remain unchanged because the correction preserves their existing claim, evidence, and phase semantics rather than introducing new runtime policy.
 
 ## Rollout and Recovery
 
@@ -196,3 +202,5 @@ There is no deployment or provider campaign. V3 is opt-in and can be reverted wi
 - A mechanically green lifecycle does not prove the Blueprint preserves enough semantics for future consumers.
 - `mandatory`, `decisionCritical`, and critical evidence govern different stages and cannot share one convenience boolean.
 - Adding projections for every future consumer makes the schema less reliable; one canonical path representation is the stronger boundary.
+- Validation of a composed `DRAFT` must protect every system-owned value while permitting the precise incompleteness that caused `DRAFT`; completeness cardinality becomes mandatory before `BLOCKED` or `READY`.
+- The exact prompt bytes handed to the Author invoker are a defensible fingerprint boundary; claiming to observe the provider's internal prompt would require separate adapter/provider evidence.
