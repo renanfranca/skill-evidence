@@ -364,19 +364,28 @@ export function validateComposedEvaluationBlueprint(value: unknown): ComposedBlu
   if (!valid) return { diagnostics: structuralDiagnostics(validate.errors), valid: false };
   if (schemaVersion !== 3) return { diagnostics: [], valid: true };
   const blueprint = value as Record<string, unknown>;
-  const diagnostics = [...validateSystemBlockerIntegrity(blueprint), ...validateComposedClaimIntegrity(blueprint)];
+  const lifecycle = blueprint.lifecycle as { state: BlueprintLifecycle };
+  const semanticDiagnostics =
+    lifecycle.state === 'DRAFT'
+      ? []
+      : evaluationBlueprintV3Diagnostics(blueprint as unknown as BlueprintCandidateV3, authoringContextFromBlueprint(blueprint));
+  const diagnostics = [...semanticDiagnostics, ...validateSystemBlockerIntegrity(blueprint), ...validateComposedClaimIntegrity(blueprint)];
   return { diagnostics, valid: diagnostics.length === 0 };
 }
 
-function validateSystemBlockerIntegrity(blueprint: Record<string, unknown>): BlueprintDiagnostic[] {
-  const requirements = blueprint.unresolvedRequirements as Array<Record<string, unknown>>;
-  const claims = blueprint.claims as BlueprintClaimV3[];
-  const context = {
+function authoringContextFromBlueprint(blueprint: Record<string, unknown>): AuthoringContext {
+  return {
     claimRequirements: blueprint.claimRequirements,
     decisionContext: blueprint.decisionContext,
     population: blueprint.population,
     schemaVersion: 2,
   } as AuthoringContext;
+}
+
+function validateSystemBlockerIntegrity(blueprint: Record<string, unknown>): BlueprintDiagnostic[] {
+  const requirements = blueprint.unresolvedRequirements as Array<Record<string, unknown>>;
+  const claims = blueprint.claims as BlueprintClaimV3[];
+  const context = authoringContextFromBlueprint(blueprint);
   const expected = new Map(deriveSystemAuthoringContextRequirements(context, claims).map((requirement) => [requirement.id, requirement]));
   const actualSystem = requirements.filter(
     (requirement) => requirement.origin === 'SYSTEM_AUTHORING_CONTEXT' || String(requirement.id).startsWith('system:authoring-context:'),
@@ -408,16 +417,6 @@ function validateComposedClaimIntegrity(blueprint: Record<string, unknown>): Blu
   const population = blueprint.population as AuthoringContext['population'];
   const diagnostics: BlueprintDiagnostic[] = [];
   const claims = blueprint.claims as BlueprintClaimV3[];
-  const lifecycle = blueprint.lifecycle as { state: BlueprintLifecycle };
-  if (lifecycle.state !== 'DRAFT') {
-    for (const requirement of requirements.values()) {
-      const matches = claims.filter((claim) => claim.claimRequirementId === requirement.id);
-      if (matches.length !== 1) diagnostics.push({ code: 'TRUSTED_CLAIM_CARDINALITY', path: '/claims' });
-      if (matches[0] !== undefined && matches[0].type !== requirement.type) {
-        diagnostics.push({ code: 'TRUSTED_CLAIM_TYPE_MISMATCH', path: '/claims' });
-      }
-    }
-  }
   for (const [index, claim] of claims.entries()) {
     const requirement = claim.claimRequirementId === undefined ? undefined : requirements.get(claim.claimRequirementId);
     const expected =
@@ -495,6 +494,11 @@ export function validateEvaluationBlueprintV3(value: unknown, context?: Authorin
   ) {
     return { complete: false, diagnostics: [{ code: 'UNKNOWN_SYSTEM_REFERENCE', path: '/claims' }], structurallyValid: false };
   }
+  const diagnostics = evaluationBlueprintV3Diagnostics(candidate, context);
+  return { complete: diagnostics.length === 0, diagnostics, structurallyValid: true };
+}
+
+function evaluationBlueprintV3Diagnostics(candidate: BlueprintCandidateV3, context?: AuthoringContext): BlueprintDiagnostic[] {
   const diagnostics: BlueprintDiagnostic[] = [];
   const seen = new Set<string>();
   for (const entry of allIds(candidate)) {
@@ -522,6 +526,12 @@ export function validateEvaluationBlueprintV3(value: unknown, context?: Authorin
       const observationIds = new Set(path.observations.map((observation) => observation.id));
       const assessed = new Set<string>();
       path.assessments.forEach((assessment, assessmentIndex) => {
+        if (assessment.observationIds.length === 0) {
+          diagnostics.push({
+            code: 'ASSESSMENT_OBSERVATION_MISSING',
+            path: `/evidencePlan/${index}/observabilityRequirement/paths/${pathIndex}/assessments/${assessmentIndex}/observationIds`,
+          });
+        }
         addBrokenReferences(
           assessment.observationIds,
           observationIds,
@@ -567,9 +577,17 @@ export function validateEvaluationBlueprintV3(value: unknown, context?: Authorin
     }
   });
   candidate.evidencePlan?.forEach((evidence, evidenceIndex) => {
+    if (evidence.claimIds.length === 0 || evidence.contractIds.length === 0) {
+      diagnostics.push({ code: 'EVIDENCE_ENDPOINT_MISSING', path: `/evidencePlan/${evidenceIndex}` });
+    }
     for (const claimId of evidence.claimIds) {
       if (!candidate.claims?.find((claim) => claim.id === claimId)?.requiredEvidence.includes(evidence.id)) {
         diagnostics.push({ code: 'EVIDENCE_LINK_MISMATCH', path: `/evidencePlan/${evidenceIndex}/claimIds` });
+      }
+      for (const contractId of evidence.contractIds) {
+        if (!contractById.get(contractId)?.claimIds.includes(claimId)) {
+          diagnostics.push({ code: 'EVIDENCE_LINK_MISMATCH', path: `/evidencePlan/${evidenceIndex}/contractIds` });
+        }
       }
     }
     for (const contractId of evidence.contractIds) {
@@ -619,7 +637,7 @@ export function validateEvaluationBlueprintV3(value: unknown, context?: Authorin
       diagnostics.push({ code: 'REQUIRED_SECTION_EMPTY', path: `/${field}` });
     }
   }
-  return { complete: diagnostics.length === 0, diagnostics, structurallyValid: true };
+  return diagnostics;
 }
 
 function addDuplicateDiagnostics(candidate: BlueprintCandidate, diagnostics: BlueprintDiagnostic[]): void {

@@ -106,6 +106,23 @@ git diff --check
 
 Acceptance: all local and hosted gates pass, zero external calls occur, no campaign reservation exists, and the handoff explicitly reserves model-backed validation for E22.
 
+### Milestone 4 — Close final referential-integrity and provenance gaps
+
+Reopen E21 before merge after exhaustive review found three observable gaps: an evidence requirement can omit or inconsistently pair its claim and contract, an assessment can consume no observation, and `campaignId` can be reread from mutable input after provider invocation. Make the composed validator enforce the same semantic integrity expected at the persistence boundary.
+
+Files: schema-3, `src/blueprint/evaluation-blueprint.ts`, `src/author/evaluation-author.ts`, and the existing behavior suite.
+
+Validation:
+
+```text
+npx vitest run test/evaluation-author.test.ts
+npm run typecheck
+npm run lint
+npm run experiment:verify
+```
+
+Acceptance: incomplete or inconsistent claim → contract → evidence chains cannot reach `READY`; every assessment consumes at least one observation from its path; all material `AuthorInput` provenance is captured before invocation; and composed validation rejects persisted semantic tampering.
+
 ## Progress
 
 - [x] Consult THEORY commit `572e963` in full and reconcile RFC 0001 plus ADR 0002.
@@ -122,6 +139,11 @@ Acceptance: all local and hosted gates pass, zero external calls occur, no campa
 - [x] Requalify offline and complete the post-GREEN design review; the six-call local corpus remains `SUPPORTED_FOR_DEVELOPMENT` with zero external calls.
 - [x] Restore every final local validation gate after the behavior and design commits.
 - [x] Push the corrected branch and confirm hosted CI run `31757170973` green at commit `46a1d70`.
+- [x] Reopen E21 after final review found evidence-chain, assessment-cardinality, composed-validation, and campaign-provenance gaps.
+- [x] Complete Milestone 4 through behavior TDD: evidence endpoints and pairs, assessment inputs, frozen campaign provenance, and composed semantic validation.
+- [x] Repeat the post-GREEN design review and retain one shared semantic validator for candidate and composed boundaries.
+- [x] Restore every final local gate with 54 focused Author tests, 175 repository tests, zero audit findings, and all deterministic qualifiers green.
+- [ ] Push Milestone 4 and confirm the hosted PR gate at the new commit.
 
 ## Decisions
 
@@ -161,6 +183,14 @@ Acceptance: all local and hosted gates pass, zero external calls occur, no campa
   Rationale: `BLOCKED` is meaningful only after the Blueprint completely represents the intended design; coexisting semantic gaps remain `DRAFT`.
   Date/Author: 2026-08-13 / user and planning agent.
 
+- Decision: require every evidence requirement to name at least one claim and one contract, with pairwise claim/contract consistency.
+  Rationale: separate reciprocal references do not establish the RFC chain when a requirement links a claim to a contract that does not declare that claim.
+  Date/Author: 2026-08-13 / user and implementation agent.
+
+- Decision: freeze `campaignId` with the other prepared invocation inputs.
+  Rationale: provenance must not depend on a mutable request object after the provider await boundary.
+  Date/Author: 2026-08-13 / user and implementation agent.
+
 ## Risks and Mitigations
 
 - Risk: every absent field becomes blocking. Mitigation: require explicit `REQUIRED_ABSENT`; `NOT_REQUIRED` carries rationale and creates no blocker.
@@ -172,16 +202,19 @@ Acceptance: all local and hosted gates pass, zero external calls occur, no campa
 - Risk: requirement-level prose contradicts path-level evidence. Mitigation: persist evidence kind, source, and capability only in observation and assessment steps under one `observabilityRequirement`.
 - Risk: mutable inputs diverge from their fingerprints while a provider invocation is pending. Mitigation: compose and identify exclusively from canonical frozen copies prepared before invocation.
 - Risk: protocol descriptor and its digest diverge. Mitigation: packet construction and `protocolDigest` now use one authoritative transformation; post-GREEN design review verified this consolidation.
+- Risk: locally reciprocal evidence references conceal an invalid end-to-end chain. Mitigation: enforce nonempty endpoints, contract/claim pair consistency, and the same semantic checks at the composed boundary.
+- Risk: an assessment with no inputs appears valid because another assessment covers the path observations. Mitigation: require at least one in-path `observationId` for every assessment.
+- Risk: mutable run provenance changes while the provider is pending. Mitigation: prepare and freeze `campaignId` before invocation and never reread it from `AuthorInput` afterward.
 
 ## Validation Strategy
 
 Use behavior-focused quiet TDD through the public Author API and CLI. Run the full Author suite per cycle and `experiment:verify` at least every two cycles. After all behavior and the public checkpoint are green, run `refactor-design`, reconcile canonical documentation, and execute the complete validation sequence. No live command belongs to E21.
 
-The normative hardening completed 53 focused Author tests and 174 repository tests. `npm audit --json` reported zero vulnerabilities; typecheck, lint, Prettier, build, the provider-free checkpoint, archaeological qualifier, Author/provider/lifecycle/operability qualifiers, and the six-call protocol-v3 qualifier all passed. Every qualifier used deterministic local processes and zero external provider calls. Post-GREEN design review classified the duplicated protocol descriptor as a design risk and consolidated packet construction with `protocolDigest`; the focused suite and provider-free checkpoint remained green afterward. Hosted CI run `31757170973` then passed the complete repository workflow on commit `46a1d70`.
+The final normative hardening completed 54 focused Author tests and 175 repository tests. `npm audit --json` reported zero vulnerabilities; typecheck, lint, Prettier, build, the provider-free checkpoint, archaeological qualifier, Author/provider/lifecycle/operability qualifiers, and the six-call protocol-v3 qualifier all passed. Every qualifier used deterministic local processes and zero external provider calls. Post-GREEN design review retained one semantic validator shared by candidate lifecycle derivation and the composed persistence boundary; no further behavior-preserving refactor was justified. Earlier hosted CI run `31757170973` passed commit `46a1d70`; Milestone 4 requires a new hosted run after push.
 
 ## Documentation Impact
 
-- ADR 0003: canonical v3 policy.
+- ADR 0003: records nonempty evidence endpoints, pairwise chain consistency, and assessment input cardinality.
 - This ExecPlan and `docs/execplans/README.md`: living implementation and handoff status.
 - `AGENTS.md`: protocol-v3 CLI, offline qualifier, and E22 boundary.
 - RFC 0001 and ADR 0002: unchanged because v3 implements their existing lifecycle and capability boundaries.
@@ -204,3 +237,6 @@ There is no deployment or provider campaign. V3 is opt-in and can be reverted wi
 - Adding projections for every future consumer makes the schema less reliable; one canonical path representation is the stronger boundary.
 - Validation of a composed `DRAFT` must protect every system-owned value while permitting the precise incompleteness that caused `DRAFT`; completeness cardinality becomes mandatory before `BLOCKED` or `READY`.
 - The exact prompt bytes handed to the Author invoker are a defensible fingerprint boundary; claiming to observe the provider's internal prompt would require separate adapter/provider evidence.
+- Bidirectional claim↔requirement and contract↔requirement checks are insufficient without validating the claim↔contract relationship represented by the same requirement.
+- Union coverage of observations does not prove that each conjunctive assessment has an interpretable input.
+- Freezing model-facing inputs is not enough when run provenance is also persisted after an asynchronous boundary.

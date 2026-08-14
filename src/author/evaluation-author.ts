@@ -126,14 +126,17 @@ export interface PreparedAuthorInvocation {
 }
 
 const compositionPolicyV3 = {
+  evidenceEndpointCardinality: 'AT_LEAST_ONE_CLAIM_AND_CONTRACT',
+  evidencePairConsistency: 'EVERY_REQUIREMENT_CLAIM_IS_DECLARED_BY_EVERY_REQUIREMENT_CONTRACT',
   claimRequirementCardinality: 'ONE_TO_ONE',
   lifecyclePrecedence: ['ERROR', 'DRAFT', 'BLOCKED', 'READY'],
   missingEvidenceSemantics: 'INCONCLUSIVE_WHEN_ELIGIBLE_PATH_EVIDENCE_IS_MISSING',
+  pathAssessmentInputCardinality: 'AT_LEAST_ONE_OBSERVATION',
   pathAssessmentOperator: 'ALL',
   pathObservationOperator: 'ALL',
   pathOperator: 'ANY',
   systemControlledClaimFields: ['mandatory', 'decisionCritical', 'populationScopeIds', 'status'],
-  version: 1,
+  version: 2,
 } as const;
 
 function canonicalFrozenCopy<T>(value: T): T {
@@ -373,6 +376,7 @@ function composeProtocolV3Candidate(candidate: BlueprintCandidateV3, authoringCo
 
 export async function authorEvaluationBlueprint(input: AuthorInput): Promise<AuthorRunResult> {
   const prepared = prepareAuthorInvocation(input.snapshot, input.condition, input.protocolVersion, input.authoringContext);
+  const preparedCampaignId = canonicalFrozenCopy(input.campaignId);
   const packetFingerprint = prepared.packetFingerprint;
   let response: AuthorInvocationResponse;
   try {
@@ -425,7 +429,7 @@ export async function authorEvaluationBlueprint(input: AuthorInput): Promise<Aut
       ...(prepared.authorInstrumentFingerprint === undefined ? {} : { authorInstrumentFingerprint: prepared.authorInstrumentFingerprint }),
       ...(prepared.authoringContextFingerprint === undefined ? {} : { authoringContextFingerprint: prepared.authoringContextFingerprint }),
       ...(digests.authoringContextSchemaDigest === undefined ? {} : { authoringContextSchemaDigest: digests.authoringContextSchemaDigest }),
-      campaignId: input.campaignId,
+      campaignId: preparedCampaignId,
       ...(digests.candidateSchemaDigest === undefined ? {} : { candidateSchemaDigest: digests.candidateSchemaDigest }),
       ...(digests.compositionPolicyDigest === undefined ? {} : { compositionPolicyDigest: digests.compositionPolicyDigest }),
       conditionFingerprint: digests.conditionFingerprint,
