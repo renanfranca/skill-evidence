@@ -21,6 +21,8 @@ A subsequent pre-merge review found four remaining integrity gaps in the compose
 
 A final PR #9 review confirmed four additional persistence-boundary defects: provenance digests and fingerprints can diverge from repository-owned inputs, forged trusted references can survive as ordinary claims, a persisted Authoring Context can be semantically invalid, and a reusable capability identifier is incorrectly treated as a globally unique entity ID. Milestones 9–12 reopen E21 again to close these defects without changing schema-3 JSON shape, the CLI, or protocols v1/v2.
 
+A final P2 finding found that semantically correct Authoring Context dependency diagnostics omit the `decisionContext` segment from their JSON Pointers. Milestone 13 briefly reopens E21 to correct only diagnostic routing; Blueprint validity, diagnostic codes, schemas, identities, and every protocol contract remain unchanged.
+
 ## Scope
 
 Included: trusted Authoring Context; schema-3 and candidate schema; system-owned blockers and reserved IDs; evidence paths; protocol-v3 packet and fingerprints; internal CLI support; deterministic qualification; CI and documentation.
@@ -48,6 +50,8 @@ V1 remains the default and v1/v2 reproduce their exact identities. V3 requires v
 Trusted claim requirements map one-to-one to claims and control mandatory, decision-critical, population, and initial status fields. Evidence requirements expose one path structure containing every observation, assessment, capability, evidence kind, and source. Inputs are frozen before invocation; composed validation is mandatory; condition, packet, context, and instrument identities name precise and non-overlapping boundaries.
 
 Persisted v3 Blueprints independently revalidate Authoring Context semantics, trusted claim membership, repository-derived provenance, lifecycle, and semantic identity. Exact packet bytes participate in `blueprintId`; reusable capability IDs may appear in several observation or assessment entities, while entity IDs remain globally unique. Composition policy v4 makes every earlier protocol-v3 Blueprint obsolete and preserves v1/v2 byte-identically.
+
+Every invalid dependency in a persisted decision fact reports `AUTHORING_CONTEXT_INTEGRITY` at `/decisionContext/<field>/dependency/claimRequirementId`; population dependency diagnostics continue to point at `/population/target/dependency/claimRequirementId` or `/population/excluded/dependency/claimRequirementId`.
 
 ## Milestones
 
@@ -227,6 +231,21 @@ npm run experiment:verify
 
 Acceptance: capability reuse remains `READY`; a duplicate observation ID remains `DRAFT`; the qualifier performs eight local processes, reports `SUPPORTED_FOR_DEVELOPMENT`, makes zero external calls, and creates no campaign artifact.
 
+### Milestone 13 — Correct Authoring Context diagnostic paths
+
+Reconsult THEORY commit `572e963ea6f1207ab53c533592cb70a8239e221c` in full and prespecify the P2 finding before changing code. Add one behavior-focused regression that mutates each of the six `decisionContext` facts with an unknown claim-requirement dependency and distinguishes the complete JSON Pointer from the historically truncated pointer. Construct semantic-validation paths as complete JSON Pointers and append the dependency suffix directly. Do not change validation semantics, diagnostic codes, schemas, identities, lifecycle, fingerprints, or protocol compatibility.
+
+Files: `src/author/authoring-context.ts`, `test/evaluation-author.test.ts`, this plan, and the ExecPlan index.
+
+Validation:
+
+```text
+npx vitest run test/evaluation-author.test.ts
+npm run experiment:verify
+```
+
+Acceptance: all six invalid decision dependencies emit `AUTHORING_CONTEXT_INTEGRITY` at `/decisionContext/<field>/dependency/claimRequirementId`; no truncated `/<field>/dependency/claimRequirementId` is emitted; 63 focused tests and 184 repository tests pass; the protocol-v3 qualifier remains `SUPPORTED_FOR_DEVELOPMENT` with eight local calls and zero external calls; no campaign artifact or reservation is created.
+
 ## Progress
 
 - [x] Consult THEORY commit `572e963` in full and reconcile RFC 0001 plus ADR 0002.
@@ -260,6 +279,10 @@ Acceptance: capability reuse remains `READY`; a duplicate observation ID remains
 - [x] Complete derivable provenance, packet-bound identity, and reusable capability semantics through behavior TDD; 62 focused tests and the provider-free checkpoint pass.
 - [x] Requalify protocol v3 with eight local processes and pass the public checkpoint with zero external calls.
 - [x] Complete post-GREEN design review, documentation reconciliation, and final offline validation with 62 focused tests, 183 repository tests, and every prescribed gate green.
+- [x] Reconsult THEORY commit `572e963ea6f1207ab53c533592cb70a8239e221c` in full and prespecify Milestone 13 before code changes.
+- [x] Demonstrate the truncated `decisionContext` dependency paths through one behavior-focused RED test, then restore GREEN without changing validation semantics; 63 focused tests and the provider-free checkpoint pass.
+- [x] Complete the scoped post-GREEN design review; explicit complete pointers remove the fragile dotted-label transformation without introducing another justified refactor.
+- [x] Complete final validation and documentation reconciliation with 63 focused tests, 184 repository tests, every prescribed gate green, and no new campaign artifact or reservation.
 
 ## Decisions
 
@@ -335,6 +358,10 @@ Acceptance: capability reuse remains `READY`; a duplicate observation ID remains
   Rationale: several observation or assessment entities can legitimately require the same named capability; only entity identities must remain globally unique.
   Date/Author: 2026-08-14 / user and implementation agent.
 
+- Decision: represent semantic-validation locations as complete JSON Pointers before appending nested dependency segments.
+  Rationale: deriving a pointer from dotted labels loses the enclosing `decisionContext` object and makes otherwise correct diagnostics point at nonexistent top-level fields.
+  Date/Author: 2026-08-14 / user and implementation agent.
+
 ## Risks and Mitigations
 
 - Risk: every absent field becomes blocking. Mitigation: require explicit `REQUIRED_ABSENT`; `NOT_REQUIRED` carries rationale and creates no blocker.
@@ -358,6 +385,7 @@ Acceptance: capability reuse remains `READY`; a duplicate observation ID remains
 - Risk: copied or edited provenance values remain internally self-consistent but name the wrong instrument. Mitigation: independently recompute every repository-derived digest and compound fingerprint and emit `AUTHOR_PROVENANCE_INTEGRITY` on divergence.
 - Risk: adding packet identity accidentally changes historical protocols or conflates unverifiable runtime metadata. Mitigation: change only protocol-v3 identity, keep campaign and observed-model provenance outside it, and retain exact v1/v2 regression assertions.
 - Risk: relaxing capability uniqueness masks duplicate evidence entities. Mitigation: remove only capability IDs from the global entity set and keep observation, assessment, path, claim, contract, and requirement duplicate checks.
+- Risk: correcting diagnostic paths accidentally changes validation outcomes or public contracts. Mitigation: assert only `BlueprintDiagnostic.path`, leave codes and validity unchanged, and limit production changes to explicit pointer construction.
 
 ## Validation Strategy
 
@@ -367,6 +395,10 @@ The previous closure completed 54 focused Author tests and 175 repository tests 
 
 Final Milestones 9–12 validation on 2026-08-14 passed in the prescribed order. `npm audit --json` reported zero vulnerabilities; 62 focused Author tests and 183 repository tests passed; typecheck, lint, Prettier, build, the provider-free checkpoint, archaeological qualifier, Author qualifier, provider qualifier, lifecycle qualifier, operability qualifier, the eight-process protocol-v3 qualifier, and `git diff --check` were all green. The protocol-v3 qualifier reported `SUPPORTED_FOR_DEVELOPMENT`, eight local provider calls, zero external calls, and the reusable-capability case as `READY`. Post-GREEN design review classified two design risks and removed both: the historical digest routine can now accept only protocols v1/v2, and entity-ID collection explicitly excludes reusable capabilities. Focused tests and the provider-free public checkpoint remained green after the refactor. No model-backed campaign, reservation, or repository-local run artifact was created.
 
+That evidence is the baseline for Milestone 13. The reopened work must first prove the incorrect observable pointer through RED, restore GREEN with a routing-only correction, repeat the provider-free public checkpoint and post-GREEN design review, then supersede the baseline with the complete prescribed offline sequence.
+
+Milestone 13 validation on 2026-08-14 passed in the prescribed order. `npm audit --json` reported zero vulnerabilities; 63 focused Author tests and 184 repository tests passed; typecheck, lint, Prettier, build, the provider-free checkpoint, archaeological qualifier, Author qualifier, provider qualifier, lifecycle qualifier, operability qualifier, the eight-process protocol-v3 qualifier, and `git diff --check` were all green. The protocol-v3 qualifier remained `SUPPORTED_FOR_DEVELOPMENT` with eight local provider calls and zero external calls. The repository-local artifact file set remained unchanged, and no model-backed campaign or reservation was created. Post-GREEN design review found no further refactor justified beyond replacing the dotted-label transformation with complete JSON Pointers.
+
 ## Documentation Impact
 
 - ADR 0003: records nonempty evidence endpoints, pairwise chain consistency, lifecycle/content-identity verification, direct-only paths, one protocol-v3 missing-evidence authority, persisted-context validation, derivable provenance, packet-bound identity, and reusable capabilities.
@@ -375,12 +407,15 @@ Final Milestones 9–12 validation on 2026-08-14 passed in the prescribed order.
 - RFC 0001 and ADR 0002: unchanged because v3 implements their existing lifecycle and capability boundaries.
 - E5/E18/E19/E20 reports and plans: immutable historical evidence.
 - RFC 0001 and ADR 0002 remain unchanged because the correction preserves their existing claim, evidence, and phase semantics rather than introducing new runtime policy.
+- ADR 0003, RFC 0001, ADR 0002, schemas, and `AGENTS.md` remain unchanged for Milestone 13 because Authoring Context validation semantics and operational counts are already correct; only diagnostic routing changes.
 
 ## Rollout and Recovery
 
 There is no deployment or provider campaign. V3 is opt-in and can be reverted without affecting v1/v2. If schema-3 reveals a normative contradiction, stop before model-backed validation, record it in this plan, and revise ADR 0003 explicitly rather than weakening historical rules.
 
 Protocol-v3 Blueprints produced before composition policy v4 are stale because packet identity and independently derivable provenance changed. Regenerate them before any future E22 preparation. Protocol-v1/v2 artifacts require no migration.
+
+Milestone 13 requires no migration: valid Blueprints are byte-identical, while invalid persisted artifacts receive a corrected diagnostic location.
 
 ## Lessons Learned
 
@@ -406,3 +441,4 @@ Protocol-v3 Blueprints produced before composition policy v4 are stale because p
 - Persisted provenance fields are only integrity evidence when the validator can independently rederive them from repository-owned inputs; shape validation and mutually consistent stored hashes are insufficient.
 - Exact packet bytes belong in protocol-v3 content identity even though execution labels and observed model metadata remain unverifiable provenance outside that identity.
 - Capability identifiers and entity identifiers occupy different domains: reusing a requirement capability is legitimate, while reusing an observation or assessment identity remains incomplete authorship.
+- Diagnostic paths are public locations, not display labels; constructing complete JSON Pointers at the source prevents enclosing-object context from being lost during later string transformations.

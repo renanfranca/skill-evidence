@@ -117,9 +117,12 @@ export function validateAuthoringContextSemantics(context: AuthoringContext): Au
     });
   });
   const facts: Array<[string, AuthoringFact<unknown>]> = [
-    ...Object.entries(context.decisionContext),
-    ['population.target', context.population.target],
-    ['population.excluded', context.population.excluded],
+    ...Object.entries(context.decisionContext).map(([field, fact]): [string, AuthoringFact<unknown>] => [
+      `/decisionContext/${field}`,
+      fact,
+    ]),
+    ['/population/target', context.population.target],
+    ['/population/excluded', context.population.excluded],
   ];
   for (const [path, fact] of facts) {
     if (
@@ -127,7 +130,7 @@ export function validateAuthoringContextSemantics(context: AuthoringContext): Au
       fact.dependency.scope === 'CLAIM_REQUIREMENT' &&
       !seenRequirements.has(fact.dependency.claimRequirementId)
     ) {
-      diagnostics.push({ path: `/${path.replaceAll('.', '/')}/dependency/claimRequirementId` });
+      diagnostics.push({ path: `${path}/dependency/claimRequirementId` });
     }
   }
   return diagnostics;

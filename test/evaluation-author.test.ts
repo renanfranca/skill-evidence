@@ -1112,6 +1112,53 @@ describe('Evaluation Author v0', () => {
     expect(validation.diagnostics).not.toContainEqual({ code: 'BLUEPRINT_ID_INTEGRITY', path: '/blueprintId' });
   });
 
+  it('locates every invalid persisted decision dependency at its complete Authoring Context JSON Pointer', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-protocol-v3-context-dependency-path-root-'));
+    await writeFile(join(root, 'SKILL.md'), '# Persisted Authoring Context dependency paths\n');
+    const snapshot = await createSkillSnapshot({ rootDirectory: root });
+    const result = await authorEvaluationBlueprint({
+      authoringContext: protocolV3Context(),
+      campaignId: 'protocol-v3-context-dependency-path',
+      invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(protocolV3Candidate()) }),
+      protocolVersion: 3,
+      snapshot,
+    });
+    if (result.status !== 'COMPLETED' || result.blueprint.schemaVersion !== 3) throw new Error('expected protocol-v3 Blueprint');
+
+    const fields = [
+      'decision',
+      'efficiencyBudgets',
+      'maximumAcceptableRegression',
+      'minimumWorthwhileImprovement',
+      'requiredUncertainty',
+      'severeHarmLimits',
+    ] as const;
+    for (const field of fields) {
+      const tampered = structuredClone(result.blueprint);
+      tampered.decisionContext[field] = {
+        dependency: { claimRequirementId: 'system:authoring-context:claim-requirement:missing', scope: 'CLAIM_REQUIREMENT' },
+        disposition: 'REQUIRED_ABSENT',
+        evidenceNeeded: 'A declared claim requirement.',
+        reason: 'Exercise persisted dependency integrity.',
+        source: 'operator',
+        status: 'UNKNOWN',
+      };
+      recomputeProtocolV3BlueprintId(tampered);
+
+      const validation = validateComposedEvaluationBlueprint(tampered);
+
+      expect(validation.valid).toBe(false);
+      expect(validation.diagnostics).toContainEqual({
+        code: 'AUTHORING_CONTEXT_INTEGRITY',
+        path: `/decisionContext/${field}/dependency/claimRequirementId`,
+      });
+      expect(validation.diagnostics).not.toContainEqual({
+        code: 'AUTHORING_CONTEXT_INTEGRITY',
+        path: `/${field}/dependency/claimRequirementId`,
+      });
+    }
+  });
+
   it('rejects a forged persisted claim requirement even when derived fields and identity are coherent', async () => {
     const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-protocol-v3-trusted-reference-root-'));
     await writeFile(join(root, 'SKILL.md'), '# Trusted claim reference integrity\n');
