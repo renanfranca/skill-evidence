@@ -15,6 +15,8 @@ Safety boundary: this is authorized defensive development in this repository. E2
 
 Deliver an opt-in Author protocol v3 that cannot turn trusted missing decision context into `READY` through a model-selected boolean and that can describe direct observations separately from semantic or qualitative assessment. A developer can observe the new behavior through the internal Author API, CLI validation, schema-3, and a deterministic offline qualifier.
 
+The first green implementation exposed normative gaps before merge: claim criticality remained model-controlled, required-evidence coverage was incomplete, path interpretation was ambiguous, composition could reread mutable inputs, and its identities did not cover every material instrument component. This revision closes those gaps without implementing the future compiler, capability preflight, execution, aggregation, or decision system.
+
 ## Scope
 
 Included: trusted Authoring Context; schema-3 and candidate schema; system-owned blockers and reserved IDs; evidence paths; protocol-v3 packet and fingerprints; internal CLI support; deterministic qualification; CI and documentation.
@@ -38,6 +40,8 @@ RFC 0001 requires structured unknowns, makes decision-field necessity claim-depe
 ## Desired End State
 
 V1 remains the default and v1/v2 reproduce their exact identities. V3 requires valid trusted context before invocation, composes schema-3 deterministically, rejects reserved-ID spoofing, distinguishes system and Author requirements, models evidence paths, and produces only `DRAFT`, `BLOCKED`, or `READY` under system policy. The offline qualifier reports `SUPPORTED_FOR_DEVELOPMENT` with zero external calls and explicitly does not qualify model behavior.
+
+Trusted claim requirements map one-to-one to claims and control mandatory, decision-critical, population, and initial status fields. Evidence requirements expose one path structure containing every observation, assessment, capability, evidence kind, and source. Inputs are frozen before invocation; composed validation is mandatory; condition, packet, context, and instrument identities name precise and non-overlapping boundaries.
 
 ## Milestones
 
@@ -111,6 +115,11 @@ Acceptance: all local and hosted gates pass, zero external calls occur, no campa
 - [x] Complete Milestone 2: protected blockers, reserved IDs, evidence paths, and lifecycle precedence.
 - [x] Complete Milestone 3: fresh fixtures, six-call local qualifier, CI, design review, and documentation.
 - [x] Confirm PR #9 hosted validation green for implementation/documentation commit `3c8d412`.
+- [x] Reopen E21 after normative review found gaps in claim authority, evidence coverage, type versioning, freeze, identity, and composed validation.
+- [ ] Revise ADR 0003 and the living plan before corrective behavior changes.
+- [ ] Implement atomic trusted claims and complete evidence-path contracts through behavior TDD.
+- [ ] Enforce frozen composition, discriminated Blueprint types, precise identities, and mandatory composed validation.
+- [ ] Requalify offline, complete post-GREEN design review, and restore all validation gates.
 
 ## Decisions
 
@@ -134,6 +143,22 @@ Acceptance: all local and hosted gates pass, zero external calls occur, no campa
   Rationale: network-disabled authorship cannot resolve repository-local schema URIs; isolated compilation now guards that the packet is self-contained.
   Date/Author: 2026-08-13 / implementation agent.
 
+- Decision: use one atomic trusted claim requirement per system-required claim.
+  Rationale: equal claim types do not establish semantic equivalence, and allowing one claim to satisfy several requirements would silently collapse distinct obligations.
+  Date/Author: 2026-08-13 / user and planning agent.
+
+- Decision: make the path structure the sole representation of evidence kind, source, and capability requirements.
+  Rationale: parallel projections created redundant fields that could disagree and expanded E21 toward a preflight implementation.
+  Date/Author: 2026-08-13 / user and planning agent.
+
+- Decision: scope missing-evidence semantics to an eligible execution.
+  Rationale: capability ineligibility, missing eligible evidence, lost qualified capability, and observed violation have different ADR 0002 outcomes; claim mandatory controls acceptance rather than selecting those outcomes.
+  Date/Author: 2026-08-13 / user and planning agent.
+
+- Decision: give incomplete authorship precedence over legitimate blockers.
+  Rationale: `BLOCKED` is meaningful only after the Blueprint completely represents the intended design; coexisting semantic gaps remain `DRAFT`.
+  Date/Author: 2026-08-13 / user and planning agent.
+
 ## Risks and Mitigations
 
 - Risk: every absent field becomes blocking. Mitigation: require explicit `REQUIRED_ABSENT`; `NOT_REQUIRED` carries rationale and creates no blocker.
@@ -141,6 +166,9 @@ Acceptance: all local and hosted gates pass, zero external calls occur, no campa
 - Risk: schema-3 claims collected evidence exists. Mitigation: name observations as plans and defer capability eligibility plus collection to later stages.
 - Risk: a large schema migration changes historical evidence. Mitigation: v3 is opt-in; v1/v2 schemas, packets, fingerprints, and validators remain unchanged.
 - Risk: offline qualification is described as model evidence. Mitigation: use deterministic candidates, zero external calls, and explicit `SUPPORTED_FOR_DEVELOPMENT` limitations.
+- Risk: E21 expands indefinitely into future runtime policy. Mitigation: freeze its boundary at representation, composition, identity, validation, and authoring lifecycle; defer capability catalogs, preflight, compiler, execution, aggregation, and decisions.
+- Risk: requirement-level prose contradicts path-level evidence. Mitigation: persist evidence kind, source, and capability only in observation and assessment steps under one `observabilityRequirement`.
+- Risk: mutable inputs diverge from their fingerprints while a provider invocation is pending. Mitigation: compose and identify exclusively from canonical frozen copies prepared before invocation.
 
 ## Validation Strategy
 
@@ -165,3 +193,6 @@ There is no deployment or provider campaign. V3 is opt-in and can be reverted wi
 - `READY` for authoring does not establish capability eligibility or decision readiness.
 - A schema can validate correctly inside the repository yet still be incomplete as a model-facing artifact when its external references are not bundled.
 - System blocker derivation and integrity validation must share one canonical mapping; duplicating field-to-ID mappings makes provenance enforcement fragile.
+- A mechanically green lifecycle does not prove the Blueprint preserves enough semantics for future consumers.
+- `mandatory`, `decisionCritical`, and critical evidence govern different stages and cannot share one convenience boolean.
+- Adding projections for every future consumer makes the schema less reliable; one canonical path representation is the stronger boundary.

@@ -43,11 +43,36 @@ A required path must name at least one observation, but the observation need not
 
 The schema-1/2 `MANDATORY_DIRECT_EVIDENCE_MISSING` rule remains historical behavior. Protocol v3 does not promote that representation-specific rule to a universal interpretation of THEORY.
 
-### 4. Versioning and identity
+Protocol v3 represents each evidence requirement through one `observabilityRequirement` whose paths are alternatives. Every observation and assessment inside the selected path is conjunctive. Observations declare the capability and evidence origin required to capture a directly inspectable fact. Assessments declare the capability, assessment origin, and observation IDs required to interpret those facts. This path structure is the only source of evidence-kind, source, and observability semantics; protocol v3 does not persist parallel prose or derived mirrors that could disagree with it.
+
+The capability preflight defined by ADR 0002 remains a later responsibility. A path is eligible only when every observation and assessment capability in that path is eligible for its declared purpose. Protocol v3 records that requirement without claiming that any capability is available.
+
+`missingEvidenceSemantics` in protocol v3 refers only to evidence that remains missing or ambiguous after an eligible path was selected for execution, which yields `INCONCLUSIVE`. It does not encode capability ineligibility. Before execution, no eligible path for a decision-critical claim yields preflight `BLOCKED`; the same condition for a non-critical claim yields `NOT_EVALUATED`. Failure to preserve a capability declared eligible invalidates the run, while a directly observed contract violation is `FAIL`. Claim `mandatory` governs favorable acceptance and does not select among these phase-specific outcomes.
+
+### 4. Trusted claim requirements
+
+Decision criticality, mandatory acceptance, and evidence criticality are distinct. Protocol v3 receives atomic, system-trusted claim requirements. Each trusted requirement corresponds to exactly one Author claim, and each Author claim may satisfy at most one trusted requirement. Equal claim types do not authorize consolidation because claims of one type may express different obligations, populations, conditions, or evidence needs.
+
+The system derives `mandatory`, `decisionCritical`, population scopes, and initial `NOT_EVALUATED` status from the trusted requirement. Additional claims discovered by the Author are permitted but remain non-mandatory and non-decision-critical. The Author still proposes evidence criticality; qualification and a later freeze must review that proposal before decision use.
+
+System-owned missing facts name either a decision-wide dependency or one trusted claim requirement. Composition preserves that dependency and derives affected claim IDs when the corresponding claim exists. Missing or multiply satisfied trusted requirements are incomplete authorship, not authority for the model to weaken the decision.
+
+### 5. Lifecycle precedence
+
+Protocol v3 applies lifecycle precedence in this order:
+
+1. invalid JSON, candidate structure, or system composition produces run `ERROR` without a Blueprint;
+2. structurally valid but incomplete authorship produces `DRAFT`, even when a legitimate blocker is also present;
+3. a complete Blueprint with at least one blocking unresolved requirement produces `BLOCKED`;
+4. a complete Blueprint without blockers produces `READY`.
+
+`READY` remains limited to development authorship and does not establish capability eligibility, Author qualification, or decision eligibility.
+
+### 6. Versioning and identity
 
 Protocol v3 uses Evaluation Blueprint schema-3. Protocols v1 and v2, their schemas, packets, fingerprints, and historical evidence remain unchanged.
 
-The Author condition fingerprint continues to identify model, reasoning, instructions, protocol, Blueprint schema, and THEORY. The Authoring Context receives a separate fingerprint. Both identities, plus the snapshot and composed candidate, contribute to `blueprintId`.
+The protocol-v3 condition fingerprint identifies the reusable Author request contract: requested model, reasoning, instructions, THEORY, protocol descriptor, candidate schema, and Authoring Context schema. It excludes run-specific context values and skill content. The Authoring Context receives a separate fingerprint. The packet fingerprint identifies the exact UTF-8 prompt string handed to the Author invoker; it does not claim to observe transformations inside Promptfoo, the Codex SDK, or the provider. A separate Author instrument fingerprint adds the final Blueprint schema and versioned composition policy. The instrument, context, snapshot, and composed semantic content contribute to `blueprintId`.
 
 ## Consequences
 
@@ -56,4 +81,3 @@ The Author condition fingerprint continues to identify model, reasoning, instruc
 - Blueprint `READY` remains distinct from decision-run eligibility.
 - Protocol-v3 qualification must cover context composition, namespace protection, evidence-path semantics, and historical compatibility.
 - Model-backed qualification remains out of band and requires fresh cases and separate authorization.
-
