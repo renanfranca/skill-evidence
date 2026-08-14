@@ -37,8 +37,8 @@
     "experiment:verify": "npm run build --silent && node dist/experiments/cli.js verify",
     "experiment:verify:tracing": "npm run build --silent && node dist/experiments/verify-tracing.js",
     "lint": "eslint .",
-    "prettier:check": "prettier --check .github AGENTS.md docs/execplans evaluations experiments schemas src test .prettierrc.json eslint.config.mjs package.json package-lock.json tsconfig.json tsconfig.build.json vitest.config.ts",
-    "prettier:format": "prettier --write .github AGENTS.md docs/execplans evaluations experiments schemas src test .prettierrc.json eslint.config.mjs package.json package-lock.json tsconfig.json tsconfig.build.json vitest.config.ts",
+    "prettier:check": "prettier --check .agents .github AGENTS.md docs/execplans evaluations experiments schemas src test .prettierrc.json eslint.config.mjs package.json package-lock.json tsconfig.json tsconfig.build.json vitest.config.ts",
+    "prettier:format": "prettier --write .agents .github AGENTS.md docs/execplans evaluations experiments schemas src test .prettierrc.json eslint.config.mjs package.json package-lock.json tsconfig.json tsconfig.build.json vitest.config.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

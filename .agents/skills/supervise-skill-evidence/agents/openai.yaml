@@ -1,0 +1,6 @@
+interface:
+  display_name: 'Supervise Skill Evidence'
+  short_description: 'Run delivery with explicit approval gates'
+  default_prompt: 'Use $supervise-skill-evidence to supervise the next delivery increment.'
+policy:
+  allow_implicit_invocation: false

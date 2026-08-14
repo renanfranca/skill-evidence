@@ -55,6 +55,10 @@ Do not prescribe one model or reasoning effort for ordinary implementation. Sele
 
 Treat the approved ExecPlan as an executable contract that another implementation context can follow from the plan and repository sources alone. Execute it with `$tdd-behavior-autonomous-quiet`: tests must lead observable behavior, and adversarial regressions must precede fixes to invariants or safety boundaries. Keep the plan's progress, decisions, risks, lessons, and `docs/execplans/README.md` status current. After GREEN and documentation reconciliation, perform a final review in a fresh context against THEORY, applicable RFCs and ADRs, and the ExecPlan; resolve all material findings before merge.
 
+## Delivery Supervisor
+
+The repo-local `$supervise-skill-evidence` workflow is explicit-only. When the user activates it, or when an active Goal names it after continuation or compaction, read `.agents/skills/supervise-skill-evidence/SKILL.md` and its complete referenced policy before acting. Reconstruct state from repository, Git, ExecPlan, pull-request, review, and CI evidence instead of asking the user to restate progress or transfer plan paths between tasks. Keep unrelated repository conversations outside this workflow unless the user explicitly activates it.
+
 ## Skill Selection
 
 Always ignore the `develop-skill-with-evals` skill in this repository. Do not invoke or follow it, even when a task would otherwise match its trigger conditions.
