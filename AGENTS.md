@@ -49,9 +49,11 @@ Vitest discovers `test/**/*.test.ts`. Write behavior-focused cases and use tempo
 
 ## ExecPlan Workflow
 
-Before creating or revising an ExecPlan, read [THEORY.md](https://github.com/renanfranca/skill-evaluation-theory/blob/main/THEORY.md). Treat it as normative: align the plan's claims, contracts, evidence, gates, uncertainty, and safety boundaries with the theory, and record the consulted commit. Write each plan as a self-contained handoff for implementation by `gpt-5.6-terra` with `xhigh` reasoning effort.
+Before creating or revising an ExecPlan, read [THEORY.md](https://github.com/renanfranca/skill-evaluation-theory/blob/main/THEORY.md). Treat it as normative: align the plan's claims, contracts, evidence, gates, uncertainty, and safety boundaries with the theory, and record the consulted commit. Write each plan as a self-contained, model-agnostic handoff that does not depend on the planner's conversation or implicit reasoning. State the normative sources, goals and scope, invariants, interfaces and data flow, failure semantics, positive and adversarial cases, and concrete validation commands. If implementation exposes a missing material decision, return to planning and record the decision instead of inferring it silently.
 
-Execute an approved ExecPlan with `$tdd-behavior-autonomous-quiet`. Tests must lead observable behavior while execution continues autonomously and quietly. Keep the plan's progress, decisions, risks, lessons, and `docs/execplans/README.md` status current.
+Do not prescribe one model or reasoning effort for ordinary implementation. Select them intentionally from task complexity, latency and cost constraints, and measured results on representative work, following the current [official model guidance](https://developers.openai.com/api/docs/guides/latest-model). Higher reasoning effort and model diversity do not replace a decision-complete specification or executable tests. Different models or fresh contexts may be used as diagnostic and independent-review instruments, not as guarantees of quality; historical ExecPlans and fingerprinted experiment conditions remain unchanged records.
+
+Treat the approved ExecPlan as an executable contract that another implementation context can follow from the plan and repository sources alone. Execute it with `$tdd-behavior-autonomous-quiet`: tests must lead observable behavior, and adversarial regressions must precede fixes to invariants or safety boundaries. Keep the plan's progress, decisions, risks, lessons, and `docs/execplans/README.md` status current. After GREEN and documentation reconciliation, perform a final review in a fresh context against THEORY, applicable RFCs and ADRs, and the ExecPlan; resolve all material findings before merge.
 
 ## Skill Selection
 
