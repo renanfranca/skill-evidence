@@ -22,7 +22,7 @@
 | [ExecPlan 18 — Diagnose Luna/max Author operability](2026-08-12-diagnose-luna-max-author-operability.md)            | Complete: 600-second canary timeout     | Luna/max operational diagnosis   |
 | [ExecPlan 19 — Gate Luna/max Author viability at 30 minutes](2026-08-13-gate-luna-max-author-viability.md)          | Complete: `NOT_VIABLE_FOR_AUTHOR`       | Luna/max final viability gate    |
 | [ExecPlan 20 — Contrast Terra/xhigh on the frozen E19 packet](2026-08-13-contrast-terra-xhigh-on-e19-packet.md)     | Complete: Terra did not pass            | Controlled model diagnosis       |
-| [ExecPlan 21 — Harden Evaluation Author protocol v3](2026-08-13-harden-evaluation-author-protocol-v3.md)            | Complete: integrity hardened            | Post-E20 instrument remediation  |
+| [ExecPlan 21 — Harden Evaluation Author protocol v3](2026-08-13-harden-evaluation-author-protocol-v3.md)            | Complete: final v3 invariants           | Post-E20 instrument remediation  |
 | [Historical record — Pre-live instrument hardening](2026-08-08-pre-live-instrument-hardening-record.md)             | Closed and blocked at `60c0240`         | Preserved hardening provenance   |
 
 Live experiments are separate from offline validation. Their sanitized curated reports may be committed only after the corresponding provider invocation has completed.

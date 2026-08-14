@@ -35,7 +35,7 @@ Every `REQUIRED_ABSENT` fact has exactly one canonical, blocking system requirem
 Protocol v3 separates observation from assessment:
 
 - an observation plan names an independently inspectable output, state, action, constraint, temporal relation, or provenance fact and the capability needed to capture it;
-- an assessment plan names the `MECHANICAL`, `SEMANTIC`, or `JUDGMENT` procedure applied to observations;
+- an assessment plan names the `STRUCTURED_DETERMINISTIC_INFERENCE`, `SEMANTIC`, or `JUDGMENT` procedure applied to observations;
 - observations in one path are conjunctive;
 - distinct paths are alternatives.
 
@@ -45,11 +45,11 @@ The schema-1/2 `MANDATORY_DIRECT_EVIDENCE_MISSING` rule remains historical behav
 
 Protocol v3 represents each evidence requirement through one `observabilityRequirement` whose paths are alternatives. Every observation and assessment inside the selected path is conjunctive. Observations declare the capability and evidence origin required to capture a directly inspectable fact. Assessments declare the capability, assessment origin, and observation IDs required to interpret those facts. This path structure is the only source of evidence-kind, source, and observability semantics; protocol v3 does not persist parallel prose or derived mirrors that could disagree with it.
 
-Every evidence requirement names at least one claim and one contract. Every named contract declares every claim paired with it by that requirement, and claims, contracts, and requirements preserve reciprocal references. Every assessment names at least one observation from its own path. These cardinality and consistency rules make the RFC chain `claim → contract → required evidence → path` deterministic for later consumers.
+Every evidence requirement names at least one claim and one contract. Every named contract declares every claim paired with it by that requirement, and claims, contracts, and requirements preserve reciprocal references. A path may contain no assessments when its direct observations exhaust the measured property. Every assessment that is present names at least one observation from its own path. These cardinality and consistency rules make the RFC chain `claim → contract → required evidence → path` deterministic for later consumers.
 
 The capability preflight defined by ADR 0002 remains a later responsibility. A path is eligible only when every observation and assessment capability in that path is eligible for its declared purpose. Protocol v3 records that requirement without claiming that any capability is available.
 
-`missingEvidenceSemantics` in protocol v3 refers only to evidence that remains missing or ambiguous after an eligible path was selected for execution, which yields `INCONCLUSIVE`. It does not encode capability ineligibility. Before execution, no eligible path for a decision-critical claim yields preflight `BLOCKED`; the same condition for a non-critical claim yields `NOT_EVALUATED`. Failure to preserve a capability declared eligible invalidates the run, while a directly observed contract violation is `FAIL`. Claim `mandatory` governs favorable acceptance and does not select among these phase-specific outcomes.
+`evidencePlan[].missingEvidenceSemantics` is the sole protocol-v3 authority for evidence that remains missing or ambiguous after an eligible path was selected for execution, which yields `INCONCLUSIVE`. Protocol v3 does not persist the schema-1/2 global `policies.missingEvidence` mirror. Missing-evidence semantics do not encode capability ineligibility. Before execution, no eligible path for a decision-critical claim yields preflight `BLOCKED`; the same condition for a non-critical claim yields `NOT_EVALUATED`. Failure to preserve a capability declared eligible invalidates the run, while a directly observed contract violation is `FAIL`. Claim `mandatory` governs favorable acceptance and does not select among these phase-specific outcomes.
 
 ### 4. Trusted claim requirements
 
@@ -69,6 +69,8 @@ Protocol v3 applies lifecycle precedence in this order:
 4. a complete Blueprint without blockers produces `READY`.
 
 `READY` remains limited to development authorship and does not establish capability eligibility, Author qualification, or decision eligibility.
+
+The composed persistence boundary independently recalculates lifecycle from semantic completeness and blockers. A persisted state that differs from the derived state is invalid. It also recalculates `blueprintId` from frozen semantic content, instrument, Authoring Context, and snapshot identities; this is deterministic content identity, not a claim of external authenticity.
 
 ### 6. Versioning and identity
 
