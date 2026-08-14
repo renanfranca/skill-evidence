@@ -3,6 +3,7 @@
   "cases": [
     { "id": "ready-supplied-context", "kind": "READY", "expected": "READY" },
     { "id": "ready-direct-only-observation", "kind": "DIRECT_ONLY", "expected": "READY" },
+    { "id": "ready-reused-capability", "kind": "CAPABILITY_REUSE", "expected": "READY" },
     { "id": "blocked-missing-population", "kind": "SYSTEM_BLOCKER", "expected": "BLOCKED" },
     { "id": "blocked-author-gap", "kind": "AUTHOR_BLOCKER", "expected": "BLOCKED" },
     { "id": "draft-broken-reference", "kind": "BROKEN_REFERENCE", "expected": "DRAFT" },

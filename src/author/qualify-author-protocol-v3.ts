@@ -9,7 +9,15 @@ import { createSkillSnapshot } from '../intake/skill-snapshot.js';
 import { authorEvaluationBlueprint, type AuthoringContext } from './evaluation-author.js';
 
 type ActualState = 'BLOCKED' | 'DRAFT' | 'ERROR' | 'READY';
-type CaseKind = 'AUTHOR_BLOCKER' | 'BROKEN_REFERENCE' | 'DIRECT_ONLY' | 'NO_OBSERVATION' | 'READY' | 'RESERVED_ID' | 'SYSTEM_BLOCKER';
+type CaseKind =
+  | 'AUTHOR_BLOCKER'
+  | 'BROKEN_REFERENCE'
+  | 'CAPABILITY_REUSE'
+  | 'DIRECT_ONLY'
+  | 'NO_OBSERVATION'
+  | 'READY'
+  | 'RESERVED_ID'
+  | 'SYSTEM_BLOCKER';
 
 interface FixtureCase {
   expected: ActualState;
@@ -51,7 +59,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function loadCases(value: unknown): FixtureCase[] {
-  if (!isRecord(value) || value.schemaVersion !== 1 || !Array.isArray(value.cases) || value.cases.length !== 7) {
+  if (!isRecord(value) || value.schemaVersion !== 1 || !Array.isArray(value.cases) || value.cases.length !== 8) {
     throw new Error('Author protocol v3 fixture manifest is invalid');
   }
   const cases = value.cases as unknown[];
@@ -63,9 +71,16 @@ function loadCases(value: unknown): FixtureCase[] {
         isRecord(entry) &&
         typeof entry.id === 'string' &&
         ['BLOCKED', 'DRAFT', 'ERROR', 'READY'].includes(String(entry.expected)) &&
-        ['AUTHOR_BLOCKER', 'BROKEN_REFERENCE', 'DIRECT_ONLY', 'NO_OBSERVATION', 'READY', 'RESERVED_ID', 'SYSTEM_BLOCKER'].includes(
-          String(entry.kind),
-        ),
+        [
+          'AUTHOR_BLOCKER',
+          'BROKEN_REFERENCE',
+          'CAPABILITY_REUSE',
+          'DIRECT_ONLY',
+          'NO_OBSERVATION',
+          'READY',
+          'RESERVED_ID',
+          'SYSTEM_BLOCKER',
+        ].includes(String(entry.kind)),
     )
   ) {
     throw new Error('Author protocol v3 fixture manifest is invalid');
@@ -274,6 +289,28 @@ function candidateFor(kind: CaseKind, source: string): Record<string, unknown> {
       candidate.evidencePlan as Array<{ observabilityRequirement: { paths: Array<{ assessments: unknown[] }> } }>
     )[0]!.observabilityRequirement.paths[0]!.assessments = [];
   }
+  if (kind === 'CAPABILITY_REUSE') {
+    const observations = (
+      candidate.evidencePlan as Array<{
+        observabilityRequirement: {
+          paths: Array<{
+            observations: Array<{
+              capability: { id: string; purpose: string };
+              evidenceKind: 'DIRECT';
+              evidenceSource: string;
+              id: string;
+              observable: string;
+            }>;
+          }>;
+        };
+      }>
+    )[0]!.observabilityRequirement.paths[0]!.observations;
+    observations.push({
+      ...structuredClone(observations[0]!),
+      id: 'observation-terminal-status',
+      observable: 'The terminal status emitted with the output.',
+    });
+  }
   return candidate;
 }
 
@@ -386,9 +423,9 @@ export async function qualifyAuthorProtocolV3(
   const wellFormed =
     evidence.promptfooVersion === '0.122.0' &&
     evidence.externalProviderCalls === 0 &&
-    evidence.localProviderCalls === 7 &&
+    evidence.localProviderCalls === 8 &&
     evidence.packetLeakageFindings === 0 &&
-    evidence.cases.length === 7 &&
+    evidence.cases.length === 8 &&
     evidence.cases.every(
       (fixture) =>
         /^[a-f0-9]{64}$/u.test(fixture.packetFingerprint) &&

@@ -7,10 +7,12 @@ import { Ajv2020 } from 'ajv/dist/2020.js';
 import { describe, expect, it } from 'vitest';
 
 import {
+  deriveEvaluationBlueprintIdV3,
   deriveBlueprintLifecycle,
   validateComposedEvaluationBlueprint,
   validateEvaluationBlueprint,
   type BlueprintCandidate,
+  type EvaluationBlueprintV3,
 } from '../src/blueprint/evaluation-blueprint.js';
 import {
   authorEvaluationBlueprint,
@@ -223,6 +225,20 @@ function protocolV3Context(): AuthoringContext {
     },
     schemaVersion: 2,
   };
+}
+
+function recomputeProtocolV3BlueprintId(blueprint: EvaluationBlueprintV3): void {
+  const semanticContent = structuredClone(blueprint) as unknown as Record<string, unknown>;
+  for (const field of ['authorProvenance', 'blueprintId', 'lifecycle', 'schemaVersion', 'snapshotFingerprint']) {
+    delete semanticContent[field];
+  }
+  blueprint.blueprintId = deriveEvaluationBlueprintIdV3(semanticContent, {
+    authorInstrumentFingerprint: blueprint.authorProvenance.authorInstrumentFingerprint,
+    authoringContextFingerprint: blueprint.authorProvenance.authoringContextFingerprint,
+    conditionFingerprint: blueprint.authorProvenance.conditionFingerprint,
+    packetFingerprint: blueprint.authorProvenance.packetFingerprint,
+    snapshotFingerprint: blueprint.snapshotFingerprint,
+  });
 }
 
 describe('Evaluation Author v0', () => {
@@ -864,6 +880,60 @@ describe('Evaluation Author v0', () => {
     });
   });
 
+  it('allows reusable capability IDs while preserving observation entity uniqueness', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-protocol-v3-capability-reuse-root-'));
+    await writeFile(join(root, 'SKILL.md'), '# Reusable evidence capability\n');
+    const snapshot = await createSkillSnapshot({ rootDirectory: root });
+    const run = async (candidate: Record<string, unknown>) =>
+      await authorEvaluationBlueprint({
+        authoringContext: protocolV3Context(),
+        campaignId: 'protocol-v3-capability-reuse',
+        invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(candidate) }),
+        protocolVersion: 3,
+        snapshot,
+      });
+    const observationsFrom = (candidate: Record<string, unknown>) =>
+      (
+        candidate.evidencePlan as Array<{
+          observabilityRequirement: {
+            paths: Array<{
+              observations: Array<{
+                capability: { id: string; purpose: string };
+                evidenceKind: 'DIRECT';
+                evidenceSource: string;
+                id: string;
+                observable: string;
+              }>;
+            }>;
+          };
+        }>
+      )[0]!.observabilityRequirement.paths[0]!.observations;
+
+    const reusableCapability = protocolV3Candidate();
+    const reusableObservations = observationsFrom(reusableCapability);
+    reusableObservations.push({
+      ...structuredClone(reusableObservations[0]!),
+      id: 'observation-terminal-status',
+      observable: 'The terminal status emitted with the artifact.',
+    });
+
+    const duplicateObservation = protocolV3Candidate();
+    const duplicateObservations = observationsFrom(duplicateObservation);
+    duplicateObservations.push({
+      ...structuredClone(duplicateObservations[0]!),
+      observable: 'A second observation with a duplicated entity identity.',
+    });
+
+    await expect(run(reusableCapability)).resolves.toMatchObject({
+      blueprint: { lifecycle: { state: 'READY' } },
+      status: 'COMPLETED',
+    });
+    await expect(run(duplicateObservation)).resolves.toMatchObject({
+      blueprint: { lifecycle: { state: 'DRAFT' } },
+      status: 'COMPLETED',
+    });
+  });
+
   it('freezes protocol v3 inputs and fingerprints the exact prompt handed to the Author invoker', async () => {
     const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-protocol-v3-freeze-root-'));
     await writeFile(join(root, 'SKILL.md'), '# Frozen protocol inputs\n');
@@ -1017,6 +1087,104 @@ describe('Evaluation Author v0', () => {
       expect(validation.diagnostics).toContainEqual({ code: 'BLUEPRINT_ID_INTEGRITY', path: '/blueprintId' });
     }
     expect(validateComposedEvaluationBlueprint(result.blueprint)).toEqual({ diagnostics: [], valid: true });
+  });
+
+  it('rejects a persisted protocol v3 Authoring Context with a nonexistent default scope after identity is recomputed', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-protocol-v3-context-integrity-root-'));
+    await writeFile(join(root, 'SKILL.md'), '# Persisted Authoring Context integrity\n');
+    const snapshot = await createSkillSnapshot({ rootDirectory: root });
+    const result = await authorEvaluationBlueprint({
+      authoringContext: protocolV3Context(),
+      campaignId: 'protocol-v3-context-integrity',
+      invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(protocolV3Candidate()) }),
+      protocolVersion: 3,
+      snapshot,
+    });
+    if (result.status !== 'COMPLETED' || result.blueprint.schemaVersion !== 3) throw new Error('expected protocol-v3 Blueprint');
+    const tampered = structuredClone(result.blueprint);
+    tampered.population.defaultScopeId = 'system:authoring-context:population:missing';
+    recomputeProtocolV3BlueprintId(tampered);
+
+    const validation = validateComposedEvaluationBlueprint(tampered);
+
+    expect(validation.valid).toBe(false);
+    expect(validation.diagnostics).toContainEqual({ code: 'AUTHORING_CONTEXT_INTEGRITY', path: '/population/defaultScopeId' });
+    expect(validation.diagnostics).not.toContainEqual({ code: 'BLUEPRINT_ID_INTEGRITY', path: '/blueprintId' });
+  });
+
+  it('rejects a forged persisted claim requirement even when derived fields and identity are coherent', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-protocol-v3-trusted-reference-root-'));
+    await writeFile(join(root, 'SKILL.md'), '# Trusted claim reference integrity\n');
+    const snapshot = await createSkillSnapshot({ rootDirectory: root });
+    const result = await authorEvaluationBlueprint({
+      authoringContext: protocolV3Context(),
+      campaignId: 'protocol-v3-trusted-reference-integrity',
+      invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(protocolV3Candidate()) }),
+      protocolVersion: 3,
+      snapshot,
+    });
+    if (result.status !== 'COMPLETED' || result.blueprint.schemaVersion !== 3) throw new Error('expected protocol-v3 Blueprint');
+    const tampered = structuredClone(result.blueprint);
+    tampered.claims.push({
+      ...structuredClone(tampered.claims[0]!),
+      claimRequirementId: 'system:authoring-context:claim-requirement:forged',
+      decisionCritical: false,
+      id: 'claim-forged-trusted-reference',
+      mandatory: false,
+      populationScopeIds: [tampered.population.defaultScopeId],
+      requiredEvidence: [],
+    });
+    recomputeProtocolV3BlueprintId(tampered);
+
+    const validation = validateComposedEvaluationBlueprint(tampered);
+
+    expect(validation.valid).toBe(false);
+    expect(validation.diagnostics).toContainEqual({ code: 'UNKNOWN_SYSTEM_REFERENCE', path: '/claims/1/claimRequirementId' });
+    expect(validation.diagnostics).not.toContainEqual({ code: 'BLUEPRINT_ID_INTEGRITY', path: '/blueprintId' });
+  });
+
+  it('rejects divergent protocol v3 provenance and binds packet fingerprint to Blueprint identity', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-evidence-author-protocol-v3-provenance-root-'));
+    await writeFile(join(root, 'SKILL.md'), '# Derivable Author provenance\n');
+    const snapshot = await createSkillSnapshot({ rootDirectory: root });
+    const result = await authorEvaluationBlueprint({
+      authoringContext: protocolV3Context(),
+      campaignId: 'protocol-v3-provenance-integrity',
+      invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(protocolV3Candidate()) }),
+      protocolVersion: 3,
+      snapshot,
+    });
+    if (result.status !== 'COMPLETED' || result.blueprint.schemaVersion !== 3) throw new Error('expected protocol-v3 Blueprint');
+
+    for (const field of [
+      'instructionDigest',
+      'theoryDigest',
+      'schemaDigest',
+      'candidateSchemaDigest',
+      'authoringContextSchemaDigest',
+      'protocolDigest',
+      'compositionPolicyDigest',
+      'conditionFingerprint',
+      'authorInstrumentFingerprint',
+      'authoringContextFingerprint',
+    ] as const) {
+      const tampered = structuredClone(result.blueprint);
+      tampered.authorProvenance[field] = tampered.authorProvenance[field] === 'f'.repeat(64) ? 'e'.repeat(64) : 'f'.repeat(64);
+
+      const validation = validateComposedEvaluationBlueprint(tampered);
+
+      expect(validation.valid).toBe(false);
+      expect(validation.diagnostics).toContainEqual({ code: 'AUTHOR_PROVENANCE_INTEGRITY', path: `/authorProvenance/${field}` });
+    }
+
+    const packetTampered = structuredClone(result.blueprint);
+    packetTampered.authorProvenance.packetFingerprint =
+      packetTampered.authorProvenance.packetFingerprint === 'f'.repeat(64) ? 'e'.repeat(64) : 'f'.repeat(64);
+
+    const packetValidation = validateComposedEvaluationBlueprint(packetTampered);
+
+    expect(packetValidation.valid).toBe(false);
+    expect(packetValidation.diagnostics).toContainEqual({ code: 'BLUEPRINT_ID_INTEGRITY', path: '/blueprintId' });
   });
 
   it('validates trusted claim cardinality again at the composed Blueprint authority boundary', async () => {
@@ -1842,7 +2010,7 @@ describe('Evaluation Author v0', () => {
 
     expect(report).toMatchObject({
       externalProviderCalls: 0,
-      localProviderCalls: 7,
+      localProviderCalls: 8,
       packetLeakageFindings: 0,
       protocolVersion: 3,
       purpose: 'DEVELOPMENT',
@@ -1852,6 +2020,7 @@ describe('Evaluation Author v0', () => {
     expect(report.cases.map(({ actual, expected, id }) => ({ actual, expected, id }))).toEqual([
       { actual: 'READY', expected: 'READY', id: 'ready-supplied-context' },
       { actual: 'READY', expected: 'READY', id: 'ready-direct-only-observation' },
+      { actual: 'READY', expected: 'READY', id: 'ready-reused-capability' },
       { actual: 'BLOCKED', expected: 'BLOCKED', id: 'blocked-missing-population' },
       { actual: 'BLOCKED', expected: 'BLOCKED', id: 'blocked-author-gap' },
       { actual: 'DRAFT', expected: 'DRAFT', id: 'draft-broken-reference' },

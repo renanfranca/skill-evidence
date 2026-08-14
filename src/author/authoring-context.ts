@@ -92,25 +92,50 @@ export interface SystemAuthoringContextRequirement {
 const authoringContextAjv = new Ajv2020({ allErrors: true, strict: false });
 const validateAuthoringContext = authoringContextAjv.compile(authoringContextSchema);
 
-export function isAuthoringContext(value: unknown): value is AuthoringContext {
-  if (!validateAuthoringContext(value)) return false;
-  const context = value as unknown as AuthoringContext;
+export interface AuthoringContextSemanticDiagnostic {
+  path: string;
+}
+
+export function validateAuthoringContextSemantics(context: AuthoringContext): AuthoringContextSemanticDiagnostic[] {
+  const diagnostics: AuthoringContextSemanticDiagnostic[] = [];
   const scopeIds = context.population.scopes.map((scope) => scope.id);
   const requirementIds = context.claimRequirements.map((requirement) => requirement.id);
-  if (new Set(scopeIds).size !== scopeIds.length || new Set(requirementIds).size !== requirementIds.length) return false;
-  if (!scopeIds.includes(context.population.defaultScopeId)) return false;
-  if (context.claimRequirements.some((requirement) => requirement.populationScopeIds.some((id) => !scopeIds.includes(id)))) return false;
-  const facts: AuthoringFact<unknown>[] = [
-    ...Object.values(context.decisionContext),
-    context.population.target,
-    context.population.excluded,
+  const seenScopes = new Set<string>();
+  scopeIds.forEach((id, index) => {
+    if (seenScopes.has(id)) diagnostics.push({ path: `/population/scopes/${index}/id` });
+    seenScopes.add(id);
+  });
+  const seenRequirements = new Set<string>();
+  requirementIds.forEach((id, index) => {
+    if (seenRequirements.has(id)) diagnostics.push({ path: `/claimRequirements/${index}/id` });
+    seenRequirements.add(id);
+  });
+  if (!seenScopes.has(context.population.defaultScopeId)) diagnostics.push({ path: '/population/defaultScopeId' });
+  context.claimRequirements.forEach((requirement, requirementIndex) => {
+    requirement.populationScopeIds.forEach((id, scopeIndex) => {
+      if (!seenScopes.has(id)) diagnostics.push({ path: `/claimRequirements/${requirementIndex}/populationScopeIds/${scopeIndex}` });
+    });
+  });
+  const facts: Array<[string, AuthoringFact<unknown>]> = [
+    ...Object.entries(context.decisionContext),
+    ['population.target', context.population.target],
+    ['population.excluded', context.population.excluded],
   ];
-  return !facts.some(
-    (fact) =>
+  for (const [path, fact] of facts) {
+    if (
       fact.disposition === 'REQUIRED_ABSENT' &&
       fact.dependency.scope === 'CLAIM_REQUIREMENT' &&
-      !requirementIds.includes(fact.dependency.claimRequirementId),
-  );
+      !seenRequirements.has(fact.dependency.claimRequirementId)
+    ) {
+      diagnostics.push({ path: `/${path.replaceAll('.', '/')}/dependency/claimRequirementId` });
+    }
+  }
+  return diagnostics;
+}
+
+export function isAuthoringContext(value: unknown): value is AuthoringContext {
+  if (!validateAuthoringContext(value)) return false;
+  return validateAuthoringContextSemantics(value as unknown as AuthoringContext).length === 0;
 }
 
 export function deriveSystemAuthoringContextRequirements(

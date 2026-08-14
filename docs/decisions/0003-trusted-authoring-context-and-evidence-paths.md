@@ -24,6 +24,8 @@ Protocol v3 receives a system-trusted, fingerprinted Authoring Context. Every de
 
 The system, not the model, composes these facts into the Blueprint. Only `REQUIRED_ABSENT` creates a blocking unresolved requirement. Missing information is not automatically blocking, because necessity depends on the declared decision and claims.
 
+The persistence boundary reapplies the same semantic Authoring Context validation used before invocation. `defaultScopeId`, every trusted claim population scope, and every missing-fact dependency must resolve to entities declared by that context. A context that is merely structurally valid but contains a dangling scope or dependency is invalid and produces `AUTHORING_CONTEXT_INTEGRITY` in composed validation.
+
 ### 2. System-owned unresolved requirements
 
 `system:authoring-context:` is reserved for system-generated blocker IDs. A protocol-v3 candidate using that prefix in any ID is structurally invalid. Author requirements and system requirements have distinct origins in the composed Blueprint.
@@ -59,6 +61,8 @@ The system derives `mandatory`, `decisionCritical`, population scopes, and initi
 
 System-owned missing facts name either a decision-wide dependency or one trusted claim requirement. Composition preserves that dependency and derives affected claim IDs when the corresponding claim exists. Missing or multiply satisfied trusted requirements are incomplete authorship, not authority for the model to weaken the decision.
 
+Every non-null Author claim `claimRequirementId` must name a trusted claim requirement in the persisted Authoring Context. An unknown value is a forged trusted reference and remains `UNKNOWN_SYSTEM_REFERENCE`; it is rejected unconditionally rather than converted into an additional Author-discovered claim or downgraded to `DRAFT`. Other persisted context-semantic failures use `AUTHORING_CONTEXT_INTEGRITY`.
+
 ### 5. Lifecycle precedence
 
 Protocol v3 applies lifecycle precedence in this order:
@@ -78,10 +82,20 @@ Protocol v3 uses Evaluation Blueprint schema-3. Protocols v1 and v2, their schem
 
 The protocol-v3 condition fingerprint identifies the reusable Author request contract: requested model, reasoning, instructions, THEORY, protocol descriptor, candidate schema, and Authoring Context schema. It excludes run-specific context values and skill content. The Authoring Context receives a separate fingerprint. The packet fingerprint identifies the exact UTF-8 prompt string handed to the Author invoker; it does not claim to observe transformations inside Promptfoo, the Codex SDK, or the provider. A separate Author instrument fingerprint adds the final Blueprint schema and versioned composition policy. The instrument, context, snapshot, and composed semantic content contribute to `blueprintId`.
 
+The protocol-v3 descriptor, composition policy, and all compound fingerprint derivations have one canonical implementation shared by composition and validation. The persistence boundary recomputes current digests for instructions, THEORY, every Blueprint schema, the candidate schema, protocol descriptor, and composition policy, then recomputes `conditionFingerprint`, `authorInstrumentFingerprint`, and `authoringContextFingerprint`. Any mismatch produces `AUTHOR_PROVENANCE_INTEGRITY`.
+
+Composition policy v4 adds `packetFingerprint` to `blueprintId`, binding semantic identity to the exact model-facing packet. Earlier protocol-v3 Blueprints are obsolete and must be regenerated. `campaignId` and `observedModel` remain outside semantic identity because they are execution provenance and cannot be verified from an isolated Blueprint. Protocol-v1/v2 identity remains byte-identical.
+
+### 7. Identifier domains
+
+`capability.id` identifies a reusable required capability, not the observation or assessment entity that references it. The same capability ID may therefore appear in several observations or assessments. Claims, contracts, unresolved requirements, observability requirements, paths, observations, and assessments remain globally unique entities; duplicate IDs in those domains continue to make authorship incomplete.
+
 ## Consequences
 
 - A model cannot promote known missing decision context by changing a blocker boolean.
 - A semantic assessment of captured output is representable without pretending that capture and interpretation are competing evidence classes.
 - Blueprint `READY` remains distinct from decision-run eligibility.
 - Protocol-v3 qualification must cover context composition, namespace protection, evidence-path semantics, and historical compatibility.
+- Composed validation distinguishes provenance divergence (`AUTHOR_PROVENANCE_INTEGRITY`), persisted context divergence (`AUTHORING_CONTEXT_INTEGRITY`), unknown trusted references (`UNKNOWN_SYSTEM_REFERENCE`), and packet-bound identity divergence (`BLUEPRINT_ID_INTEGRITY`).
+- A valid `READY` Blueprint may reuse one capability across several evidence entities without weakening global entity-ID integrity.
 - Model-backed qualification remains out of band and requires fresh cases and separate authorization.

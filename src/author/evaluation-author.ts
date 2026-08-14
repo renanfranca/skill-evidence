@@ -1,7 +1,6 @@
 import blueprintSchema from '../../schemas/evaluation-blueprint.schema.json' with { type: 'json' };
 import blueprintSchema2 from '../../schemas/evaluation-blueprint.schema-2.json' with { type: 'json' };
 import blueprintSchema3 from '../../schemas/evaluation-blueprint.schema-3.json' with { type: 'json' };
-import authoringContextSchema from '../../schemas/authoring-context.schema.json' with { type: 'json' };
 
 import {
   deriveBlueprintLifecycle,
@@ -24,6 +23,7 @@ import {
   type AuthoringContext,
   type MissingFactStatus,
 } from './authoring-context.js';
+import { authorProtocolV3Descriptor, deriveAuthorProtocolV3Provenance } from './author-protocol-v3.js';
 import {
   authorInstructions,
   authorInstructionsV2,
@@ -127,22 +127,6 @@ export interface PreparedAuthorInvocation {
   schemaVersion: 1 | 2 | 3;
 }
 
-const compositionPolicyV3 = {
-  evidenceEndpointCardinality: 'AT_LEAST_ONE_CLAIM_AND_CONTRACT',
-  evidencePairConsistency: 'EVERY_REQUIREMENT_CLAIM_IS_DECLARED_BY_EVERY_REQUIREMENT_CONTRACT',
-  claimRequirementCardinality: 'ONE_TO_ONE',
-  lifecyclePrecedence: ['ERROR', 'DRAFT', 'BLOCKED', 'READY'],
-  missingEvidenceSemantics: 'INCONCLUSIVE_WHEN_ELIGIBLE_PATH_EVIDENCE_IS_MISSING',
-  pathAssessmentInputCardinality: 'WHEN_PRESENT_AT_LEAST_ONE_OBSERVATION',
-  pathDirectOnly: 'ALLOWED_WHEN_OBSERVATION_EXHAUSTS_PROPERTY',
-  pathAssessmentOperator: 'ALL',
-  pathObservationOperator: 'ALL',
-  pathOperator: 'ANY',
-  policyMissingEvidenceAuthority: 'EVIDENCE_REQUIREMENT_ONLY',
-  systemControlledClaimFields: ['mandatory', 'decisionCritical', 'populationScopeIds', 'status'],
-  version: 3,
-} as const;
-
 function canonicalFrozenCopy<T>(value: T): T {
   const copy = JSON.parse(canonicalJson(value)) as T;
   const freeze = (item: unknown): void => {
@@ -159,21 +143,10 @@ function instructionsFor(protocolVersion: AuthorProtocolVersion): readonly strin
 }
 
 function protocolDescriptor(protocolVersion: AuthorProtocolVersion): Record<string, unknown> {
+  if (protocolVersion === 3) return authorProtocolV3Descriptor;
   return {
     authorProtocolVersion: protocolVersion,
-    controlledFields:
-      protocolVersion === 3
-        ? [
-            'schemaVersion',
-            'blueprintId',
-            'snapshotFingerprint',
-            'lifecycle',
-            'authorProvenance',
-            'decisionContext',
-            'population',
-            'claimRequirements',
-          ]
-        : ['schemaVersion', 'blueprintId', 'snapshotFingerprint', 'lifecycle', 'authorProvenance'],
+    controlledFields: ['schemaVersion', 'blueprintId', 'snapshotFingerprint', 'lifecycle', 'authorProvenance'],
     expectedStateProvided: false,
     mechanicalOracleProvided: false,
     pureJsonResponseRequired: true,
@@ -207,38 +180,15 @@ interface AuthorConditionDigests {
   theoryDigest: string;
 }
 
-function conditionDigests(condition: AuthorConditionSpec, schema: unknown, protocolVersion: AuthorProtocolVersion): AuthorConditionDigests {
+function historicalConditionDigests(
+  condition: AuthorConditionSpec,
+  schema: unknown,
+  protocolVersion: Exclude<AuthorProtocolVersion, 3>,
+): AuthorConditionDigests {
   const instructionDigest = sha256(instructionsFor(protocolVersion));
-  const descriptor = protocolDescriptor(protocolVersion);
-  const protocolDigest =
-    protocolVersion === 3
-      ? sha256(descriptor)
-      : sha256({ authorProtocolVersion: protocolVersion, response: 'PURE_JSON', systemControlledFields: true });
+  const protocolDigest = sha256({ authorProtocolVersion: protocolVersion, response: 'PURE_JSON', systemControlledFields: true });
   const schemaDigest = sha256(schema);
   const theoryDigest = sha256({ commit: theoryCommit, principles: theoryPrinciples });
-  if (protocolVersion === 3) {
-    const candidateSchemaDigest = sha256(evaluationBlueprintCandidateSchemaV3);
-    const authoringContextSchemaDigest = sha256(authoringContextSchema);
-    const compositionPolicyDigest = sha256(compositionPolicyV3);
-    return {
-      authoringContextSchemaDigest,
-      candidateSchemaDigest,
-      compositionPolicyDigest,
-      conditionFingerprint: sha256({
-        authoringContextSchemaDigest,
-        candidateSchemaDigest,
-        instructionDigest,
-        model: condition.model,
-        protocolDigest,
-        reasoningEffort: condition.reasoningEffort,
-        theoryDigest,
-      }),
-      instructionDigest,
-      protocolDigest,
-      schemaDigest,
-      theoryDigest,
-    };
-  }
   return {
     conditionFingerprint: sha256({
       instructionDigest,
@@ -271,21 +221,25 @@ export function prepareAuthorInvocation(
   const preparedSnapshot = canonicalFrozenCopy(snapshot);
   const preparedAuthoringContext = authoringContext === undefined ? undefined : canonicalFrozenCopy(authoringContext);
   const packet = authorPacket(preparedSnapshot, protocolVersion, preparedAuthoringContext);
-  const digests = conditionDigests(selectedCondition, schema, protocolVersion);
+  let protocolV3Provenance: ReturnType<typeof deriveAuthorProtocolV3Provenance> | undefined;
+  let digests: AuthorConditionDigests;
+  if (protocolVersion === 3) {
+    protocolV3Provenance = deriveAuthorProtocolV3Provenance(
+      selectedCondition,
+      preparedAuthoringContext!,
+      evaluationBlueprintCandidateSchemaV3,
+    );
+    digests = protocolV3Provenance;
+  } else {
+    digests = historicalConditionDigests(selectedCondition, schema, protocolVersion);
+  }
   const prompt = canonicalJson(packet);
-  const authorInstrumentFingerprint =
-    protocolVersion === 3
-      ? sha256({
-          compositionPolicyDigest: digests.compositionPolicyDigest,
-          conditionFingerprint: digests.conditionFingerprint,
-          schemaDigest: digests.schemaDigest,
-        })
-      : undefined;
+  const authorInstrumentFingerprint = protocolV3Provenance?.authorInstrumentFingerprint;
   return {
     ...(authorInstrumentFingerprint === undefined ? {} : { authorInstrumentFingerprint }),
     ...(preparedAuthoringContext === undefined
       ? {}
-      : { authoringContextFingerprint: sha256(preparedAuthoringContext), preparedAuthoringContext }),
+      : { authoringContextFingerprint: protocolV3Provenance!.authoringContextFingerprint, preparedAuthoringContext }),
     condition: selectedCondition,
     conditionFingerprint: digests.conditionFingerprint,
     digests,
@@ -422,6 +376,7 @@ export async function authorEvaluationBlueprint(input: AuthorInput): Promise<Aut
           authorInstrumentFingerprint: prepared.authorInstrumentFingerprint!,
           authoringContextFingerprint: prepared.authoringContextFingerprint!,
           conditionFingerprint: digests.conditionFingerprint,
+          packetFingerprint: prepared.packetFingerprint,
           snapshotFingerprint: prepared.preparedSnapshotFingerprint,
         })
       : `ebp-${sha256({

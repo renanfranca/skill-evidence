@@ -13,7 +13,9 @@ import {
   type ClaimType,
   type MissingFactDependency,
   type TrustedClaimRequirement,
+  validateAuthoringContextSemantics,
 } from '../author/authoring-context.js';
+import { deriveAuthorProtocolV3Provenance } from '../author/author-protocol-v3.js';
 
 export type BlueprintLifecycle = 'BLOCKED' | 'DRAFT' | 'READY';
 
@@ -255,6 +257,7 @@ export function deriveEvaluationBlueprintIdV3(
     authorInstrumentFingerprint: string;
     authoringContextFingerprint: string;
     conditionFingerprint: string;
+    packetFingerprint: string;
     snapshotFingerprint: string;
   },
 ): string {
@@ -401,30 +404,60 @@ export function validateComposedEvaluationBlueprint(value: unknown): ComposedBlu
   if (!valid) return { diagnostics: structuralDiagnostics(validate.errors), valid: false };
   if (schemaVersion !== 3) return { diagnostics: [], valid: true };
   const blueprint = value as Record<string, unknown>;
+  const authoringContext = authoringContextFromBlueprint(blueprint);
   const lifecycle = blueprint.lifecycle as { state: BlueprintLifecycle };
-  const semanticDiagnostics = evaluationBlueprintV3Diagnostics(
-    blueprint as unknown as BlueprintCandidateV3,
-    authoringContextFromBlueprint(blueprint),
-  );
+  const semanticDiagnostics = evaluationBlueprintV3Diagnostics(blueprint as unknown as BlueprintCandidateV3, authoringContext);
   const derivedLifecycle = deriveBlueprintLifecycleV3(
     semanticDiagnostics,
     blueprint.unresolvedRequirements as Array<{ blocking: boolean }>,
   );
   const provenance = blueprint.authorProvenance as AuthorProvenanceV3;
+  const expectedProvenance = deriveAuthorProtocolV3Provenance(
+    { model: provenance.requestedModel, reasoningEffort: provenance.reasoningEffort },
+    authoringContext,
+    evaluationBlueprintCandidateSchemaV3,
+  );
   const expectedBlueprintId = deriveEvaluationBlueprintIdV3(semanticContentFromEvaluationBlueprintV3(blueprint), {
     authorInstrumentFingerprint: provenance.authorInstrumentFingerprint,
     authoringContextFingerprint: provenance.authoringContextFingerprint,
     conditionFingerprint: provenance.conditionFingerprint,
+    packetFingerprint: provenance.packetFingerprint,
     snapshotFingerprint: blueprint.snapshotFingerprint as string,
   });
   const diagnostics = [
+    ...validateAuthoringContextSemantics(authoringContext).map((diagnostic) => ({
+      code: 'AUTHORING_CONTEXT_INTEGRITY',
+      path: diagnostic.path,
+    })),
     ...(lifecycle.state === 'DRAFT' ? [] : semanticDiagnostics),
     ...(lifecycle.state === derivedLifecycle ? [] : [{ code: 'LIFECYCLE_INTEGRITY', path: '/lifecycle/state' }]),
     ...(blueprint.blueprintId === expectedBlueprintId ? [] : [{ code: 'BLUEPRINT_ID_INTEGRITY', path: '/blueprintId' }]),
+    ...validateAuthorProvenanceIntegrity(provenance, expectedProvenance),
     ...validateSystemBlockerIntegrity(blueprint),
     ...validateComposedClaimIntegrity(blueprint),
   ];
   return { diagnostics, valid: diagnostics.length === 0 };
+}
+
+function validateAuthorProvenanceIntegrity(
+  provenance: AuthorProvenanceV3,
+  expected: ReturnType<typeof deriveAuthorProtocolV3Provenance>,
+): BlueprintDiagnostic[] {
+  const fields = [
+    'instructionDigest',
+    'theoryDigest',
+    'schemaDigest',
+    'candidateSchemaDigest',
+    'authoringContextSchemaDigest',
+    'protocolDigest',
+    'compositionPolicyDigest',
+    'conditionFingerprint',
+    'authorInstrumentFingerprint',
+    'authoringContextFingerprint',
+  ] as const;
+  return fields.flatMap((field) =>
+    provenance[field] === expected[field] ? [] : [{ code: 'AUTHOR_PROVENANCE_INTEGRITY', path: `/authorProvenance/${field}` }],
+  );
 }
 
 function authoringContextFromBlueprint(blueprint: Record<string, unknown>): AuthoringContext {
@@ -473,6 +506,10 @@ function validateComposedClaimIntegrity(blueprint: Record<string, unknown>): Blu
   const claims = blueprint.claims as BlueprintClaimV3[];
   for (const [index, claim] of claims.entries()) {
     const requirement = claim.claimRequirementId === undefined ? undefined : requirements.get(claim.claimRequirementId);
+    if (claim.claimRequirementId !== undefined && requirement === undefined) {
+      diagnostics.push({ code: 'UNKNOWN_SYSTEM_REFERENCE', path: `/claims/${index}/claimRequirementId` });
+      continue;
+    }
     const expected =
       requirement === undefined
         ? { decisionCritical: false, mandatory: false, populationScopeIds: [population.defaultScopeId], status: 'NOT_EVALUATED' }
@@ -514,18 +551,18 @@ function reservedIdDiagnostic(value: unknown, path = ''): BlueprintDiagnostic | 
   return undefined;
 }
 
-function allIds(value: unknown): Array<{ id: string; path: string }> {
+function entityIds(value: unknown): Array<{ id: string; path: string }> {
   const ids: Array<{ id: string; path: string }> = [];
-  const visit = (item: unknown, path: string): void => {
+  const visit = (item: unknown, path: string, collectEntityId = true): void => {
     if (Array.isArray(item)) {
-      item.forEach((entry, index) => visit(entry, `${path}/${index}`));
+      item.forEach((entry, index) => visit(entry, `${path}/${index}`, collectEntityId));
       return;
     }
     if (typeof item !== 'object' || item === null) return;
     for (const [key, entry] of Object.entries(item)) {
       const entryPath = `${path}/${key}`;
-      if (key === 'id' && typeof entry === 'string') ids.push({ id: entry, path: entryPath });
-      else visit(entry, entryPath);
+      if (key === 'id' && typeof entry === 'string' && collectEntityId) ids.push({ id: entry, path: entryPath });
+      else visit(entry, entryPath, collectEntityId && key !== 'capability');
     }
   };
   visit(value, '');
@@ -539,14 +576,18 @@ export function validateEvaluationBlueprintV3(value: unknown, context?: Authorin
     return { complete: false, diagnostics: structuralDiagnostics(validateStructureV3.errors), structurallyValid: false };
   }
   const candidate = value as BlueprintCandidateV3;
-  if (
-    context !== undefined &&
-    candidate.claims?.some(
+  if (context !== undefined) {
+    const unknownReferenceIndex = candidate.claims?.findIndex(
       (claim) =>
         claim.claimRequirementId !== undefined && !context.claimRequirements.some((entry) => entry.id === claim.claimRequirementId),
-    )
-  ) {
-    return { complete: false, diagnostics: [{ code: 'UNKNOWN_SYSTEM_REFERENCE', path: '/claims' }], structurallyValid: false };
+    );
+    if (unknownReferenceIndex !== undefined && unknownReferenceIndex >= 0) {
+      return {
+        complete: false,
+        diagnostics: [{ code: 'UNKNOWN_SYSTEM_REFERENCE', path: `/claims/${unknownReferenceIndex}/claimRequirementId` }],
+        structurallyValid: false,
+      };
+    }
   }
   const diagnostics = evaluationBlueprintV3Diagnostics(candidate, context);
   return { complete: diagnostics.length === 0, diagnostics, structurallyValid: true };
@@ -555,7 +596,7 @@ export function validateEvaluationBlueprintV3(value: unknown, context?: Authorin
 function evaluationBlueprintV3Diagnostics(candidate: BlueprintCandidateV3, context?: AuthoringContext): BlueprintDiagnostic[] {
   const diagnostics: BlueprintDiagnostic[] = [];
   const seen = new Set<string>();
-  for (const entry of allIds(candidate)) {
+  for (const entry of entityIds(candidate)) {
     if (seen.has(entry.id)) diagnostics.push({ code: 'DUPLICATE_ID', path: entry.path });
     seen.add(entry.id);
   }
