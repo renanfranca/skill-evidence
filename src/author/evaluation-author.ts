@@ -1,6 +1,7 @@
 import blueprintSchema from '../../schemas/evaluation-blueprint.schema.json' with { type: 'json' };
 import blueprintSchema2 from '../../schemas/evaluation-blueprint.schema-2.json' with { type: 'json' };
 import blueprintSchema3 from '../../schemas/evaluation-blueprint.schema-3.json' with { type: 'json' };
+import authoringContextSchema from '../../schemas/authoring-context.schema.json' with { type: 'json' };
 
 import {
   deriveBlueprintLifecycle,
@@ -8,11 +9,12 @@ import {
   evaluationBlueprintCandidateSchemaV3,
   validateEvaluationBlueprint,
   validateEvaluationBlueprintV3,
+  validateComposedEvaluationBlueprint,
   type BlueprintCandidate,
   type BlueprintCandidateV3,
   type EvaluationBlueprint,
 } from '../blueprint/evaluation-blueprint.js';
-import { canonicalJson, sha256 } from '../canonical-json.js';
+import { canonicalJson, sha256, sha256Bytes } from '../canonical-json.js';
 import type { SkillSnapshot } from '../intake/skill-snapshot.js';
 import {
   deriveSystemAuthoringContextRequirements,
@@ -91,7 +93,7 @@ export interface AuthorInput {
   snapshot: SkillSnapshot;
 }
 
-export type AuthorErrorCode = 'CANDIDATE_STRUCTURALLY_INVALID' | 'INVALID_JSON' | 'PROVIDER_ERROR';
+export type AuthorErrorCode = 'CANDIDATE_STRUCTURALLY_INVALID' | 'COMPOSED_BLUEPRINT_INVALID' | 'INVALID_JSON' | 'PROVIDER_ERROR';
 
 interface AuthorRunEvidence {
   invocationAttempts: 1;
@@ -102,21 +104,47 @@ interface AuthorRunEvidence {
 }
 
 type AuthorRunError =
-  { code: 'CANDIDATE_STRUCTURALLY_INVALID' | 'INVALID_JSON' } | { code: 'PROVIDER_ERROR'; diagnostic: AuthorProviderDiagnostic };
+  | { code: 'CANDIDATE_STRUCTURALLY_INVALID' | 'COMPOSED_BLUEPRINT_INVALID' | 'INVALID_JSON' }
+  | { code: 'PROVIDER_ERROR'; diagnostic: AuthorProviderDiagnostic };
 
 export type AuthorRunResult =
   | (AuthorRunEvidence & { blueprint: EvaluationBlueprint; error?: never; status: 'COMPLETED' })
   | (AuthorRunEvidence & { blueprint?: never; error: AuthorRunError; status: 'ERROR' });
 
 export interface PreparedAuthorInvocation {
+  authorInstrumentFingerprint?: string;
   authoringContextFingerprint?: string;
   condition: AuthorConditionSpec;
   conditionFingerprint: string;
   digests: AuthorConditionDigests;
   packetFingerprint: string;
+  preparedAuthoringContext?: AuthoringContext;
+  preparedSnapshotFingerprint: string;
   protocolVersion: AuthorProtocolVersion;
   request: AuthorInvocationRequest;
   schemaVersion: 1 | 2 | 3;
+}
+
+const compositionPolicyV3 = {
+  claimRequirementCardinality: 'ONE_TO_ONE',
+  lifecyclePrecedence: ['ERROR', 'DRAFT', 'BLOCKED', 'READY'],
+  missingEvidenceSemantics: 'INCONCLUSIVE_WHEN_ELIGIBLE_PATH_EVIDENCE_IS_MISSING',
+  pathAssessmentOperator: 'ALL',
+  pathObservationOperator: 'ALL',
+  pathOperator: 'ANY',
+  systemControlledClaimFields: ['mandatory', 'decisionCritical', 'populationScopeIds', 'status'],
+  version: 1,
+} as const;
+
+function canonicalFrozenCopy<T>(value: T): T {
+  const copy = JSON.parse(canonicalJson(value)) as T;
+  const freeze = (item: unknown): void => {
+    if (typeof item !== 'object' || item === null || Object.isFrozen(item)) return;
+    Object.values(item).forEach(freeze);
+    Object.freeze(item);
+  };
+  freeze(copy);
+  return copy;
 }
 
 function instructionsFor(protocolVersion: AuthorProtocolVersion): readonly string[] {
@@ -136,7 +164,16 @@ function authorPacket(
       authorProtocolVersion: protocolVersion,
       controlledFields:
         protocolVersion === 3
-          ? ['schemaVersion', 'blueprintId', 'snapshotFingerprint', 'lifecycle', 'authorProvenance', 'decisionContext', 'population']
+          ? [
+              'schemaVersion',
+              'blueprintId',
+              'snapshotFingerprint',
+              'lifecycle',
+              'authorProvenance',
+              'decisionContext',
+              'population',
+              'claimRequirements',
+            ]
           : ['schemaVersion', 'blueprintId', 'snapshotFingerprint', 'lifecycle', 'authorProvenance'],
       expectedStateProvided: false,
       mechanicalOracleProvided: false,
@@ -149,6 +186,9 @@ function authorPacket(
 }
 
 interface AuthorConditionDigests {
+  authoringContextSchemaDigest?: string;
+  candidateSchemaDigest?: string;
+  compositionPolicyDigest?: string;
   conditionFingerprint: string;
   instructionDigest: string;
   protocolDigest: string;
@@ -158,9 +198,55 @@ interface AuthorConditionDigests {
 
 function conditionDigests(condition: AuthorConditionSpec, schema: unknown, protocolVersion: AuthorProtocolVersion): AuthorConditionDigests {
   const instructionDigest = sha256(instructionsFor(protocolVersion));
-  const protocolDigest = sha256({ authorProtocolVersion: protocolVersion, response: 'PURE_JSON', systemControlledFields: true });
+  const protocolDescriptor = {
+    authorProtocolVersion: protocolVersion,
+    controlledFields:
+      protocolVersion === 3
+        ? [
+            'schemaVersion',
+            'blueprintId',
+            'snapshotFingerprint',
+            'lifecycle',
+            'authorProvenance',
+            'decisionContext',
+            'population',
+            'claimRequirements',
+          ]
+        : ['schemaVersion', 'blueprintId', 'snapshotFingerprint', 'lifecycle', 'authorProvenance'],
+    expectedStateProvided: false,
+    mechanicalOracleProvided: false,
+    pureJsonResponseRequired: true,
+    skillContentIsUntrustedData: true,
+  };
+  const protocolDigest =
+    protocolVersion === 3
+      ? sha256(protocolDescriptor)
+      : sha256({ authorProtocolVersion: protocolVersion, response: 'PURE_JSON', systemControlledFields: true });
   const schemaDigest = sha256(schema);
   const theoryDigest = sha256({ commit: theoryCommit, principles: theoryPrinciples });
+  if (protocolVersion === 3) {
+    const candidateSchemaDigest = sha256(evaluationBlueprintCandidateSchemaV3);
+    const authoringContextSchemaDigest = sha256(authoringContextSchema);
+    const compositionPolicyDigest = sha256(compositionPolicyV3);
+    return {
+      authoringContextSchemaDigest,
+      candidateSchemaDigest,
+      compositionPolicyDigest,
+      conditionFingerprint: sha256({
+        authoringContextSchemaDigest,
+        candidateSchemaDigest,
+        instructionDigest,
+        model: condition.model,
+        protocolDigest,
+        reasoningEffort: condition.reasoningEffort,
+        theoryDigest,
+      }),
+      instructionDigest,
+      protocolDigest,
+      schemaDigest,
+      theoryDigest,
+    };
+  }
   return {
     conditionFingerprint: sha256({
       instructionDigest,
@@ -187,22 +273,37 @@ export function prepareAuthorInvocation(
   if (protocolVersion === 3 && authoringContext === undefined) throw new Error('AUTHORING_CONTEXT_REQUIRED');
   if (protocolVersion !== 3 && authoringContext !== undefined) throw new Error('AUTHORING_CONTEXT_UNSUPPORTED');
   if (authoringContext !== undefined && !isAuthoringContext(authoringContext)) throw new Error('AUTHORING_CONTEXT_INVALID');
-  const selectedCondition: AuthorConditionSpec = { ...(condition ?? defaultAuthorCondition) };
+  const selectedCondition: AuthorConditionSpec = canonicalFrozenCopy(condition ?? defaultAuthorCondition);
   assertSupportedCondition(selectedCondition);
   const schema = protocolVersion === 3 ? blueprintSchema3 : condition === undefined ? blueprintSchema : blueprintSchema2;
-  const packet = authorPacket(snapshot, protocolVersion, authoringContext);
+  const preparedSnapshot = canonicalFrozenCopy(snapshot);
+  const preparedAuthoringContext = authoringContext === undefined ? undefined : canonicalFrozenCopy(authoringContext);
+  const packet = authorPacket(preparedSnapshot, protocolVersion, preparedAuthoringContext);
   const digests = conditionDigests(selectedCondition, schema, protocolVersion);
+  const prompt = canonicalJson(packet);
+  const authorInstrumentFingerprint =
+    protocolVersion === 3
+      ? sha256({
+          compositionPolicyDigest: digests.compositionPolicyDigest,
+          conditionFingerprint: digests.conditionFingerprint,
+          schemaDigest: digests.schemaDigest,
+        })
+      : undefined;
   return {
-    ...(authoringContext === undefined ? {} : { authoringContextFingerprint: sha256(authoringContext) }),
+    ...(authorInstrumentFingerprint === undefined ? {} : { authorInstrumentFingerprint }),
+    ...(preparedAuthoringContext === undefined
+      ? {}
+      : { authoringContextFingerprint: sha256(preparedAuthoringContext), preparedAuthoringContext }),
     condition: selectedCondition,
     conditionFingerprint: digests.conditionFingerprint,
     digests,
-    packetFingerprint: sha256(packet),
+    packetFingerprint: protocolVersion === 3 ? sha256Bytes(new TextEncoder().encode(prompt)) : sha256(packet),
+    preparedSnapshotFingerprint: preparedSnapshot.fingerprint,
     protocolVersion,
     request: {
       maxRetries: 0,
       model: selectedCondition.model,
-      prompt: canonicalJson(packet),
+      prompt,
       reasoningEffort: selectedCondition.reasoningEffort,
     },
     schemaVersion: protocolVersion === 3 ? 3 : condition === undefined ? 1 : 2,
@@ -223,7 +324,7 @@ function responseEvidence(
 }
 
 function errorResult(
-  code: 'CANDIDATE_STRUCTURALLY_INVALID' | 'INVALID_JSON',
+  code: 'CANDIDATE_STRUCTURALLY_INVALID' | 'COMPOSED_BLUEPRINT_INVALID' | 'INVALID_JSON',
   packetFingerprint: string,
   response: AuthorInvocationResponse,
 ): AuthorRunResult {
@@ -257,13 +358,30 @@ type ComposedRequirementV3 = {
 };
 
 function composeProtocolV3Candidate(candidate: BlueprintCandidateV3, authoringContext: AuthoringContext): Record<string, unknown> {
+  const requirements = new Map(authoringContext.claimRequirements.map((requirement) => [requirement.id, requirement]));
+  const claims = (candidate.claims ?? []).map((claim) => {
+    const requirement = claim.claimRequirementId === undefined ? undefined : requirements.get(claim.claimRequirementId);
+    return {
+      ...claim,
+      decisionCritical: requirement?.decisionCritical ?? false,
+      mandatory: requirement?.mandatory ?? false,
+      populationScopeIds: [...(requirement?.populationScopeIds ?? [authoringContext.population.defaultScopeId])].sort(),
+      status: 'NOT_EVALUATED' as const,
+    };
+  });
   return {
     ...candidate,
+    claimRequirements: authoringContext.claimRequirements,
+    claims,
     decisionContext: authoringContext.decisionContext,
+    evidencePlan: (candidate.evidencePlan ?? []).map((requirement) => ({
+      ...requirement,
+      missingEvidenceSemantics: 'INCONCLUSIVE_WHEN_ELIGIBLE_PATH_EVIDENCE_IS_MISSING' as const,
+    })),
     population: authoringContext.population,
     unresolvedRequirements: [
       ...(candidate.unresolvedRequirements ?? []).map((requirement) => ({ ...requirement, origin: 'AUTHOR' as const })),
-      ...deriveSystemAuthoringContextRequirements(authoringContext),
+      ...deriveSystemAuthoringContextRequirements(authoringContext, claims),
     ],
   };
 }
@@ -287,7 +405,10 @@ export async function authorEvaluationBlueprint(input: AuthorInput): Promise<Aut
   } catch {
     return errorResult('INVALID_JSON', packetFingerprint, response);
   }
-  const validation = prepared.protocolVersion === 3 ? validateEvaluationBlueprintV3(parsed) : validateEvaluationBlueprint(parsed);
+  const validation =
+    prepared.protocolVersion === 3
+      ? validateEvaluationBlueprintV3(parsed, prepared.preparedAuthoringContext)
+      : validateEvaluationBlueprint(parsed);
   if (!validation.structurallyValid) {
     return errorResult('CANDIDATE_STRUCTURALLY_INVALID', packetFingerprint, response);
   }
@@ -296,7 +417,7 @@ export async function authorEvaluationBlueprint(input: AuthorInput): Promise<Aut
   const digests = prepared.digests;
   const composedCandidate =
     prepared.protocolVersion === 3
-      ? composeProtocolV3Candidate(parsed as BlueprintCandidateV3, input.authoringContext!)
+      ? composeProtocolV3Candidate(parsed as BlueprintCandidateV3, prepared.preparedAuthoringContext!)
       : (candidate as Record<string, unknown>);
   const lifecycle =
     prepared.protocolVersion === 3
@@ -310,16 +431,24 @@ export async function authorEvaluationBlueprint(input: AuthorInput): Promise<Aut
     candidate: composedCandidate,
     conditionFingerprint: digests.conditionFingerprint,
     ...(prepared.authoringContextFingerprint === undefined ? {} : { authoringContextFingerprint: prepared.authoringContextFingerprint }),
-    snapshotFingerprint: input.snapshot.fingerprint,
+    ...(prepared.authorInstrumentFingerprint === undefined ? {} : { authorInstrumentFingerprint: prepared.authorInstrumentFingerprint }),
+    snapshotFingerprint: prepared.preparedSnapshotFingerprint,
   };
-  const blueprint: EvaluationBlueprint = {
-    ...(composedCandidate as Required<BlueprintCandidate>),
+  const blueprintValue: Record<string, unknown> = {
+    ...composedCandidate,
     authorProvenance: {
+      ...(prepared.authorInstrumentFingerprint === undefined ? {} : { authorInstrumentFingerprint: prepared.authorInstrumentFingerprint }),
       ...(prepared.authoringContextFingerprint === undefined ? {} : { authoringContextFingerprint: prepared.authoringContextFingerprint }),
+      ...(digests.authoringContextSchemaDigest === undefined ? {} : { authoringContextSchemaDigest: digests.authoringContextSchemaDigest }),
       campaignId: input.campaignId,
+      ...(digests.candidateSchemaDigest === undefined ? {} : { candidateSchemaDigest: digests.candidateSchemaDigest }),
+      ...(digests.compositionPolicyDigest === undefined ? {} : { compositionPolicyDigest: digests.compositionPolicyDigest }),
       conditionFingerprint: digests.conditionFingerprint,
       instructionDigest: digests.instructionDigest,
       observedModel: response.observedModel,
+      ...(prepared.protocolVersion === 3
+        ? { packetEvidenceKind: 'AUTHOR_INVOKER_REQUEST_PROMPT' as const, packetFingerprint: prepared.packetFingerprint }
+        : {}),
       protocolDigest: digests.protocolDigest,
       reasoningEffort: selectedCondition.reasoningEffort,
       requestedModel: selectedCondition.model,
@@ -330,7 +459,11 @@ export async function authorEvaluationBlueprint(input: AuthorInput): Promise<Aut
     blueprintId: `ebp-${sha256(semanticIdentity)}`,
     lifecycle: { decisionEligible: false, scope: 'DEVELOPMENT_AUTHORING', state: lifecycle },
     schemaVersion: prepared.schemaVersion,
-    snapshotFingerprint: input.snapshot.fingerprint,
+    snapshotFingerprint: prepared.preparedSnapshotFingerprint,
   };
+  if (!validateComposedEvaluationBlueprint(blueprintValue).valid) {
+    return errorResult('COMPOSED_BLUEPRINT_INVALID', packetFingerprint, response);
+  }
+  const blueprint = blueprintValue as unknown as EvaluationBlueprint;
   return { blueprint, invocationAttempts: 1, packetFingerprint, ...responseEvidence(response), status: 'COMPLETED' };
 }

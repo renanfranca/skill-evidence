@@ -73,6 +73,18 @@ function loadCases(value: unknown): FixtureCase[] {
 
 function contextFor(kind: CaseKind): AuthoringContext {
   const context: AuthoringContext = {
+    claimRequirements: [
+      {
+        claimBoundary: 'Observable behavior under the declared contract only.',
+        decisionCritical: true,
+        id: 'system:authoring-context:claim-requirement:observable-contract',
+        mandatory: true,
+        populationScopeIds: ['system:authoring-context:population:development'],
+        rationale: 'The development decision requires this claim.',
+        source: 'fixture operator',
+        type: 'OBSERVED_BEHAVIOR',
+      },
+    ],
     decisionContext: {
       decision: { disposition: 'SUPPLIED', source: 'fixture operator', value: 'Characterize the declared observable contract.' },
       efficiencyBudgets: { disposition: 'NOT_REQUIRED', rationale: 'No efficiency claim is intended.', source: 'fixture operator' },
@@ -90,13 +102,23 @@ function contextFor(kind: CaseKind): AuthoringContext {
       severeHarmLimits: { disposition: 'SUPPLIED', source: 'fixture operator', value: ['No external state access.'] },
     },
     population: {
+      defaultScopeId: 'system:authoring-context:population:development',
       excluded: { disposition: 'SUPPLIED', source: 'fixture operator', value: ['Requests outside the declared contract.'] },
+      scopes: [
+        {
+          excluded: ['Requests outside the declared contract.'],
+          id: 'system:authoring-context:population:development',
+          source: 'fixture operator',
+          target: 'Synthetic in-scope requests.',
+        },
+      ],
       target: { disposition: 'SUPPLIED', source: 'fixture operator', value: 'Synthetic in-scope requests.' },
     },
-    schemaVersion: 1,
+    schemaVersion: 2,
   };
   if (kind === 'SYSTEM_BLOCKER') {
     context.population.target = {
+      dependency: { scope: 'CLAIM_REQUIREMENT', claimRequirementId: context.claimRequirements[0]!.id },
       disposition: 'REQUIRED_ABSENT',
       evidenceNeeded: 'A target population declared by the decision owner.',
       reason: 'The intended population was not supplied.',
@@ -123,7 +145,17 @@ function candidateFor(kind: CaseKind, source: string): Record<string, unknown> {
       reportingRule: 'Preserve failures and incomplete results.',
       subgroups: ['ordinary', 'stress'],
     },
-    claims: [{ id: claimId, mandatory: true, statement: 'The declared observable contract is satisfied.', type: 'OBSERVED_BEHAVIOR' }],
+    claims: [
+      {
+        claimRequirementId: 'system:authoring-context:claim-requirement:observable-contract',
+        conditions: ['The request supplies the declared input.'],
+        id: claimId,
+        limitations: ['Synthetic cases do not establish generalization.'],
+        requiredEvidence: ['evidence-contract'],
+        statement: 'The declared observable contract is satisfied.',
+        type: 'OBSERVED_BEHAVIOR',
+      },
+    ],
     contrasts: [{ claimIds: [claimId], condition: 'Current behavior.', id: 'contrast-current', rationale: 'No causal claim is made.' }],
     contracts: [
       {
@@ -131,7 +163,7 @@ function candidateFor(kind: CaseKind, source: string): Record<string, unknown> {
         activationExpectation: 'Activate only for explicit in-scope requests.',
         authorityConstraints: ['Use only supplied data.'],
         claimIds: [claimId],
-        evidenceRequired: ['Captured output and terminal status.'],
+        evidenceRequired: ['evidence-contract'],
         id: contractId,
         preconditions: ['The request supplies the declared input.'],
         prohibitedEffects: ['Accessing or changing external state.'],
@@ -147,21 +179,36 @@ function candidateFor(kind: CaseKind, source: string): Record<string, unknown> {
         claimIds: [claimId],
         contractIds: [contractId],
         id: 'evidence-contract',
-        paths: [
-          {
-            assessments: [{ id: 'assessment-contract', method: 'SEMANTIC', procedure: 'Apply the prespecified contract rubric.' }],
-            id: 'path-contract',
-            observations: [
-              {
-                capabilityRequired: 'Capture the candidate output.',
-                id: 'observation-output',
-                observable: 'The output and terminal status.',
-                source: 'Candidate execution.',
-              },
-            ],
-          },
-        ],
-        required: true,
+        critical: false,
+        mandatory: true,
+        observabilityRequirement: {
+          operator: 'ANY_PATH',
+          paths: [
+            {
+              assessments: [
+                {
+                  assessmentSource: 'Qualified contract evaluator.',
+                  capability: { id: 'semantic-contract-assessment', purpose: 'Assess the output against the contract.' },
+                  evidenceKind: 'SEMANTIC',
+                  id: 'assessment-contract',
+                  observationIds: ['observation-output'],
+                  procedure: 'Apply the prespecified contract rubric.',
+                },
+              ],
+              id: 'path-contract',
+              observations: [
+                {
+                  capability: { id: 'output-capture', purpose: 'Capture candidate output and status.' },
+                  evidenceKind: 'DIRECT',
+                  evidenceSource: 'Candidate execution.',
+                  id: 'observation-output',
+                  observable: 'The output and terminal status.',
+                },
+              ],
+            },
+          ],
+        },
+        property: 'Observable contract satisfaction.',
       },
     ],
     exclusions: [{ description: 'Live external operations.', id: 'exclude-live' }],
@@ -210,11 +257,16 @@ function candidateFor(kind: CaseKind, source: string): Record<string, unknown> {
     (candidate.evidencePlan as Array<{ claimIds: string[] }>)[0]!.claimIds = ['missing-claim'];
   }
   if (kind === 'RESERVED_ID') {
-    (candidate.evidencePlan as Array<{ paths: Array<{ observations: Array<{ id: string }> }> }>)[0]!.paths[0]!.observations[0]!.id =
-      'system:authoring-context:decision';
+    (
+      candidate.evidencePlan as Array<{
+        observabilityRequirement: { paths: Array<{ observations: Array<{ id: string }> }> };
+      }>
+    )[0]!.observabilityRequirement.paths[0]!.observations[0]!.id = 'system:authoring-context:decision';
   }
   if (kind === 'NO_OBSERVATION') {
-    (candidate.evidencePlan as Array<{ paths: Array<{ observations: unknown[] }> }>)[0]!.paths[0]!.observations = [];
+    (
+      candidate.evidencePlan as Array<{ observabilityRequirement: { paths: Array<{ observations: unknown[] }> } }>
+    )[0]!.observabilityRequirement.paths[0]!.observations = [];
   }
   return candidate;
 }

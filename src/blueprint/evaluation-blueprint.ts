@@ -7,7 +7,13 @@ import blueprintSchema3 from '../../schemas/evaluation-blueprint.schema-3.json' 
 import authoringContextSchema from '../../schemas/authoring-context.schema.json' with { type: 'json' };
 
 import { canonicalJson } from '../canonical-json.js';
-import { deriveSystemAuthoringContextRequirements, type AuthoringContext } from '../author/authoring-context.js';
+import {
+  deriveSystemAuthoringContextRequirements,
+  type AuthoringContext,
+  type ClaimType,
+  type MissingFactDependency,
+  type TrustedClaimRequirement,
+} from '../author/authoring-context.js';
 
 export type BlueprintLifecycle = 'BLOCKED' | 'DRAFT' | 'READY';
 
@@ -94,21 +100,63 @@ export interface BlueprintDiagnostic {
   path: string;
 }
 
+export interface BlueprintClaimCandidateV3 {
+  claimRequirementId?: string;
+  conditions: string[];
+  id: string;
+  limitations: string[];
+  requiredEvidence: string[];
+  statement: string;
+  type: ClaimType;
+}
+
+export interface BlueprintClaimV3 extends BlueprintClaimCandidateV3 {
+  decisionCritical: boolean;
+  mandatory: boolean;
+  populationScopeIds: string[];
+  status: 'NOT_EVALUATED';
+}
+
+export interface EvidenceRequirementCandidateV3 {
+  claimIds: string[];
+  contractIds: string[];
+  critical: boolean;
+  id: string;
+  mandatory: boolean;
+  observabilityRequirement: {
+    operator: 'ANY_PATH';
+    paths: Array<{
+      assessments: Array<{
+        assessmentSource: string;
+        capability: { id: string; purpose: string };
+        evidenceKind: 'JUDGMENT' | 'SEMANTIC' | 'STRUCTURED_DETERMINISTIC_INFERENCE';
+        id: string;
+        observationIds: string[];
+        procedure: string;
+      }>;
+      id: string;
+      observations: Array<{
+        capability: { id: string; purpose: string };
+        evidenceKind: 'DIRECT';
+        evidenceSource: string;
+        id: string;
+        observable: string;
+      }>;
+    }>;
+  };
+  property: string;
+}
+
+export interface EvidenceRequirementV3 extends EvidenceRequirementCandidateV3 {
+  missingEvidenceSemantics: 'INCONCLUSIVE_WHEN_ELIGIBLE_PATH_EVIDENCE_IS_MISSING';
+}
+
 export interface BlueprintCandidateV3 extends Omit<
   BlueprintCandidate,
-  'decisionContext' | 'evidencePlan' | 'population' | 'unresolvedRequirements'
+  'claims' | 'decisionContext' | 'evidencePlan' | 'population' | 'unresolvedRequirements'
 > {
-  evidencePlan?: Array<{
-    claimIds: string[];
-    contractIds: string[];
-    id: string;
-    paths: Array<{
-      assessments: Array<{ id: string; method: 'JUDGMENT' | 'MECHANICAL' | 'SEMANTIC'; procedure: string }>;
-      id: string;
-      observations: Array<{ capabilityRequired: string; id: string; observable: string; source: string }>;
-    }>;
-    required: boolean;
-  }>;
+  claims?: BlueprintClaimCandidateV3[];
+  evidencePlan?: EvidenceRequirementCandidateV3[];
   unresolvedRequirements?: Array<{
     affectedClaimIds: string[];
     blocking: boolean;
@@ -140,15 +188,60 @@ export interface AuthorProvenance {
   theoryDigest: string;
 }
 
-export type EvaluationBlueprint = Required<BlueprintCandidate> & {
+export interface AuthorProvenanceV3 extends AuthorProvenance {
+  authorInstrumentFingerprint: string;
+  authoringContextFingerprint: string;
+  authoringContextSchemaDigest: string;
+  candidateSchemaDigest: string;
+  compositionPolicyDigest: string;
+  packetEvidenceKind: 'AUTHOR_INVOKER_REQUEST_PROMPT';
+  packetFingerprint: string;
+}
+
+export type EvaluationBlueprintV1V2 = Required<BlueprintCandidate> & {
   authorProvenance: AuthorProvenance;
   blueprintId: string;
   lifecycle: { decisionEligible: false; scope: 'DEVELOPMENT_AUTHORING'; state: BlueprintLifecycle };
-  schemaVersion: 1 | 2 | 3;
+  schemaVersion: 1 | 2;
   snapshotFingerprint: string;
 };
 
-const controlledFields = new Set(['authorProvenance', 'blueprintId', 'lifecycle', 'schemaVersion', 'snapshotFingerprint']);
+export type EvaluationBlueprintV3 = Required<Omit<BlueprintCandidateV3, 'claims' | 'evidencePlan' | 'unresolvedRequirements'>> & {
+  authorProvenance: AuthorProvenanceV3;
+  blueprintId: string;
+  claimRequirements: TrustedClaimRequirement[];
+  claims: BlueprintClaimV3[];
+  decisionContext: AuthoringContext['decisionContext'];
+  evidencePlan: EvidenceRequirementV3[];
+  lifecycle: { decisionEligible: false; scope: 'DEVELOPMENT_AUTHORING'; state: BlueprintLifecycle };
+  population: AuthoringContext['population'];
+  schemaVersion: 3;
+  snapshotFingerprint: string;
+  unresolvedRequirements: Array<{
+    affectedClaimIds: string[];
+    affectedClaimRequirementId?: string;
+    blocking: boolean;
+    dependency?: MissingFactDependency;
+    evidenceNeeded: string;
+    field: string;
+    id: string;
+    origin: 'AUTHOR' | 'SYSTEM_AUTHORING_CONTEXT';
+    reason: string;
+    source: string;
+    status: 'INSUFFICIENT_INFORMATION' | 'UNKNOWN' | 'UNSUPPORTED' | 'UNTESTABLE_FROM_AVAILABLE_ENVIRONMENT';
+  }>;
+};
+
+export type EvaluationBlueprint = EvaluationBlueprintV1V2 | EvaluationBlueprintV3;
+
+const controlledFields = new Set([
+  'authorProvenance',
+  'blueprintId',
+  'claimRequirements',
+  'lifecycle',
+  'schemaVersion',
+  'snapshotFingerprint',
+]);
 const candidateFields = Object.keys(blueprintSchema.properties).filter((field) => !controlledFields.has(field));
 export const evaluationBlueprintCandidateSchema = {
   $defs: blueprintSchema.$defs,
@@ -187,11 +280,17 @@ const bundledBlueprintSchema = rewriteSchemaReferences(
   Object.fromEntries(Object.entries(blueprintSchema).filter(([key]) => key !== '$id' && key !== '$schema')),
   (reference) => (reference.startsWith('#/') ? `#/$defs/blueprint${reference.slice(1)}` : reference),
 );
+const bundledAuthoringContextSchema = rewriteSchemaReferences(
+  Object.fromEntries(Object.entries(authoringContextSchema).filter(([key]) => key !== '$id' && key !== '$schema')),
+  (reference) => (reference.startsWith('#/') ? `#/$defs/authoringContext${reference.slice(1)}` : reference),
+);
 const localizeBlueprintReference = (reference: string): string => {
   const relativePrefix = 'evaluation-blueprint.schema.json#';
   const canonicalPrefix = 'https://skill-evidence.local/schemas/evaluation-blueprint.schema-1.json#';
   if (reference.startsWith(relativePrefix)) return `#/$defs/blueprint${reference.slice(relativePrefix.length)}`;
   if (reference.startsWith(canonicalPrefix)) return `#/$defs/blueprint${reference.slice(canonicalPrefix.length)}`;
+  const authoringContextPrefix = 'authoring-context.schema.json#';
+  if (reference.startsWith(authoringContextPrefix)) return `#/$defs/authoringContext${reference.slice(authoringContextPrefix.length)}`;
   return reference;
 };
 
@@ -199,6 +298,7 @@ export const evaluationBlueprintCandidateSchemaV3 = {
   $id: 'https://skill-evidence.local/schemas/evaluation-blueprint-candidate.schema-3.json',
   $defs: {
     ...(rewriteSchemaReferences(blueprintSchema3.$defs, localizeBlueprintReference) as typeof blueprintSchema3.$defs),
+    authoringContext: bundledAuthoringContextSchema,
     blueprint: bundledBlueprintSchema,
     authorRequirement: {
       additionalProperties: false,
@@ -222,9 +322,13 @@ export const evaluationBlueprintCandidateSchemaV3 = {
       .filter(([field]) => !controlledFields.has(field) && field !== 'decisionContext' && field !== 'population')
       .map(([field, schema]) => [
         field,
-        field === 'unresolvedRequirements'
-          ? { items: { $ref: '#/$defs/authorRequirement' }, type: 'array' }
-          : rewriteSchemaReferences(schema, localizeBlueprintReference),
+        field === 'claims'
+          ? { items: { $ref: '#/$defs/candidateClaim' }, type: 'array' }
+          : field === 'evidencePlan'
+            ? { items: { $ref: '#/$defs/candidateEvidenceRequirement' }, type: 'array' }
+            : field === 'unresolvedRequirements'
+              ? { items: { $ref: '#/$defs/authorRequirement' }, type: 'array' }
+              : rewriteSchemaReferences(schema, localizeBlueprintReference),
       ]),
   ),
   required: blueprintSchema3.required.filter(
@@ -259,14 +363,21 @@ export function validateComposedEvaluationBlueprint(value: unknown): ComposedBlu
   const valid = validate(value);
   if (!valid) return { diagnostics: structuralDiagnostics(validate.errors), valid: false };
   if (schemaVersion !== 3) return { diagnostics: [], valid: true };
-  const diagnostics = validateSystemBlockerIntegrity(value as Record<string, unknown>);
+  const blueprint = value as Record<string, unknown>;
+  const diagnostics = [...validateSystemBlockerIntegrity(blueprint), ...validateComposedClaimIntegrity(blueprint)];
   return { diagnostics, valid: diagnostics.length === 0 };
 }
 
 function validateSystemBlockerIntegrity(blueprint: Record<string, unknown>): BlueprintDiagnostic[] {
   const requirements = blueprint.unresolvedRequirements as Array<Record<string, unknown>>;
-  const context = { decisionContext: blueprint.decisionContext, population: blueprint.population, schemaVersion: 1 } as AuthoringContext;
-  const expected = new Map(deriveSystemAuthoringContextRequirements(context).map((requirement) => [requirement.id, requirement]));
+  const claims = blueprint.claims as BlueprintClaimV3[];
+  const context = {
+    claimRequirements: blueprint.claimRequirements,
+    decisionContext: blueprint.decisionContext,
+    population: blueprint.population,
+    schemaVersion: 2,
+  } as AuthoringContext;
+  const expected = new Map(deriveSystemAuthoringContextRequirements(context, claims).map((requirement) => [requirement.id, requirement]));
   const actualSystem = requirements.filter(
     (requirement) => requirement.origin === 'SYSTEM_AUTHORING_CONTEXT' || String(requirement.id).startsWith('system:authoring-context:'),
   );
@@ -285,6 +396,46 @@ function validateSystemBlockerIntegrity(blueprint: Record<string, unknown>): Blu
   for (const requirement of actualSystem) {
     if (typeof requirement.id !== 'string' || !expected.has(requirement.id)) {
       diagnostics.push({ code: 'SYSTEM_BLOCKER_INTEGRITY', path: '/unresolvedRequirements' });
+    }
+  }
+  return diagnostics;
+}
+
+function validateComposedClaimIntegrity(blueprint: Record<string, unknown>): BlueprintDiagnostic[] {
+  const requirements = new Map(
+    (blueprint.claimRequirements as TrustedClaimRequirement[]).map((requirement) => [requirement.id, requirement]),
+  );
+  const population = blueprint.population as AuthoringContext['population'];
+  const diagnostics: BlueprintDiagnostic[] = [];
+  const claims = blueprint.claims as BlueprintClaimV3[];
+  const lifecycle = blueprint.lifecycle as { state: BlueprintLifecycle };
+  if (lifecycle.state !== 'DRAFT') {
+    for (const requirement of requirements.values()) {
+      const matches = claims.filter((claim) => claim.claimRequirementId === requirement.id);
+      if (matches.length !== 1) diagnostics.push({ code: 'TRUSTED_CLAIM_CARDINALITY', path: '/claims' });
+      if (matches[0] !== undefined && matches[0].type !== requirement.type) {
+        diagnostics.push({ code: 'TRUSTED_CLAIM_TYPE_MISMATCH', path: '/claims' });
+      }
+    }
+  }
+  for (const [index, claim] of claims.entries()) {
+    const requirement = claim.claimRequirementId === undefined ? undefined : requirements.get(claim.claimRequirementId);
+    const expected =
+      requirement === undefined
+        ? { decisionCritical: false, mandatory: false, populationScopeIds: [population.defaultScopeId], status: 'NOT_EVALUATED' }
+        : {
+            decisionCritical: requirement.decisionCritical,
+            mandatory: requirement.mandatory,
+            populationScopeIds: [...requirement.populationScopeIds].sort(),
+            status: 'NOT_EVALUATED',
+          };
+    if (
+      claim.decisionCritical !== expected.decisionCritical ||
+      claim.mandatory !== expected.mandatory ||
+      canonicalJson([...claim.populationScopeIds].sort()) !== canonicalJson(expected.populationScopeIds) ||
+      claim.status !== expected.status
+    ) {
+      diagnostics.push({ code: 'SYSTEM_CLAIM_INTEGRITY', path: `/claims/${index}` });
     }
   }
   return diagnostics;
@@ -328,13 +479,22 @@ function allIds(value: unknown): Array<{ id: string; path: string }> {
   return ids;
 }
 
-export function validateEvaluationBlueprintV3(value: unknown): BlueprintValidation {
+export function validateEvaluationBlueprintV3(value: unknown, context?: AuthoringContext): BlueprintValidation {
   const reserved = reservedIdDiagnostic(value);
   if (reserved !== undefined) return { complete: false, diagnostics: [reserved], structurallyValid: false };
   if (!validateStructureV3(value)) {
     return { complete: false, diagnostics: structuralDiagnostics(validateStructureV3.errors), structurallyValid: false };
   }
   const candidate = value as BlueprintCandidateV3;
+  if (
+    context !== undefined &&
+    candidate.claims?.some(
+      (claim) =>
+        claim.claimRequirementId !== undefined && !context.claimRequirements.some((entry) => entry.id === claim.claimRequirementId),
+    )
+  ) {
+    return { complete: false, diagnostics: [{ code: 'UNKNOWN_SYSTEM_REFERENCE', path: '/claims' }], structurallyValid: false };
+  }
   const diagnostics: BlueprintDiagnostic[] = [];
   const seen = new Set<string>();
   for (const entry of allIds(candidate)) {
@@ -358,10 +518,91 @@ export function validateEvaluationBlueprintV3(value: unknown): BlueprintValidati
   candidate.evidencePlan?.forEach((evidence, index) => {
     addBrokenReferences(evidence.claimIds, claimIds, `/evidencePlan/${index}/claimIds`, diagnostics);
     addBrokenReferences(evidence.contractIds, contractIds, `/evidencePlan/${index}/contractIds`, diagnostics);
+    evidence.observabilityRequirement.paths.forEach((path, pathIndex) => {
+      const observationIds = new Set(path.observations.map((observation) => observation.id));
+      const assessed = new Set<string>();
+      path.assessments.forEach((assessment, assessmentIndex) => {
+        addBrokenReferences(
+          assessment.observationIds,
+          observationIds,
+          `/evidencePlan/${index}/observabilityRequirement/paths/${pathIndex}/assessments/${assessmentIndex}/observationIds`,
+          diagnostics,
+        );
+        assessment.observationIds.forEach((id) => assessed.add(id));
+      });
+      path.observations.forEach((observation, observationIndex) => {
+        if (!assessed.has(observation.id)) {
+          diagnostics.push({
+            code: 'OBSERVATION_UNASSESSED',
+            path: `/evidencePlan/${index}/observabilityRequirement/paths/${pathIndex}/observations/${observationIndex}/id`,
+          });
+        }
+      });
+    });
   });
   candidate.unresolvedRequirements?.forEach((requirement, index) =>
     addBrokenReferences(requirement.affectedClaimIds, claimIds, `/unresolvedRequirements/${index}/affectedClaimIds`, diagnostics),
   );
+  const evidenceById = new Map(candidate.evidencePlan?.map((requirement) => [requirement.id, requirement]));
+  const contractById = new Map(candidate.contracts?.map((contract) => [contract.id, contract]));
+  candidate.claims?.forEach((claim, claimIndex) => {
+    addBrokenReferences(claim.requiredEvidence, new Set(evidenceById.keys()), `/claims/${claimIndex}/requiredEvidence`, diagnostics);
+    for (const evidenceId of claim.requiredEvidence) {
+      if (!evidenceById.get(evidenceId)?.claimIds.includes(claim.id)) {
+        diagnostics.push({ code: 'EVIDENCE_LINK_MISMATCH', path: `/claims/${claimIndex}/requiredEvidence` });
+      }
+    }
+  });
+  candidate.contracts?.forEach((contract, contractIndex) => {
+    addBrokenReferences(
+      contract.evidenceRequired,
+      new Set(evidenceById.keys()),
+      `/contracts/${contractIndex}/evidenceRequired`,
+      diagnostics,
+    );
+    for (const evidenceId of contract.evidenceRequired) {
+      if (!evidenceById.get(evidenceId)?.contractIds.includes(contract.id)) {
+        diagnostics.push({ code: 'EVIDENCE_LINK_MISMATCH', path: `/contracts/${contractIndex}/evidenceRequired` });
+      }
+    }
+  });
+  candidate.evidencePlan?.forEach((evidence, evidenceIndex) => {
+    for (const claimId of evidence.claimIds) {
+      if (!candidate.claims?.find((claim) => claim.id === claimId)?.requiredEvidence.includes(evidence.id)) {
+        diagnostics.push({ code: 'EVIDENCE_LINK_MISMATCH', path: `/evidencePlan/${evidenceIndex}/claimIds` });
+      }
+    }
+    for (const contractId of evidence.contractIds) {
+      if (!contractById.get(contractId)?.evidenceRequired.includes(evidence.id)) {
+        diagnostics.push({ code: 'EVIDENCE_LINK_MISMATCH', path: `/evidencePlan/${evidenceIndex}/contractIds` });
+      }
+    }
+  });
+  if (context !== undefined) {
+    const claimsByRequirement = new Map<string, BlueprintClaimCandidateV3[]>();
+    for (const claim of candidate.claims ?? []) {
+      if (claim.claimRequirementId === undefined) continue;
+      const matches = claimsByRequirement.get(claim.claimRequirementId) ?? [];
+      matches.push(claim);
+      claimsByRequirement.set(claim.claimRequirementId, matches);
+    }
+    context.claimRequirements.forEach((requirement) => {
+      const claims = claimsByRequirement.get(requirement.id) ?? [];
+      if (claims.length !== 1) diagnostics.push({ code: 'TRUSTED_CLAIM_CARDINALITY', path: '/claims' });
+      const claim = claims[0];
+      if (claim !== undefined && claim.type !== requirement.type) {
+        diagnostics.push({ code: 'TRUSTED_CLAIM_TYPE_MISMATCH', path: `/claims/${candidate.claims?.indexOf(claim) ?? 0}/type` });
+      }
+      if (claim !== undefined && (requirement.mandatory || requirement.decisionCritical)) {
+        if (claim.requiredEvidence.length === 0) diagnostics.push({ code: 'REQUIRED_EVIDENCE_MISSING', path: '/claims' });
+        for (const evidenceId of claim.requiredEvidence) {
+          if (evidenceById.get(evidenceId)?.mandatory !== true) {
+            diagnostics.push({ code: 'REQUIRED_EVIDENCE_NOT_MANDATORY', path: '/evidencePlan' });
+          }
+        }
+      }
+    });
+  }
   for (const field of [
     'claims',
     'contracts',

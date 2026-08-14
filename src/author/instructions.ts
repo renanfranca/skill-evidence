@@ -32,11 +32,13 @@ export const authorInstructionsV2 = [
 
 export const authorInstructionsV3 = [
   ...authorInstructionsV2,
-  'The trusted Authoring Context is controlled by Skill Evidence. Do not return decisionContext or population.',
+  'The trusted Authoring Context is controlled by Skill Evidence. Do not return decisionContext, population, or claimRequirements.',
+  'Represent every trusted claim requirement with exactly one claim through claimRequirementId. Never merge requirements merely because their claim types match.',
+  'Do not return mandatory, decisionCritical, populationScopeIds, or status for claims; Skill Evidence derives them from trusted context.',
   'Do not use an ID beginning with system:authoring-context:; that namespace is reserved for system-derived requirements.',
-  'Describe evidence as alternative paths. Within one path, every observation is required together.',
-  'An observation plan states what independently inspectable output, state, action, constraint, temporal relation, or provenance fact will be captured and which capability is needed.',
-  'An assessment states how captured observations will be evaluated: MECHANICAL, SEMANTIC, or JUDGMENT.',
+  'Describe evidence under one observabilityRequirement whose paths are alternatives. Within one path, every observation and assessment is required together.',
+  'An observation states what directly inspectable output, state, action, constraint, temporal relation, or provenance fact will be captured, its evidence origin, and the capability required for that purpose.',
+  'An assessment references the observations it interprets and states its assessment origin, required capability, and evidence kind: STRUCTURED_DETERMINISTIC_INFERENCE, SEMANTIC, or JUDGMENT.',
   'A semantic or judgment assessment may evaluate a directly captured observation; capture and interpretation are not competing evidence classes.',
   'Do not claim that planned observations already exist or that required capabilities are available. Capability eligibility is checked later.',
 ] as const;
