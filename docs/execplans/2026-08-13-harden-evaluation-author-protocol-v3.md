@@ -143,7 +143,7 @@ Acceptance: incomplete or inconsistent claim → contract → evidence chains ca
 - [x] Complete Milestone 4 through behavior TDD: evidence endpoints and pairs, assessment inputs, frozen campaign provenance, and composed semantic validation.
 - [x] Repeat the post-GREEN design review and retain one shared semantic validator for candidate and composed boundaries.
 - [x] Restore every final local gate with 54 focused Author tests, 175 repository tests, zero audit findings, and all deterministic qualifiers green.
-- [ ] Push Milestone 4 and confirm the hosted PR gate at the new commit.
+- [x] Push Milestone 4 and confirm hosted CI run `31760681349` green at commit `bb8c2fa`.
 
 ## Decisions
 
@@ -210,7 +210,7 @@ Acceptance: incomplete or inconsistent claim → contract → evidence chains ca
 
 Use behavior-focused quiet TDD through the public Author API and CLI. Run the full Author suite per cycle and `experiment:verify` at least every two cycles. After all behavior and the public checkpoint are green, run `refactor-design`, reconcile canonical documentation, and execute the complete validation sequence. No live command belongs to E21.
 
-The final normative hardening completed 54 focused Author tests and 175 repository tests. `npm audit --json` reported zero vulnerabilities; typecheck, lint, Prettier, build, the provider-free checkpoint, archaeological qualifier, Author/provider/lifecycle/operability qualifiers, and the six-call protocol-v3 qualifier all passed. Every qualifier used deterministic local processes and zero external provider calls. Post-GREEN design review retained one semantic validator shared by candidate lifecycle derivation and the composed persistence boundary; no further behavior-preserving refactor was justified. Earlier hosted CI run `31757170973` passed commit `46a1d70`; Milestone 4 requires a new hosted run after push.
+The final normative hardening completed 54 focused Author tests and 175 repository tests. `npm audit --json` reported zero vulnerabilities; typecheck, lint, Prettier, build, the provider-free checkpoint, archaeological qualifier, Author/provider/lifecycle/operability qualifiers, and the six-call protocol-v3 qualifier all passed. Every qualifier used deterministic local processes and zero external provider calls. Post-GREEN design review retained one semantic validator shared by candidate lifecycle derivation and the composed persistence boundary; no further behavior-preserving refactor was justified. Hosted CI run `31760681349` passed the complete workflow at commit `bb8c2fa`.
 
 ## Documentation Impact
 
