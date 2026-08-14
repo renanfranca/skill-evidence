@@ -121,7 +121,7 @@ Acceptance: all local and hosted gates pass, zero external calls occur, no campa
 - [x] Enforce frozen composition, discriminated Blueprint types, precise identities, and mandatory composed validation.
 - [x] Requalify offline and complete the post-GREEN design review; the six-call local corpus remains `SUPPORTED_FOR_DEVELOPMENT` with zero external calls.
 - [x] Restore every final local validation gate after the behavior and design commits.
-- [ ] Push the corrected branch and confirm hosted CI.
+- [x] Push the corrected branch and confirm hosted CI run `31757170973` green at commit `46a1d70`.
 
 ## Decisions
 
@@ -177,7 +177,7 @@ Acceptance: all local and hosted gates pass, zero external calls occur, no campa
 
 Use behavior-focused quiet TDD through the public Author API and CLI. Run the full Author suite per cycle and `experiment:verify` at least every two cycles. After all behavior and the public checkpoint are green, run `refactor-design`, reconcile canonical documentation, and execute the complete validation sequence. No live command belongs to E21.
 
-The normative hardening completed 53 focused Author tests and 174 repository tests. `npm audit --json` reported zero vulnerabilities; typecheck, lint, Prettier, build, the provider-free checkpoint, archaeological qualifier, Author/provider/lifecycle/operability qualifiers, and the six-call protocol-v3 qualifier all passed. Every qualifier used deterministic local processes and zero external provider calls. Post-GREEN design review classified the duplicated protocol descriptor as a design risk and consolidated packet construction with `protocolDigest`; the focused suite and provider-free checkpoint remained green afterward.
+The normative hardening completed 53 focused Author tests and 174 repository tests. `npm audit --json` reported zero vulnerabilities; typecheck, lint, Prettier, build, the provider-free checkpoint, archaeological qualifier, Author/provider/lifecycle/operability qualifiers, and the six-call protocol-v3 qualifier all passed. Every qualifier used deterministic local processes and zero external provider calls. Post-GREEN design review classified the duplicated protocol descriptor as a design risk and consolidated packet construction with `protocolDigest`; the focused suite and provider-free checkpoint remained green afterward. Hosted CI run `31757170973` then passed the complete repository workflow on commit `46a1d70`.
 
 ## Documentation Impact
 
