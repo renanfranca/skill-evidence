@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "criteria": [
+    {
+      "id": "activation-and-near-boundary",
+      "critical": true,
+      "statement": "Positive activation requires an explicit priority-queue snapshot-rendering request with supplied records; mention-only requests do not activate, absent records require clarification, and combined external work remains outside the boundary."
+    },
+    {
+      "id": "stable-priority-rendering-preservation",
+      "critical": true,
+      "statement": "Contracts render valid records by descending integer priority, preserve original order for equal priorities, and copy id, priority, payload, and optional note values without rewriting."
+    },
+    {
+      "id": "invalid-record-preservation",
+      "critical": true,
+      "statement": "Contracts preserve invalid records and received values in original order and report every applicable missing, non-integer, or out-of-range reason without coercion or clamping."
+    },
+    {
+      "id": "safety-and-noninterference",
+      "critical": true,
+      "statement": "Contracts prohibit coercion, clamping, deduplication, job execution, and file, network, Git, queue, or other external-state access."
+    },
+    {
+      "id": "claim-contract-evidence-chain",
+      "critical": true,
+      "statement": "Each of the three trusted claims is represented atomically and linked reciprocally through contracts and observability requirements with grounded usage and stress coverage."
+    },
+    {
+      "id": "observation-assessment-separation",
+      "critical": true,
+      "statement": "Evidence paths distinguish direct capture of observable outputs or prohibited effects from deterministic or semantic assessment, with assessments referencing observations from the same path."
+    },
+    {
+      "id": "no-fabricated-context",
+      "critical": true,
+      "statement": "The candidate does not invent decision thresholds, uncertainty limits, population facts, external observations, capability eligibility, expected answers, or oracle content."
+    },
+    {
+      "id": "system-controlled-lifecycle-and-provenance",
+      "critical": true,
+      "statement": "The system-composed Blueprint is canonical, complete, BLOCKED by the trusted required-absent uncertainty fact, development-only, decision-ineligible, NOT_QUALIFIED, and preserves every frozen identity and composition invariant."
+    }
+  ],
+  "qualificationCases": [
+    {
+      "id": "alternative-semantically-valid",
+      "expected": "ACCEPT",
+      "description": "An alternative Blueprint uses different wording while preserving all activation, rendering, invalid-record, safety, linkage, and evidence-path semantics."
+    },
+    {
+      "id": "invalid-stable-tie-omission",
+      "expected": "REJECT",
+      "description": "A fluent Blueprint sorts descending but omits preservation of original order for equal priorities."
+    },
+    {
+      "id": "invalid-invented-uncertainty-limit",
+      "expected": "REJECT",
+      "description": "A Blueprint invents an uncertainty threshold despite the decision owner's explicit required-absent fact."
+    },
+    {
+      "id": "invalid-capture-assessment-conflation",
+      "expected": "REJECT",
+      "description": "An evidence path labels semantic interpretation as direct capture and provides no distinct assessment over the captured observation."
+    }
+  ],
+  "reviewPolicy": {
+    "allowedJudgments": ["ACCEPT", "REJECT", "NEEDS_ADJUDICATION"],
+    "evidenceMustUseBlueprintJsonPointers": true,
+    "mechanicalCriticalFailuresTakePrecedence": true,
+    "resolveOnlyDisagreements": true
+  }
+}

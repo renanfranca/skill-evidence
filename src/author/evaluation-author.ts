@@ -229,7 +229,7 @@ export function prepareAuthorInvocation(
   }
   const prompt = canonicalJson(packet);
   const authorInstrumentFingerprint = protocolV3Provenance?.authorInstrumentFingerprint;
-  return {
+  return canonicalFrozenCopy({
     ...(authorInstrumentFingerprint === undefined ? {} : { authorInstrumentFingerprint }),
     ...(preparedAuthoringContext === undefined
       ? {}
@@ -247,7 +247,7 @@ export function prepareAuthorInvocation(
       reasoningEffort: selectedCondition.reasoningEffort,
     },
     schemaVersion: protocolVersion === 3 ? 3 : condition === undefined ? 1 : 2,
-  };
+  });
 }
 
 function responseEvidence(
@@ -332,6 +332,15 @@ export function authorEvaluationBlueprint(
 export function authorEvaluationBlueprint(input: AuthorInput): Promise<AuthorRunResult>;
 export async function authorEvaluationBlueprint(input: AuthorInput): Promise<AuthorRunResult> {
   const prepared = prepareAuthorInvocation(input.snapshot, input.condition, input.protocolVersion, input.authoringContext);
+  return await executePreparedAuthorInvocation({ campaignId: input.campaignId, invoke: input.invoke, prepared });
+}
+
+export async function executePreparedAuthorInvocation(input: {
+  campaignId: string;
+  invoke: AuthorInvoker;
+  prepared: PreparedAuthorInvocation;
+}): Promise<AuthorRunResult> {
+  const prepared = input.prepared;
   const preparedCampaignId = canonicalFrozenCopy(input.campaignId);
   const packetFingerprint = prepared.packetFingerprint;
   let response: AuthorInvocationResponse;
