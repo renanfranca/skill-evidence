@@ -31,6 +31,7 @@ type SupervisorContract = {
     blockingSeverities?: unknown;
     coverageReceipt?: unknown;
     deltaRouting?: unknown;
+    operationalDeltaSemantics?: unknown;
     reinforcedRoundBudget?: unknown;
     reinforcedTopology?: unknown;
     standardTopology?: unknown;
@@ -73,7 +74,7 @@ function reviewCompositionDiagnostics(contract: SupervisorContract): string[] {
   const diagnostics: string[] = [];
   const expectedRouting = [
     { delta: 'UNCHANGED', mode: 'REUSE_COMPLETE_COVERAGE' },
-    { delta: 'OPERATIONAL_ONLY', mode: 'TARGETED_STANDARD' },
+    { delta: 'OPERATIONAL_ONLY', mode: 'MECHANICAL_ONLY' },
     { delta: 'MATERIAL_STANDARD', mode: 'FULL_STANDARD' },
     { delta: 'MATERIAL_REINFORCED', mode: 'FULL_REINFORCED' },
   ];
@@ -83,8 +84,24 @@ function reviewCompositionDiagnostics(contract: SupervisorContract): string[] {
     nextRoundStateWhenExhausted: 'WAIT_RISK_APPROVAL',
     approvalBinding: ['BASE_COMMIT', 'PLAN_REVISION', 'MATERIAL_IDENTITY', 'EXACTLY_ONE_ADDITIONAL_ROUND'],
   };
+  const expectedOperationalDeltaSemantics = {
+    checks: [
+      'IDENTITIES_REPRODUCED_TWICE',
+      'MATERIAL_IDENTITY_UNCHANGED',
+      'OPERATIONAL_ALLOWLIST',
+      'UTF8_LF',
+      'SECTION_CARDINALITY',
+      'APPLICABLE_FORMAT_LINK_PATH_DIFF_CHECKS',
+    ],
+    dispatch: 'NO_REVIEWER_CONSOLIDATOR_OR_MODEL',
+    semanticAdjudication: 'FORBIDDEN',
+    findingDisposition: 'MATERIAL_P0_P2_NONE_MECHANICALLY_CARRIED',
+  };
 
   if (JSON.stringify(contract.review?.deltaRouting) !== JSON.stringify(expectedRouting)) diagnostics.push('delta-routing');
+  if (JSON.stringify(contract.review?.operationalDeltaSemantics) !== JSON.stringify(expectedOperationalDeltaSemantics)) {
+    diagnostics.push('operational-delta-semantics');
+  }
   if (JSON.stringify(contract.review?.reinforcedRoundBudget) !== JSON.stringify(expectedBudget))
     diagnostics.push('reinforced-round-budget');
   if (
@@ -410,11 +427,10 @@ type PreCardMergeEvidence = {
   featureHeadCoverageReceipt: string;
   reviewBaseTipSha: string;
   reviewContentIdentity: string;
-  reviewOperationalEvidenceIdentity: string;
-  reviewCoverageReceipt: string;
+  coverageOperationalEvidenceIdentity: string;
+  currentCoverageReceipt: string;
   reviewedBaseTipSha: string;
   reviewedContentIdentity: string;
-  reviewedOperationalEvidenceIdentity: string;
   validatedBaseTipSha: string;
   validatedContentIdentity: string;
   validatedOperationalEvidenceIdentity: string;
@@ -432,19 +448,21 @@ function preCardMergeContextDiagnostics(contract: SupervisorContract, evidence: 
       'REVIEW_RESULT_CONTENT_IDENTITY',
     ],
     operationalEvidenceIdentityEqualities: [
-      'REVIEWED_OPERATIONAL_EVIDENCE_IDENTITY',
       'VALIDATED_OPERATIONAL_EVIDENCE_IDENTITY',
       'FEATURE_HEAD_OPERATIONAL_EVIDENCE_IDENTITY',
-      'REVIEW_RESULT_OPERATIONAL_EVIDENCE_IDENTITY',
+      'COVERAGE_OPERATIONAL_EVIDENCE_IDENTITY',
     ],
-    coverageReceiptEquality: ['VALIDATED_COVERAGE_RECEIPT', 'REVIEW_RESULT_COVERAGE_RECEIPT', 'FEATURE_HEAD_COVERAGE_RECEIPT'],
+    coverageReceiptEquality: ['VALIDATED_COVERAGE_RECEIPT', 'CURRENT_COVERAGE_RECEIPT', 'FEATURE_HEAD_COVERAGE_RECEIPT'],
     candidateMergeTree: {
       derivation: 'GIT_MERGE_TREE_WRITE_TREE',
       inputs: ['CURRENT_BASE_TIP_SHA', 'FEATURE_HEAD_SHA'],
       result: 'CANDIDATE_MERGE_TREE_OID',
     },
     hostedGreenReuse: 'FORBIDDEN_ACROSS_BINDING_CHANGE',
-    mismatchDisposition: ['VALIDATE', 'REVIEW'],
+    mismatchDisposition: {
+      operationalOrCoverage: 'VALIDATE_MECHANICALLY',
+      material: ['VALIDATE', 'REVIEW'],
+    },
   };
 
   if (JSON.stringify(contract.mergeApproval?.preCardFreshness) !== JSON.stringify(expectedContract)) {
@@ -466,14 +484,13 @@ function preCardMergeContextDiagnostics(contract: SupervisorContract, evidence: 
     diagnostics.push('stale-pre-card-content');
   }
   if (
-    evidence.reviewedOperationalEvidenceIdentity !== evidence.validatedOperationalEvidenceIdentity ||
-    evidence.reviewedOperationalEvidenceIdentity !== evidence.featureHeadOperationalEvidenceIdentity ||
-    evidence.reviewedOperationalEvidenceIdentity !== evidence.reviewOperationalEvidenceIdentity
+    evidence.coverageOperationalEvidenceIdentity !== evidence.validatedOperationalEvidenceIdentity ||
+    evidence.coverageOperationalEvidenceIdentity !== evidence.featureHeadOperationalEvidenceIdentity
   ) {
     diagnostics.push('stale-pre-card-operational-evidence');
   }
   if (
-    evidence.validatedCoverageReceipt !== evidence.reviewCoverageReceipt ||
+    evidence.validatedCoverageReceipt !== evidence.currentCoverageReceipt ||
     evidence.validatedCoverageReceipt !== evidence.featureHeadCoverageReceipt
   ) {
     diagnostics.push('stale-pre-card-coverage');
@@ -494,6 +511,7 @@ function stateTransitionDiagnostics(contract: SupervisorContract): string[] {
     ['WAIT_PLAN_APPROVAL', 'PLAN', 'REVISIONS_REQUESTED'],
     ['IMPLEMENT', 'VALIDATE', 'IMPLEMENTATION_COMPLETE'],
     ['VALIDATE', 'IMPLEMENT', 'CHECK_FAILED'],
+    ['VALIDATE', 'PUBLISH_DRAFT', 'OPERATIONAL_MECHANICAL_CHECKS_GREEN_AND_MATERIAL_COVERAGE_COMPLETE'],
     ['VALIDATE', 'REVIEW', 'PROVIDER_FREE_CHECKS_GREEN'],
     ['REVIEW', 'REMEDIATE', 'BLOCKING_FINDING'],
     ['REVIEW', 'PUBLISH_DRAFT', 'NO_BLOCKING_FINDING'],
@@ -988,7 +1006,7 @@ describe('skill-evidence delivery supervisor', () => {
     expect(policy).toContain('P3 findings are advisory');
   });
 
-  it('composes operational review coverage and gates the third reinforced round without adding a user gate', async () => {
+  it('composes operational mechanical coverage and gates the third reinforced round without adding a user gate', async () => {
     const [contractText, policy, skill] = await Promise.all([
       readFile(join(skillRoot, 'references', 'supervisor-contract.json'), 'utf8'),
       readFile(join(skillRoot, 'references', 'supervisor-policy.md'), 'utf8'),
@@ -998,13 +1016,23 @@ describe('skill-evidence delivery supervisor', () => {
 
     expect(reviewCompositionDiagnostics(contract)).toEqual([]);
     expect(policy).toContain('Composable operational delta');
-    expect(policy).toContain('one fresh reviewer');
+    expect(policy).toContain('mechanical checks only');
+    expect(policy).toContain('Do not dispatch a reviewer, second reviewer, consolidator, model, or semantic adjudication');
     expect(policy).toContain('The first two reinforced rounds');
     expect(policy).toContain('the first reinforced reviewer starts');
     expect(policy).toContain('third reinforced round');
     expect(policy).toContain('exact base commit, plan revision, material identity, and one additional round');
     expect(skill).toContain('Classify the current identities against a validated prior coverage receipt');
+    expect(skill).toContain('Never dispatch a reviewer, consolidator, model, or semantic/scientific adjudication for operational text');
     expect(skill).toContain('Never dispatch a third reinforced round without `WAIT_RISK_APPROVAL`');
+
+    const operationalReviewer = structuredClone(contract);
+    (operationalReviewer.review!.deltaRouting as Array<{ delta: string; mode: string }>)[1]!.mode = 'TARGETED_STANDARD';
+    expect(reviewCompositionDiagnostics(operationalReviewer)).toContain('delta-routing');
+
+    const semanticOperationalReview = structuredClone(contract);
+    (semanticOperationalReview.review!.operationalDeltaSemantics as { semanticAdjudication: string }).semanticAdjudication = 'REQUIRED';
+    expect(reviewCompositionDiagnostics(semanticOperationalReview)).toContain('operational-delta-semantics');
 
     const bypass = structuredClone(contract);
     (bypass.review!.reinforcedRoundBudget as { automaticRounds: number }).automaticRounds = 3;
@@ -1111,12 +1139,11 @@ describe('skill-evidence delivery supervisor', () => {
       featureHeadSha: '3'.repeat(40),
       hostedChecks: 'GREEN',
       reviewBaseTipSha: '2'.repeat(40),
-      reviewCoverageReceipt: 'sha256:coverage',
+      currentCoverageReceipt: 'sha256:coverage',
       reviewContentIdentity: 'sha256:reviewed',
-      reviewOperationalEvidenceIdentity: 'sha256:operational',
+      coverageOperationalEvidenceIdentity: 'sha256:operational',
       reviewedBaseTipSha: '2'.repeat(40),
       reviewedContentIdentity: 'sha256:reviewed',
-      reviewedOperationalEvidenceIdentity: 'sha256:operational',
       validatedBaseTipSha: '2'.repeat(40),
       validatedContentIdentity: 'sha256:reviewed',
       validatedCoverageReceipt: 'sha256:coverage',
@@ -1124,7 +1151,7 @@ describe('skill-evidence delivery supervisor', () => {
     };
 
     expect(preCardMergeContextDiagnostics(contract, current)).toEqual([]);
-    expect(policy).toContain('Hosted GREEN never combines old validation or review with a changed binding.');
+    expect(policy).toContain('Hosted GREEN never combines old validation, material review, or mechanical checks with a changed binding.');
     expect(policy).toContain('`git merge-tree --write-tree <base-tip> <feature-head>`');
 
     const movedTarget = { ...current, currentBaseTipSha: '4'.repeat(40) };
@@ -1458,7 +1485,7 @@ describe('skill-evidence delivery supervisor', () => {
       ]);
       const coveredReceipt = JSON.parse(await readFile(receiptPath, 'utf8')) as {
         coverage: {
-          acceptedOperationalDeltaReviews: Array<null | { path: string; sha256: string }>;
+          acceptedOperationalDeltaChecks: Array<null | { path: string; sha256: string }>;
           findingDisposition: null | { path: string; sha256: string };
           foundationReview: null | { path: string; sha256: string };
           reinforcedRounds: Array<null | { path: string; sha256: string }>;
@@ -1486,7 +1513,7 @@ describe('skill-evidence delivery supervisor', () => {
       });
       expect(initial.output.receipt?.coverage).toEqual({
         foundationReview: null,
-        acceptedOperationalDeltaReviews: [],
+        acceptedOperationalDeltaChecks: [],
         reinforcedRounds: [],
         findingDisposition: null,
       });
@@ -1538,7 +1565,7 @@ describe('skill-evidence delivery supervisor', () => {
       });
 
       const nullArrayEntry = structuredClone(coveredReceipt);
-      nullArrayEntry.coverage.acceptedOperationalDeltaReviews.push(null);
+      nullArrayEntry.coverage.acceptedOperationalDeltaChecks.push(null);
       await writeFile(receiptPath, `${JSON.stringify(nullArrayEntry)}\n`);
       const nullArrayEntryPrevious = await runReviewedContentIdentity(repositoryRoot, baseCommit, [
         '--previous-receipt',
@@ -1579,17 +1606,17 @@ describe('skill-evidence delivery supervisor', () => {
         sha256: createHash('sha256').update(foundationReview).digest('hex'),
       });
 
-      const deltaReview = `${JSON.stringify({
-        format: 'skill-evidence-operational-delta-review/v1',
-        kind: 'OPERATIONAL_DELTA_REVIEW',
+      const deltaCheck = `${JSON.stringify({
+        format: 'skill-evidence-operational-delta-check/v1',
+        kind: 'OPERATIONAL_DELTA_CHECK',
         baseCommit,
         activeExecPlan: 'docs/execplans/2026-08-14-fixture.md',
         planRevision,
         materialIdentity: operational.output.material?.identity,
         fromOperationalEvidenceIdentity: initial.output.operationalEvidence?.identity,
         toOperationalEvidenceIdentity: operational.output.operationalEvidence?.identity,
-        topology: 'STANDARD',
-        outcome: 'P0_P2_NONE',
+        topology: 'MECHANICAL_ONLY',
+        outcome: 'GREEN',
       })}\n`;
       const operationalDisposition = `${JSON.stringify({
         format: 'skill-evidence-finding-disposition/v1',
@@ -1599,16 +1626,16 @@ describe('skill-evidence delivery supervisor', () => {
         planRevision,
         materialIdentity: operational.output.material?.identity,
         operationalEvidenceIdentity: operational.output.operationalEvidence?.identity,
-        outcome: 'P0_P2_NONE',
+        outcome: 'MATERIAL_P0_P2_NONE_MECHANICALLY_CARRIED',
       })}\n`;
       await Promise.all([
-        writeFile(join(repositoryRoot, '.skill-evidence', 'supervisor', 'reviews', 'operational-delta.json'), deltaReview),
+        writeFile(join(repositoryRoot, '.skill-evidence', 'supervisor', 'reviews', 'operational-delta.json'), deltaCheck),
         writeFile(join(repositoryRoot, '.skill-evidence', 'supervisor', 'reviews', 'operational-disposition.json'), operationalDisposition),
       ]);
       const operationalCoveredReceipt = structuredClone(operational.output.receipt) as typeof coveredReceipt;
-      operationalCoveredReceipt.coverage.acceptedOperationalDeltaReviews.push({
+      operationalCoveredReceipt.coverage.acceptedOperationalDeltaChecks.push({
         path: '.skill-evidence/supervisor/reviews/operational-delta.json',
-        sha256: createHash('sha256').update(deltaReview).digest('hex'),
+        sha256: createHash('sha256').update(deltaCheck).digest('hex'),
       });
       operationalCoveredReceipt.coverage.findingDisposition = {
         path: '.skill-evidence/supervisor/reviews/operational-disposition.json',
@@ -1624,7 +1651,7 @@ describe('skill-evidence delivery supervisor', () => {
       expect(material.output.material?.identity).not.toBe(initial.output.material?.identity);
       expect(material.output.receipt?.coverage).toEqual({
         foundationReview: null,
-        acceptedOperationalDeltaReviews: [],
+        acceptedOperationalDeltaChecks: [],
         reinforcedRounds: [
           {
             path: '.skill-evidence/supervisor/reviews/reinforced-round-a.md',
@@ -1692,7 +1719,7 @@ describe('skill-evidence delivery supervisor', () => {
       expect(thirdMaterial.output.material?.identity).not.toBe(material.output.material?.identity);
       expect(thirdMaterial.output.receipt?.coverage).toEqual({
         foundationReview: null,
-        acceptedOperationalDeltaReviews: [],
+        acceptedOperationalDeltaChecks: [],
         reinforcedRounds: [
           {
             path: '.skill-evidence/supervisor/reviews/reinforced-round-a.md',

@@ -435,9 +435,23 @@ function validateIdentityContract(contract) {
     JSON.stringify(identity.receiptPersistence?.artifactFormats) !==
       JSON.stringify({
         foundationReview: 'skill-evidence-foundation-review/v1',
-        operationalDeltaReview: 'skill-evidence-operational-delta-review/v1',
+        operationalDeltaCheck: 'skill-evidence-operational-delta-check/v1',
         reinforcedRoundStart: 'skill-evidence-reinforced-round-start/v1',
         findingDisposition: 'skill-evidence-finding-disposition/v1',
+      }) ||
+    JSON.stringify(contract.review?.operationalDeltaSemantics) !==
+      JSON.stringify({
+        checks: [
+          'IDENTITIES_REPRODUCED_TWICE',
+          'MATERIAL_IDENTITY_UNCHANGED',
+          'OPERATIONAL_ALLOWLIST',
+          'UTF8_LF',
+          'SECTION_CARDINALITY',
+          'APPLICABLE_FORMAT_LINK_PATH_DIFF_CHECKS',
+        ],
+        dispatch: 'NO_REVIEWER_CONSOLIDATOR_OR_MODEL',
+        semanticAdjudication: 'FORBIDDEN',
+        findingDisposition: 'MATERIAL_P0_P2_NONE_MECHANICALLY_CARRIED',
       }) ||
     JSON.stringify(identity.stableCollection) !==
       JSON.stringify({
@@ -754,7 +768,7 @@ function validateCompleteCoverage(repositoryRoot, receipt) {
   }
 
   let operationalIdentity = foundation.operationalEvidenceIdentity;
-  for (const reference of coverage.acceptedOperationalDeltaReviews) {
+  for (const reference of coverage.acceptedOperationalDeltaChecks) {
     const delta = readCoverageArtifact(repositoryRoot, reference);
     if (
       delta === null ||
@@ -771,22 +785,22 @@ function validateCompleteCoverage(repositoryRoot, receipt) {
         'topology',
         'outcome',
       ]) ||
-      delta.format !== 'skill-evidence-operational-delta-review/v1' ||
-      delta.kind !== 'OPERATIONAL_DELTA_REVIEW' ||
+      delta.format !== 'skill-evidence-operational-delta-check/v1' ||
+      delta.kind !== 'OPERATIONAL_DELTA_CHECK' ||
       delta.baseCommit !== receipt.baseCommit ||
       delta.activeExecPlan !== receipt.activeExecPlan ||
       delta.planRevision !== receipt.planRevision ||
       delta.materialIdentity !== receipt.material.identity ||
       delta.fromOperationalEvidenceIdentity !== operationalIdentity ||
       !IDENTITY_PATTERN.test(delta.toOperationalEvidenceIdentity) ||
-      delta.topology !== 'STANDARD' ||
-      delta.outcome !== 'P0_P2_NONE'
+      delta.topology !== 'MECHANICAL_ONLY' ||
+      delta.outcome !== 'GREEN'
     ) {
-      fail('invalid operational delta review artifact');
+      fail('invalid operational delta check artifact');
     }
     operationalIdentity = delta.toOperationalEvidenceIdentity;
   }
-  if (operationalIdentity !== receipt.operationalEvidence.identity) fail('operational review chain is incomplete');
+  if (operationalIdentity !== receipt.operationalEvidence.identity) fail('operational check chain is incomplete');
 
   const disposition = readCoverageArtifact(repositoryRoot, coverage.findingDisposition);
   if (
@@ -809,7 +823,8 @@ function validateCompleteCoverage(repositoryRoot, receipt) {
     disposition.planRevision !== receipt.planRevision ||
     disposition.materialIdentity !== receipt.material.identity ||
     disposition.operationalEvidenceIdentity !== receipt.operationalEvidence.identity ||
-    disposition.outcome !== 'P0_P2_NONE'
+    disposition.outcome !==
+      (coverage.acceptedOperationalDeltaChecks.length === 0 ? 'P0_P2_NONE' : 'MATERIAL_P0_P2_NONE_MECHANICALLY_CARRIED')
   ) {
     fail('invalid finding disposition artifact');
   }
@@ -832,8 +847,8 @@ function validateReceiptStructure(repositoryRoot, receipt, persistence) {
   if (
     coverage === null ||
     typeof coverage !== 'object' ||
-    !hasExactKeys(coverage, ['foundationReview', 'acceptedOperationalDeltaReviews', 'reinforcedRounds', 'findingDisposition']) ||
-    !Array.isArray(coverage.acceptedOperationalDeltaReviews) ||
+    !hasExactKeys(coverage, ['foundationReview', 'acceptedOperationalDeltaChecks', 'reinforcedRounds', 'findingDisposition']) ||
+    !Array.isArray(coverage.acceptedOperationalDeltaChecks) ||
     !Array.isArray(coverage.reinforcedRounds)
   ) {
     fail('invalid receipt coverage');
@@ -1025,7 +1040,7 @@ function main() {
     operationalEvidence: { manifest: operationalEvidence.manifest, identity: operationalEvidence.identity },
     coverage: {
       foundationReview: null,
-      acceptedOperationalDeltaReviews: [],
+      acceptedOperationalDeltaChecks: [],
       reinforcedRounds: [],
       findingDisposition: null,
     },

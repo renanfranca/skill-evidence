@@ -62,6 +62,11 @@
       { "from": "WAIT_PLAN_APPROVAL", "to": "PLAN", "when": "REVISIONS_REQUESTED" },
       { "from": "IMPLEMENT", "to": "VALIDATE", "when": "IMPLEMENTATION_COMPLETE" },
       { "from": "VALIDATE", "to": "IMPLEMENT", "when": "CHECK_FAILED" },
+      {
+        "from": "VALIDATE",
+        "to": "PUBLISH_DRAFT",
+        "when": "OPERATIONAL_MECHANICAL_CHECKS_GREEN_AND_MATERIAL_COVERAGE_COMPLETE"
+      },
       { "from": "VALIDATE", "to": "REVIEW", "when": "PROVIDER_FREE_CHECKS_GREEN" },
       { "from": "REVIEW", "to": "REMEDIATE", "when": "BLOCKING_FINDING" },
       { "from": "REVIEW", "to": "PUBLISH_DRAFT", "when": "NO_BLOCKING_FINDING" },
@@ -129,10 +134,23 @@
     "blockingSeverities": ["P0", "P1", "P2"],
     "deltaRouting": [
       { "delta": "UNCHANGED", "mode": "REUSE_COMPLETE_COVERAGE" },
-      { "delta": "OPERATIONAL_ONLY", "mode": "TARGETED_STANDARD" },
+      { "delta": "OPERATIONAL_ONLY", "mode": "MECHANICAL_ONLY" },
       { "delta": "MATERIAL_STANDARD", "mode": "FULL_STANDARD" },
       { "delta": "MATERIAL_REINFORCED", "mode": "FULL_REINFORCED" }
     ],
+    "operationalDeltaSemantics": {
+      "checks": [
+        "IDENTITIES_REPRODUCED_TWICE",
+        "MATERIAL_IDENTITY_UNCHANGED",
+        "OPERATIONAL_ALLOWLIST",
+        "UTF8_LF",
+        "SECTION_CARDINALITY",
+        "APPLICABLE_FORMAT_LINK_PATH_DIFF_CHECKS"
+      ],
+      "dispatch": "NO_REVIEWER_CONSOLIDATOR_OR_MODEL",
+      "semanticAdjudication": "FORBIDDEN",
+      "findingDisposition": "MATERIAL_P0_P2_NONE_MECHANICALLY_CARRIED"
+    },
     "coverageReceipt": {
       "format": "skill-evidence-review-coverage/v2",
       "bindings": [
@@ -141,7 +159,7 @@
         "MATERIAL_IDENTITY",
         "OPERATIONAL_EVIDENCE_IDENTITY",
         "FOUNDATION_REVIEW",
-        "ACCEPTED_OPERATIONAL_DELTA_REVIEWS",
+        "ACCEPTED_OPERATIONAL_DELTA_CHECKS",
         "REINFORCED_ROUNDS",
         "FINDING_DISPOSITION"
       ],
@@ -197,19 +215,21 @@
         "REVIEW_RESULT_CONTENT_IDENTITY"
       ],
       "operationalEvidenceIdentityEqualities": [
-        "REVIEWED_OPERATIONAL_EVIDENCE_IDENTITY",
         "VALIDATED_OPERATIONAL_EVIDENCE_IDENTITY",
         "FEATURE_HEAD_OPERATIONAL_EVIDENCE_IDENTITY",
-        "REVIEW_RESULT_OPERATIONAL_EVIDENCE_IDENTITY"
+        "COVERAGE_OPERATIONAL_EVIDENCE_IDENTITY"
       ],
-      "coverageReceiptEquality": ["VALIDATED_COVERAGE_RECEIPT", "REVIEW_RESULT_COVERAGE_RECEIPT", "FEATURE_HEAD_COVERAGE_RECEIPT"],
+      "coverageReceiptEquality": ["VALIDATED_COVERAGE_RECEIPT", "CURRENT_COVERAGE_RECEIPT", "FEATURE_HEAD_COVERAGE_RECEIPT"],
       "candidateMergeTree": {
         "derivation": "GIT_MERGE_TREE_WRITE_TREE",
         "inputs": ["CURRENT_BASE_TIP_SHA", "FEATURE_HEAD_SHA"],
         "result": "CANDIDATE_MERGE_TREE_OID"
       },
       "hostedGreenReuse": "FORBIDDEN_ACROSS_BINDING_CHANGE",
-      "mismatchDisposition": ["VALIDATE", "REVIEW"]
+      "mismatchDisposition": {
+        "operationalOrCoverage": "VALIDATE_MECHANICALLY",
+        "material": ["VALIDATE", "REVIEW"]
+      }
     },
     "bindings": [
       { "id": "PULL_REQUEST", "field": "pullRequest" },
@@ -309,7 +329,7 @@
       "directoryConfinement": "HELD_NOFOLLOW_DIRECTORY_DESCRIPTOR",
       "artifactFormats": {
         "foundationReview": "skill-evidence-foundation-review/v1",
-        "operationalDeltaReview": "skill-evidence-operational-delta-review/v1",
+        "operationalDeltaCheck": "skill-evidence-operational-delta-check/v1",
         "reinforcedRoundStart": "skill-evidence-reinforced-round-start/v1",
         "findingDisposition": "skill-evidence-finding-disposition/v1"
       }
