@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "activation": {
     "mode": "EXPLICIT_ONLY",
     "supervisorTask": {
@@ -62,11 +62,17 @@
       { "from": "WAIT_PLAN_APPROVAL", "to": "PLAN", "when": "REVISIONS_REQUESTED" },
       { "from": "IMPLEMENT", "to": "VALIDATE", "when": "IMPLEMENTATION_COMPLETE" },
       { "from": "VALIDATE", "to": "IMPLEMENT", "when": "CHECK_FAILED" },
+      {
+        "from": "VALIDATE",
+        "to": "PUBLISH_DRAFT",
+        "when": "OPERATIONAL_MECHANICAL_CHECKS_GREEN_AND_MATERIAL_COVERAGE_COMPLETE"
+      },
       { "from": "VALIDATE", "to": "REVIEW", "when": "PROVIDER_FREE_CHECKS_GREEN" },
       { "from": "REVIEW", "to": "REMEDIATE", "when": "BLOCKING_FINDING" },
       { "from": "REVIEW", "to": "PUBLISH_DRAFT", "when": "NO_BLOCKING_FINDING" },
       { "from": "REMEDIATE", "to": "VALIDATE", "when": "REMEDIATION_COMPLETE" },
       { "from": "PUBLISH_DRAFT", "to": "VALIDATE", "when": "MATERIAL_CONTENT_CHANGED" },
+      { "from": "PUBLISH_DRAFT", "to": "VALIDATE", "when": "OPERATIONAL_EVIDENCE_OR_COVERAGE_CHANGED" },
       { "from": "PUBLISH_DRAFT", "to": "IMPLEMENT", "when": "HOSTED_CHECK_FAILED" },
       { "from": "PUBLISH_DRAFT", "to": "WAIT_MERGE_APPROVAL", "when": "HOSTED_CHECKS_GREEN" },
       { "from": "WAIT_MERGE_APPROVAL", "to": "CLOSE", "when": "EXACT_CURRENT_CARD_APPROVED" },
@@ -126,6 +132,46 @@
     "standardTopology": ["FRESH_REVIEWER", "SUPERVISOR_RECONCILIATION"],
     "reinforcedTopology": ["FRESH_REVIEWER_A", "FRESH_REVIEWER_B", "FRESH_CONSOLIDATOR"],
     "blockingSeverities": ["P0", "P1", "P2"],
+    "deltaRouting": [
+      { "delta": "UNCHANGED", "mode": "REUSE_COMPLETE_COVERAGE" },
+      { "delta": "OPERATIONAL_ONLY", "mode": "MECHANICAL_ONLY" },
+      { "delta": "MATERIAL_STANDARD", "mode": "FULL_STANDARD" },
+      { "delta": "MATERIAL_REINFORCED", "mode": "FULL_REINFORCED" }
+    ],
+    "operationalDeltaSemantics": {
+      "checks": [
+        "IDENTITIES_REPRODUCED_TWICE",
+        "MATERIAL_IDENTITY_UNCHANGED",
+        "OPERATIONAL_ALLOWLIST",
+        "UTF8_LF",
+        "SECTION_CARDINALITY",
+        "APPLICABLE_FORMAT_LINK_PATH_DIFF_CHECKS"
+      ],
+      "dispatch": "NO_REVIEWER_CONSOLIDATOR_OR_MODEL",
+      "semanticAdjudication": "FORBIDDEN",
+      "findingDisposition": "MATERIAL_P0_P2_NONE_MECHANICALLY_CARRIED"
+    },
+    "coverageReceipt": {
+      "format": "skill-evidence-review-coverage/v2",
+      "bindings": [
+        "BASE_COMMIT",
+        "ACTIVE_EXECPLAN",
+        "MATERIAL_IDENTITY",
+        "OPERATIONAL_EVIDENCE_IDENTITY",
+        "FOUNDATION_REVIEW",
+        "ACCEPTED_OPERATIONAL_DELTA_CHECKS",
+        "REINFORCED_ROUNDS",
+        "FINDING_DISPOSITION"
+      ],
+      "references": "PATHS_AND_SHA256_ONLY",
+      "rawCandidateBytes": "FORBIDDEN"
+    },
+    "reinforcedRoundBudget": {
+      "automaticRounds": 2,
+      "consumedWhen": "FIRST_REINFORCED_REVIEWER_STARTS_FOR_DISTINCT_MATERIAL_IDENTITY",
+      "nextRoundStateWhenExhausted": "WAIT_RISK_APPROVAL",
+      "approvalBinding": ["BASE_COMMIT", "PLAN_REVISION", "MATERIAL_IDENTITY", "EXACTLY_ONE_ADDITIONAL_ROUND"]
+    },
     "surfaceRouting": [
       { "surface": "SCHEMA", "mode": "REINFORCED" },
       { "surface": "PUBLIC_API", "mode": "REINFORCED" },
@@ -168,13 +214,22 @@
         "FEATURE_HEAD_MATERIAL_IDENTITY",
         "REVIEW_RESULT_CONTENT_IDENTITY"
       ],
+      "operationalEvidenceIdentityEqualities": [
+        "VALIDATED_OPERATIONAL_EVIDENCE_IDENTITY",
+        "FEATURE_HEAD_OPERATIONAL_EVIDENCE_IDENTITY",
+        "COVERAGE_OPERATIONAL_EVIDENCE_IDENTITY"
+      ],
+      "coverageReceiptEquality": ["VALIDATED_COVERAGE_RECEIPT", "CURRENT_COVERAGE_RECEIPT", "FEATURE_HEAD_COVERAGE_RECEIPT"],
       "candidateMergeTree": {
         "derivation": "GIT_MERGE_TREE_WRITE_TREE",
         "inputs": ["CURRENT_BASE_TIP_SHA", "FEATURE_HEAD_SHA"],
         "result": "CANDIDATE_MERGE_TREE_OID"
       },
       "hostedGreenReuse": "FORBIDDEN_ACROSS_BINDING_CHANGE",
-      "mismatchDisposition": ["VALIDATE", "REVIEW"]
+      "mismatchDisposition": {
+        "operationalOrCoverage": "VALIDATE_MECHANICALLY",
+        "material": ["VALIDATE", "REVIEW"]
+      }
     },
     "bindings": [
       { "id": "PULL_REQUEST", "field": "pullRequest" },
@@ -185,13 +240,18 @@
       { "id": "REQUIRED_CHECKS", "field": "requiredChecks" },
       { "id": "REVIEW_TOPOLOGY", "field": "reviewTopology" },
       { "id": "FINDING_DISPOSITION", "field": "findingDisposition" },
+      { "id": "MATERIAL_IDENTITY", "field": "materialIdentity" },
+      { "id": "OPERATIONAL_EVIDENCE_IDENTITY", "field": "operationalEvidenceIdentity" },
+      { "id": "REVIEW_COVERAGE_RECEIPT", "field": "reviewCoverageReceipt" },
       { "id": "MERGEABILITY", "field": "mergeability" }
     ],
     "invalidateOnAnyBindingChange": true,
     "targetBranchMovementDisposition": "RETURN_TO_PROPORTIONATE_VALIDATION_AND_REVIEW"
   },
   "reviewedContentIdentity": {
-    "format": "skill-evidence-reviewed-material/v1",
+    "format": "skill-evidence-reviewed-content/v2",
+    "materialFormat": "skill-evidence-reviewed-material/v2",
+    "operationalEvidenceFormat": "skill-evidence-operational-evidence/v2",
     "digestAlgorithm": "sha256",
     "canonicalEncoding": "UTF-8",
     "pathEncoding": "UTF-8",
@@ -218,24 +278,61 @@
     "deletionRepresentation": { "mode": null, "contentSha256": null },
     "activeExecPlanDiscovery": {
       "indexPath": "docs/execplans/README.md",
-      "statusPrefix": "Active:",
+      "activeStatus": "Active",
       "requiredMatches": 1,
       "directory": "docs/execplans",
       "directChildFilePattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*\\.md$"
     },
-    "normalization": {
-      "version": "skill-evidence-execplan-evidence-normalization/v1",
+    "partitions": {
+      "version": "skill-evidence-execplan-partitions/v2",
       "sections": [
         {
-          "heading": "Supervisor Record",
-          "marker": "<!-- skill-evidence-normalized:supervisor-record:v1 -->"
+          "heading": "Existing Context",
+          "marker": "<!-- skill-evidence-partitioned:existing-context:v2 -->",
+          "active": "OPERATIONAL",
+          "inactive": "OPERATIONAL"
         },
-        { "heading": "Progress", "marker": "<!-- skill-evidence-normalized:progress:v1 -->" },
+        {
+          "heading": "Supervisor Record",
+          "marker": "<!-- skill-evidence-partitioned:supervisor-record:v2 -->",
+          "active": "IDENTITY_NEUTRAL",
+          "inactive": "OPERATIONAL"
+        },
+        {
+          "heading": "Progress",
+          "marker": "<!-- skill-evidence-partitioned:progress:v2 -->",
+          "active": "IDENTITY_NEUTRAL",
+          "inactive": "OPERATIONAL"
+        },
         {
           "heading": "Lessons Learned",
-          "marker": "<!-- skill-evidence-normalized:lessons-learned:v1 -->"
+          "marker": "<!-- skill-evidence-partitioned:lessons-learned:v2 -->",
+          "active": "IDENTITY_NEUTRAL",
+          "inactive": "OPERATIONAL"
         }
-      ]
+      ],
+      "activeCardinality": "EXACTLY_ONE_EACH",
+      "inactiveCardinality": "ZERO_OR_ONE_EACH",
+      "indexPartition": "MATERIAL"
+    },
+    "receiptPersistence": {
+      "format": "skill-evidence-review-coverage/v2",
+      "directory": ".skill-evidence/supervisor/reviews",
+      "previousOption": "--previous-receipt",
+      "writeOption": "--write-receipt",
+      "writeMode": "ATOMIC_CREATE_ONLY",
+      "content": "PATHS_AND_HASHES_ONLY",
+      "invalidPreviousDisposition": "FULL_REVIEW_REQUIRED",
+      "incrementBinding": ["ACTIVE_EXECPLAN", "PLAN_REVISION"],
+      "coverageValidation": "IDENTITY_BOUND_CANONICAL_REVIEW_CHAIN",
+      "roundLedger": "INDEPENDENT_MONOTONIC_DISTINCT_MATERIAL_IDENTITIES",
+      "directoryConfinement": "HELD_NOFOLLOW_DIRECTORY_DESCRIPTOR",
+      "artifactFormats": {
+        "foundationReview": "skill-evidence-foundation-review/v1",
+        "operationalDeltaCheck": "skill-evidence-operational-delta-check/v1",
+        "reinforcedRoundStart": "skill-evidence-reinforced-round-start/v1",
+        "findingDisposition": "skill-evidence-finding-disposition/v1"
+      }
     },
     "stableCollection": {
       "requiredConsecutiveCollections": 2,
