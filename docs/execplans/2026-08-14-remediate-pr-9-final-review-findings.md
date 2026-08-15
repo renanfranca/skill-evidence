@@ -65,22 +65,11 @@ At approval of revision 1, the worktree was clean and synchronized with `origin/
 
 ## Supervisor Record
 
-- State: `PUBLISH_DRAFT`
-- Evidence refreshed: 2026-08-14 after the third reinforced review and direct consolidation returned no P0–P3
+- State: `COMPLETE`; merged through PR #9
+- Evidence refreshed: 2026-08-14 after verified merge and transfer to ExecPlan 24
 - Contract: revision 1, `APPROVED`
-- Worktree: `/home/renanfranca/projects/skill-evidence`
-- Branch: `feat/e21-author-protocol-v3`
-- Exact base tip: `95d9cd3441bbe91649270f3ef71166ce6c75b533`
-- Feature head: `e916f049f39a509fa590d99b6c3ca63288e3b29f`
-- Candidate merge tree: not derived; merge is not eligible while findings remain
-- Working tree: approved plan plus uncommitted Milestones 1–3 changes, the completed technical remediation retained by the first Milestone 4 review, and the bounded documentation-handoff remediation retained by the second review
-- Identity chronology: the first Milestone 4 identity `sha256:feca5a631f2dc21ae4b3ae7a9224ecd3fc0b0e0dac86a75baf8ae1afb043688c` was blocked by three retained P2 findings. The second identity `sha256:1b145aa48cf569cb3a950a6332a9323593346371e16025f3131b82177f5316b9` passed the post-remediation matrix; its review closed the ancestor and provenance findings but retained the documentation-handoff P2, so that material correction superseded it
-- Current reviewed identity: after the bounded documentation correction and complete provider-free matrix, two byte-identical collections over exact base `95d9cd3441bbe91649270f3ef71166ce6c75b533` produced the 37-entry, 7,116-byte canonical manifest identity `sha256:0495002e0b34a682f8c519a4f8b8b70b63416275ddfe767e6a790afb5c3de070`; two fresh independent reviewers and a fresh consolidator reproduced this identity and retained no P0–P3
-- Last validation: for the documentation correction, focused suites are GREEN with 90 tests (22 supervisor and 68 Author) and full Vitest is GREEN with 211 tests across 19 files; typecheck, quick skill validation, lint, repository-wide Prettier, build, `git diff --check`, `npm audit` with zero vulnerabilities, `experiment:verify` with zero provider imports, and every prescribed deterministic archaeological, Author, provider-adapter, lifecycle, protocol-v3, operability, benchmark-offline, and benchmark-runner qualifier are GREEN with zero external provider calls
-- Review: the first reinforced review examined `feca…688c` and retained three P2 after direct consolidation. The second examined `1b145…316b9`, closed the ancestor and provenance findings, and retained one documentation-handoff P2. After that material correction, the third reinforced review examined `049500…de070`; both fresh independent reviewers and a fresh consolidator reproduced the exact identity, accepted the reports from direct evidence, and retained no P0–P3. The stale PR body remains deliberately deferred to this `PUBLISH_DRAFT` state
-- Pull request: draft PR #9, base `main`, exact base/head above, exact-head `validation` GREEN, `MERGEABLE` / `CLEAN`; body is stale
-- Pending gate: none
-- Operational blocker: none
+- Terminal result: PR #9 merged into `main` as `6a7f9c6f99513b25551e79b7ee73927ff2f39a97`; the final reviewed material identity was `sha256:0495002e0b34a682f8c519a4f8b8b70b63416275ddfe767e6a790afb5c3de070`, with no retained P0–P3
+- Current delivery locator: `docs/execplans/README.md`; this inactive plan records terminal history only and does not own current branch, identity, validation, review, pull-request, gate, or blocker state
 
 ## Desired End State
 
@@ -179,8 +168,10 @@ Acceptance: the remote draft head equals the reviewed local commit, PR body and 
   - Two serializer invocations completed on the unchanged correction. Independent reconstruction from the canonical contract derived the 37-entry, 7,116-byte candidate manifest identity `sha256:0495002e0b34a682f8c519a4f8b8b70b63416275ddfe767e6a790afb5c3de070`; this records a candidate identity only, not a validation or review binding.
 - [x] Rebind the documentation correction through the complete provider-free matrix, exact identity reproduction, and reinforced review.
   - The material correction superseded `1b145…316b9`. The complete provider-free matrix is GREEN with 22/22 supervisor, 68/68 Author, 211/211 full suite across 19 files, all prescribed checks, zero external provider calls, and zero audit vulnerabilities. Two byte-identical 37-entry, 7,116-byte collections produced identity `sha256:0495002e0b34a682f8c519a4f8b8b70b63416275ddfe767e6a790afb5c3de070`; two fresh independent reviewers and a fresh consolidator reproduced it and retained no P0–P3.
-- [ ] Commit, push, update draft PR #9, and confirm exact-head hosted GREEN.
-- [ ] Present a Merge decision card only if every exact binding is current.
+- [x] Commit, push, update draft PR #9, and confirm exact-head hosted GREEN.
+  - Commit `726e0c78fa8683a5d5250f0cb4a21a3c291613b1` reproduced the reviewed identity, exact-head hosted validation passed, and the PR body was reconciled before merge.
+- [x] Present a Merge decision card only if every exact binding is current.
+  - The user approved the exact current Merge card; PR #9 merged into `main` as `6a7f9c6f99513b25551e79b7ee73927ff2f39a97` with candidate tree `0dc5c10dd1672bdf99ec887ab53fa19790c5773b`.
 
 ## Decisions
 

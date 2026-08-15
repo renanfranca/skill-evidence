@@ -29,6 +29,9 @@ type SupervisorContract = {
   review?: {
     authorityBoundary?: unknown;
     blockingSeverities?: unknown;
+    coverageReceipt?: unknown;
+    deltaRouting?: unknown;
+    reinforcedRoundBudget?: unknown;
     reinforcedTopology?: unknown;
     standardTopology?: unknown;
     surfaceRouting?: unknown;
@@ -43,7 +46,10 @@ type SupervisorContract = {
     format?: unknown;
     gitSources?: unknown;
     lineSeparator?: unknown;
-    normalization?: unknown;
+    materialFormat?: unknown;
+    operationalEvidenceFormat?: unknown;
+    partitions?: unknown;
+    receiptPersistence?: unknown;
     pathSafety?: unknown;
     pathEncoding?: unknown;
     pathOrder?: unknown;
@@ -62,6 +68,49 @@ type SupervisorContract = {
     userGates?: unknown;
   };
 };
+
+function reviewCompositionDiagnostics(contract: SupervisorContract): string[] {
+  const diagnostics: string[] = [];
+  const expectedRouting = [
+    { delta: 'UNCHANGED', mode: 'REUSE_COMPLETE_COVERAGE' },
+    { delta: 'OPERATIONAL_ONLY', mode: 'TARGETED_STANDARD' },
+    { delta: 'MATERIAL_STANDARD', mode: 'FULL_STANDARD' },
+    { delta: 'MATERIAL_REINFORCED', mode: 'FULL_REINFORCED' },
+  ];
+  const expectedBudget = {
+    automaticRounds: 2,
+    consumedWhen: 'FIRST_REINFORCED_REVIEWER_STARTS_FOR_DISTINCT_MATERIAL_IDENTITY',
+    nextRoundStateWhenExhausted: 'WAIT_RISK_APPROVAL',
+    approvalBinding: ['BASE_COMMIT', 'PLAN_REVISION', 'MATERIAL_IDENTITY', 'EXACTLY_ONE_ADDITIONAL_ROUND'],
+  };
+
+  if (JSON.stringify(contract.review?.deltaRouting) !== JSON.stringify(expectedRouting)) diagnostics.push('delta-routing');
+  if (JSON.stringify(contract.review?.reinforcedRoundBudget) !== JSON.stringify(expectedBudget))
+    diagnostics.push('reinforced-round-budget');
+  if (
+    JSON.stringify(contract.stateMachine?.userGates) !== JSON.stringify(['WAIT_PLAN_APPROVAL', 'WAIT_RISK_APPROVAL', 'WAIT_MERGE_APPROVAL'])
+  ) {
+    diagnostics.push('user-gates');
+  }
+
+  return diagnostics;
+}
+
+function reinforcedDispatchState(contract: SupervisorContract, receipt: ReviewedContentOutput['receipt']): 'REVIEW' | 'WAIT_RISK_APPROVAL' {
+  const budget = contract.review?.reinforcedRoundBudget as
+    { automaticRounds?: unknown; consumedWhen?: unknown; nextRoundStateWhenExhausted?: unknown } | undefined;
+  const reinforcedRounds = (receipt?.coverage as { reinforcedRounds?: unknown } | undefined)?.reinforcedRounds;
+  if (
+    typeof budget?.automaticRounds !== 'number' ||
+    budget.consumedWhen !== 'FIRST_REINFORCED_REVIEWER_STARTS_FOR_DISTINCT_MATERIAL_IDENTITY' ||
+    budget.nextRoundStateWhenExhausted !== 'WAIT_RISK_APPROVAL' ||
+    !Array.isArray(reinforcedRounds)
+  ) {
+    throw new Error('invalid reinforced review budget evidence');
+  }
+
+  return reinforcedRounds.length >= budget.automaticRounds ? 'WAIT_RISK_APPROVAL' : 'REVIEW';
+}
 
 type ReviewInstruction = {
   action: string;
@@ -183,7 +232,7 @@ function authorityContractDiagnostics(contract: SupervisorContract, implicitInvo
     'ORIENT',
   ];
 
-  if (contract.schemaVersion !== 1) diagnostics.push('schema-version');
+  if (contract.schemaVersion !== 2) diagnostics.push('schema-version');
   if (contract.activation?.mode !== 'EXPLICIT_ONLY' || implicitInvocation !== false) diagnostics.push('implicit-activation');
   if (contract.conflictRule !== 'DENY_ON_CONFLICT') diagnostics.push('conflict-rule');
   if (JSON.stringify(contract.stateMachine?.states) !== JSON.stringify(expectedStates)) diagnostics.push('states');
@@ -308,9 +357,12 @@ type MergeEvidence = {
   featureHeadSha: string;
   findingDisposition: string;
   mergeability: string;
+  materialIdentity: string;
+  operationalEvidenceIdentity: string;
   pullRequest: string;
   requiredChecks: string;
   reviewTopology: string;
+  reviewCoverageReceipt: string;
 };
 
 function mergeApprovalDiagnostics(contract: SupervisorContract): string[] {
@@ -324,6 +376,9 @@ function mergeApprovalDiagnostics(contract: SupervisorContract): string[] {
     { id: 'REQUIRED_CHECKS', field: 'requiredChecks' },
     { id: 'REVIEW_TOPOLOGY', field: 'reviewTopology' },
     { id: 'FINDING_DISPOSITION', field: 'findingDisposition' },
+    { id: 'MATERIAL_IDENTITY', field: 'materialIdentity' },
+    { id: 'OPERATIONAL_EVIDENCE_IDENTITY', field: 'operationalEvidenceIdentity' },
+    { id: 'REVIEW_COVERAGE_RECEIPT', field: 'reviewCoverageReceipt' },
     { id: 'MERGEABILITY', field: 'mergeability' },
   ];
 
@@ -351,12 +406,19 @@ type PreCardMergeEvidence = {
   featureHeadMaterialIdentity: string;
   featureHeadSha: string;
   hostedChecks: 'GREEN';
+  featureHeadOperationalEvidenceIdentity: string;
+  featureHeadCoverageReceipt: string;
   reviewBaseTipSha: string;
   reviewContentIdentity: string;
+  reviewOperationalEvidenceIdentity: string;
+  reviewCoverageReceipt: string;
   reviewedBaseTipSha: string;
   reviewedContentIdentity: string;
+  reviewedOperationalEvidenceIdentity: string;
   validatedBaseTipSha: string;
   validatedContentIdentity: string;
+  validatedOperationalEvidenceIdentity: string;
+  validatedCoverageReceipt: string;
 };
 
 function preCardMergeContextDiagnostics(contract: SupervisorContract, evidence: PreCardMergeEvidence): string[] {
@@ -369,6 +431,13 @@ function preCardMergeContextDiagnostics(contract: SupervisorContract, evidence: 
       'FEATURE_HEAD_MATERIAL_IDENTITY',
       'REVIEW_RESULT_CONTENT_IDENTITY',
     ],
+    operationalEvidenceIdentityEqualities: [
+      'REVIEWED_OPERATIONAL_EVIDENCE_IDENTITY',
+      'VALIDATED_OPERATIONAL_EVIDENCE_IDENTITY',
+      'FEATURE_HEAD_OPERATIONAL_EVIDENCE_IDENTITY',
+      'REVIEW_RESULT_OPERATIONAL_EVIDENCE_IDENTITY',
+    ],
+    coverageReceiptEquality: ['VALIDATED_COVERAGE_RECEIPT', 'REVIEW_RESULT_COVERAGE_RECEIPT', 'FEATURE_HEAD_COVERAGE_RECEIPT'],
     candidateMergeTree: {
       derivation: 'GIT_MERGE_TREE_WRITE_TREE',
       inputs: ['CURRENT_BASE_TIP_SHA', 'FEATURE_HEAD_SHA'],
@@ -396,6 +465,19 @@ function preCardMergeContextDiagnostics(contract: SupervisorContract, evidence: 
   ) {
     diagnostics.push('stale-pre-card-content');
   }
+  if (
+    evidence.reviewedOperationalEvidenceIdentity !== evidence.validatedOperationalEvidenceIdentity ||
+    evidence.reviewedOperationalEvidenceIdentity !== evidence.featureHeadOperationalEvidenceIdentity ||
+    evidence.reviewedOperationalEvidenceIdentity !== evidence.reviewOperationalEvidenceIdentity
+  ) {
+    diagnostics.push('stale-pre-card-operational-evidence');
+  }
+  if (
+    evidence.validatedCoverageReceipt !== evidence.reviewCoverageReceipt ||
+    evidence.validatedCoverageReceipt !== evidence.featureHeadCoverageReceipt
+  ) {
+    diagnostics.push('stale-pre-card-coverage');
+  }
   if (evidence.candidateMergeTreeOid !== evidence.derivedCandidateMergeTreeOid) {
     diagnostics.push('stale-pre-card-candidate-tree');
   }
@@ -417,6 +499,7 @@ function stateTransitionDiagnostics(contract: SupervisorContract): string[] {
     ['REVIEW', 'PUBLISH_DRAFT', 'NO_BLOCKING_FINDING'],
     ['REMEDIATE', 'VALIDATE', 'REMEDIATION_COMPLETE'],
     ['PUBLISH_DRAFT', 'VALIDATE', 'MATERIAL_CONTENT_CHANGED'],
+    ['PUBLISH_DRAFT', 'VALIDATE', 'OPERATIONAL_EVIDENCE_OR_COVERAGE_CHANGED'],
     ['PUBLISH_DRAFT', 'IMPLEMENT', 'HOSTED_CHECK_FAILED'],
     ['PUBLISH_DRAFT', 'WAIT_MERGE_APPROVAL', 'HOSTED_CHECKS_GREEN'],
     ['WAIT_MERGE_APPROVAL', 'CLOSE', 'EXACT_CURRENT_CARD_APPROVED'],
@@ -457,11 +540,25 @@ function publicationChangeDiagnostics(contract: SupervisorContract): string[] {
   const materialChangeTransitions = transitions?.filter(
     ({ from, when }) => from === 'PUBLISH_DRAFT' && when === 'MATERIAL_CONTENT_CHANGED',
   );
+  const operationalOrCoverageChangeTransitions = transitions?.filter(
+    ({ from, when }) => from === 'PUBLISH_DRAFT' && when === 'OPERATIONAL_EVIDENCE_OR_COVERAGE_CHANGED',
+  );
+  const diagnostics: string[] = [];
 
-  return JSON.stringify(materialChangeTransitions) ===
+  if (
+    JSON.stringify(materialChangeTransitions) !==
     JSON.stringify([{ from: 'PUBLISH_DRAFT', to: 'VALIDATE', when: 'MATERIAL_CONTENT_CHANGED' }])
-    ? []
-    : ['publication-change-bypasses-validation'];
+  ) {
+    diagnostics.push('publication-material-change-bypasses-validation');
+  }
+  if (
+    JSON.stringify(operationalOrCoverageChangeTransitions) !==
+    JSON.stringify([{ from: 'PUBLISH_DRAFT', to: 'VALIDATE', when: 'OPERATIONAL_EVIDENCE_OR_COVERAGE_CHANGED' }])
+  ) {
+    diagnostics.push('publication-operational-or-coverage-change-bypasses-validation');
+  }
+
+  return diagnostics;
 }
 
 type PlanApprovalEvidence = {
@@ -524,35 +621,71 @@ type ReviewedContentEntry = {
 };
 
 type ReviewedContentOutput = {
-  canonicalManifest?: unknown;
-  identity?: unknown;
-  manifest?: {
-    activeExecPlan?: unknown;
-    baseCommit?: unknown;
-    digestAlgorithm?: unknown;
-    encoding?: unknown;
-    entries?: unknown;
-    format?: unknown;
-    lineSeparator?: unknown;
-    normalizationVersion?: unknown;
-    pathEncoding?: unknown;
-    pathOrder?: unknown;
+  comparison?: {
+    changedOperationalSections?: unknown;
+    classification?: unknown;
+    reason?: unknown;
   };
+  material?: {
+    canonicalManifest?: unknown;
+    identity?: unknown;
+    manifest?: {
+      activeExecPlan?: unknown;
+      baseCommit?: unknown;
+      digestAlgorithm?: unknown;
+      encoding?: unknown;
+      entries?: unknown;
+      format?: unknown;
+      lineSeparator?: unknown;
+      partitionVersion?: unknown;
+      pathEncoding?: unknown;
+      pathOrder?: unknown;
+    };
+  };
+  operationalEvidence?: {
+    canonicalManifest?: unknown;
+    identity?: unknown;
+    manifest?: {
+      activeExecPlan?: unknown;
+      baseCommit?: unknown;
+      entries?: unknown;
+      format?: unknown;
+      partitionVersion?: unknown;
+    };
+  };
+  persistedReceipt?: { path?: unknown; sha256?: unknown };
+  receipt?: {
+    coverage?: unknown;
+    [key: string]: unknown;
+  };
+};
+
+type ReviewedManifest = {
+  activeExecPlan?: unknown;
+  baseCommit?: unknown;
+  digestAlgorithm?: unknown;
+  encoding?: unknown;
+  entries?: unknown;
+  format?: unknown;
+  lineSeparator?: unknown;
+  partitionVersion?: unknown;
+  pathEncoding?: unknown;
+  pathOrder?: unknown;
 };
 
 function reviewedContentOutputDiagnostics(output: ReviewedContentOutput, expectedPaths: string[]): string[] {
   const diagnostics: string[] = [];
-  const manifest = output.manifest;
+  const manifest = output.material?.manifest as ReviewedManifest | undefined;
   const entries = manifest?.entries as ReviewedContentEntry[] | undefined;
 
   if (
-    manifest?.format !== 'skill-evidence-reviewed-material/v1' ||
+    manifest?.format !== 'skill-evidence-reviewed-material/v2' ||
     manifest.digestAlgorithm !== 'sha256' ||
     manifest.encoding !== 'UTF-8' ||
     manifest.lineSeparator !== 'LF' ||
     manifest.pathEncoding !== 'UTF-8' ||
     manifest.pathOrder !== 'UTF8_BYTEWISE_ASCENDING' ||
-    manifest.normalizationVersion !== 'skill-evidence-execplan-evidence-normalization/v1'
+    manifest.partitionVersion !== 'skill-evidence-execplan-partitions/v2'
   ) {
     diagnostics.push('manifest-header');
   }
@@ -562,9 +695,9 @@ function reviewedContentOutputDiagnostics(output: ReviewedContentOutput, expecte
 
   if (manifest !== undefined) {
     const canonicalManifest = `${JSON.stringify(manifest)}\n`;
-    if (output.canonicalManifest !== canonicalManifest) diagnostics.push('manifest-serialization');
+    if (output.material?.canonicalManifest !== canonicalManifest) diagnostics.push('manifest-serialization');
     const expectedIdentity = `sha256:${createHash('sha256').update(canonicalManifest, 'utf8').digest('hex')}`;
-    if (output.identity !== expectedIdentity) diagnostics.push('identity');
+    if (output.material?.identity !== expectedIdentity) diagnostics.push('identity');
   } else {
     diagnostics.push('manifest-serialization', 'identity');
   }
@@ -579,10 +712,11 @@ async function git(repositoryRoot: string, args: string[]): Promise<string> {
 async function runReviewedContentIdentity(
   repositoryRoot: string,
   baseCommit: string,
+  options: string[] = [],
 ): Promise<{ output: ReviewedContentOutput; stdout: string }> {
   const result = await execFileAsync(
     process.execPath,
-    [join(skillRoot, 'scripts', 'reviewed-content-identity.mjs'), '--repo', repositoryRoot, '--base', baseCommit],
+    [join(skillRoot, 'scripts', 'reviewed-content-identity.mjs'), '--repo', repositoryRoot, '--base', baseCommit, ...options],
     { cwd: repositoryRoot, encoding: 'utf8' },
   );
 
@@ -593,11 +727,12 @@ async function runReviewedContentIdentityFailure(
   repositoryRoot: string,
   baseCommit: string,
   environment: Record<string, string> = {},
+  options: string[] = [],
 ): Promise<{ code?: number; stderr?: string; stdout?: string } | undefined> {
   try {
     await execFileAsync(
       process.execPath,
-      [join(skillRoot, 'scripts', 'reviewed-content-identity.mjs'), '--repo', repositoryRoot, '--base', baseCommit],
+      [join(skillRoot, 'scripts', 'reviewed-content-identity.mjs'), '--repo', repositoryRoot, '--base', baseCommit, ...options],
       { cwd: repositoryRoot, encoding: 'utf8', env: { ...process.env, ...environment } },
     );
   } catch (error) {
@@ -616,17 +751,10 @@ function reviewedContentContractDiagnostics(contract: SupervisorContract): strin
     untracked: ['git', 'ls-files', '--others', '--exclude-standard', '-z'],
     status: ['git', 'status', '--porcelain=v2', '-z', '--untracked-files=all', '--ignore-submodules=none', '--no-renames'],
   };
-  const expectedNormalization = {
-    version: 'skill-evidence-execplan-evidence-normalization/v1',
-    sections: [
-      { heading: 'Supervisor Record', marker: '<!-- skill-evidence-normalized:supervisor-record:v1 -->' },
-      { heading: 'Progress', marker: '<!-- skill-evidence-normalized:progress:v1 -->' },
-      { heading: 'Lessons Learned', marker: '<!-- skill-evidence-normalized:lessons-learned:v1 -->' },
-    ],
-  };
-
   if (
-    identity?.format !== 'skill-evidence-reviewed-material/v1' ||
+    identity?.format !== 'skill-evidence-reviewed-content/v2' ||
+    identity.materialFormat !== 'skill-evidence-reviewed-material/v2' ||
+    identity.operationalEvidenceFormat !== 'skill-evidence-operational-evidence/v2' ||
     identity.digestAlgorithm !== 'sha256' ||
     identity.canonicalEncoding !== 'UTF-8' ||
     identity.pathEncoding !== 'UTF-8' ||
@@ -661,7 +789,7 @@ function reviewedContentContractDiagnostics(contract: SupervisorContract): strin
     JSON.stringify(identity?.activeExecPlanDiscovery) !==
     JSON.stringify({
       indexPath: 'docs/execplans/README.md',
-      statusPrefix: 'Active:',
+      activeStatus: 'Active',
       requiredMatches: 1,
       directory: 'docs/execplans',
       directChildFilePattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*\\.md$',
@@ -669,7 +797,41 @@ function reviewedContentContractDiagnostics(contract: SupervisorContract): strin
   ) {
     diagnostics.push('execplan-discovery');
   }
-  if (JSON.stringify(identity?.normalization) !== JSON.stringify(expectedNormalization)) diagnostics.push('normalization');
+  const expectedPartitions = {
+    version: 'skill-evidence-execplan-partitions/v2',
+    sections: [
+      {
+        heading: 'Existing Context',
+        marker: '<!-- skill-evidence-partitioned:existing-context:v2 -->',
+        active: 'OPERATIONAL',
+        inactive: 'OPERATIONAL',
+      },
+      {
+        heading: 'Supervisor Record',
+        marker: '<!-- skill-evidence-partitioned:supervisor-record:v2 -->',
+        active: 'IDENTITY_NEUTRAL',
+        inactive: 'OPERATIONAL',
+      },
+      {
+        heading: 'Progress',
+        marker: '<!-- skill-evidence-partitioned:progress:v2 -->',
+        active: 'IDENTITY_NEUTRAL',
+        inactive: 'OPERATIONAL',
+      },
+      {
+        heading: 'Lessons Learned',
+        marker: '<!-- skill-evidence-partitioned:lessons-learned:v2 -->',
+        active: 'IDENTITY_NEUTRAL',
+        inactive: 'OPERATIONAL',
+      },
+    ],
+    activeCardinality: 'EXACTLY_ONE_EACH',
+    inactiveCardinality: 'ZERO_OR_ONE_EACH',
+    indexPartition: 'MATERIAL',
+  };
+  if (JSON.stringify(identity?.partitions) !== JSON.stringify(expectedPartitions)) {
+    diagnostics.push('partitions');
+  }
   if (
     JSON.stringify(identity?.stableCollection) !==
     JSON.stringify({
@@ -818,12 +980,42 @@ describe('skill-evidence delivery supervisor', () => {
     expect(policy).toContain('fresh consolidator');
     expect(policy).toContain('Do not decide by vote');
     expect(policy).toContain('tracked, staged, unstaged, and untracked changed files');
-    expect(policy).toContain('reviewed content identity');
-    expect(policy).toContain("active ExecPlan's complete `Supervisor Record`, `Progress`, and `Lessons Learned`");
+    expect(policy).toContain('canonical material and operational-evidence manifests');
+    expect(policy).toContain('`Supervisor Record`, `Progress`, and `Lessons Learned` are operational in inactive ExecPlans');
     expect(policy).toContain('Governance text that grants, narrows, or routes authority');
     expect(policy).toMatch(/schema[\s\S]*API[\s\S]*security[\s\S]*authentication[\s\S]*persistence[\s\S]*provenance/);
     expect(policy).toContain('P0, P1, and P2 findings block');
     expect(policy).toContain('P3 findings are advisory');
+  });
+
+  it('composes operational review coverage and gates the third reinforced round without adding a user gate', async () => {
+    const [contractText, policy, skill] = await Promise.all([
+      readFile(join(skillRoot, 'references', 'supervisor-contract.json'), 'utf8'),
+      readFile(join(skillRoot, 'references', 'supervisor-policy.md'), 'utf8'),
+      readFile(join(skillRoot, 'SKILL.md'), 'utf8'),
+    ]);
+    const contract = JSON.parse(contractText) as SupervisorContract;
+
+    expect(reviewCompositionDiagnostics(contract)).toEqual([]);
+    expect(policy).toContain('Composable operational delta');
+    expect(policy).toContain('one fresh reviewer');
+    expect(policy).toContain('The first two reinforced rounds');
+    expect(policy).toContain('the first reinforced reviewer starts');
+    expect(policy).toContain('third reinforced round');
+    expect(policy).toContain('exact base commit, plan revision, material identity, and one additional round');
+    expect(skill).toContain('Classify the current identities against a validated prior coverage receipt');
+    expect(skill).toContain('Never dispatch a third reinforced round without `WAIT_RISK_APPROVAL`');
+
+    const bypass = structuredClone(contract);
+    (bypass.review!.reinforcedRoundBudget as { automaticRounds: number }).automaticRounds = 3;
+    expect(reviewCompositionDiagnostics(bypass)).toContain('reinforced-round-budget');
+
+    const fourthGate = structuredClone(contract);
+    fourthGate.stateMachine = {
+      ...fourthGate.stateMachine,
+      userGates: [...(fourthGate.stateMachine?.userGates as string[]), 'WAIT_REVIEW_APPROVAL'],
+    };
+    expect(reviewCompositionDiagnostics(fourthGate)).toContain('user-gates');
   });
 
   it('anchors review authority outside candidate content and rejects a candidate instruction to suppress findings', async () => {
@@ -884,10 +1076,13 @@ describe('skill-evidence delivery supervisor', () => {
       candidateMergeTreeOid: '2'.repeat(40),
       featureHeadSha: '3'.repeat(40),
       findingDisposition: 'P0-P2_NONE',
+      materialIdentity: 'sha256:material',
       mergeability: 'MERGEABLE',
+      operationalEvidenceIdentity: 'sha256:operational',
       pullRequest: 'https://github.example/pull/22',
       requiredChecks: 'GREEN',
       reviewTopology: 'REINFORCED_COMPLETE',
+      reviewCoverageReceipt: '.skill-evidence/supervisor/reviews/review.json#sha256:coverage',
     };
 
     expect(mergeApprovalDiagnostics(contract)).toEqual([]);
@@ -910,19 +1105,26 @@ describe('skill-evidence delivery supervisor', () => {
       candidateMergeTreeOid: '1'.repeat(40),
       currentBaseTipSha: '2'.repeat(40),
       derivedCandidateMergeTreeOid: '1'.repeat(40),
+      featureHeadCoverageReceipt: 'sha256:coverage',
       featureHeadMaterialIdentity: 'sha256:reviewed',
+      featureHeadOperationalEvidenceIdentity: 'sha256:operational',
       featureHeadSha: '3'.repeat(40),
       hostedChecks: 'GREEN',
       reviewBaseTipSha: '2'.repeat(40),
+      reviewCoverageReceipt: 'sha256:coverage',
       reviewContentIdentity: 'sha256:reviewed',
+      reviewOperationalEvidenceIdentity: 'sha256:operational',
       reviewedBaseTipSha: '2'.repeat(40),
       reviewedContentIdentity: 'sha256:reviewed',
+      reviewedOperationalEvidenceIdentity: 'sha256:operational',
       validatedBaseTipSha: '2'.repeat(40),
       validatedContentIdentity: 'sha256:reviewed',
+      validatedCoverageReceipt: 'sha256:coverage',
+      validatedOperationalEvidenceIdentity: 'sha256:operational',
     };
 
     expect(preCardMergeContextDiagnostics(contract, current)).toEqual([]);
-    expect(policy).toContain('Hosted GREEN never combines an old validation or review with a moved target tip.');
+    expect(policy).toContain('Hosted GREEN never combines old validation or review with a changed binding.');
     expect(policy).toContain('`git merge-tree --write-tree <base-tip> <feature-head>`');
 
     const movedTarget = { ...current, currentBaseTipSha: '4'.repeat(40) };
@@ -936,7 +1138,7 @@ describe('skill-evidence delivery supervisor', () => {
     expect(preCardMergeContextDiagnostics(contract, staleReview)).toContain('stale-pre-card-content');
   });
 
-  it('expires GREEN and returns publication-time material changes through validation before review', async () => {
+  it('returns publication-time material, operational-evidence, and coverage changes through validation before review', async () => {
     const [contractText, policy] = await Promise.all([
       readFile(join(skillRoot, 'references', 'supervisor-contract.json'), 'utf8'),
       readFile(join(skillRoot, 'references', 'supervisor-policy.md'), 'utf8'),
@@ -944,14 +1146,24 @@ describe('skill-evidence delivery supervisor', () => {
     const contract = JSON.parse(contractText) as SupervisorContract;
 
     expect(publicationChangeDiagnostics(contract)).toEqual([]);
-    expect(policy).toContain('A publication-time material content change expires GREEN and returns to `VALIDATE` before `REVIEW`.');
+    expect(policy).toContain('A publication-time material change expires the foundation review');
+    expect(policy).toContain('A publication-time operational-evidence or coverage change returns to `VALIDATE`');
 
     const directReview = structuredClone(contract);
     const transition = (directReview.stateMachine?.transitions as Array<{ from: string; to: string; when: string }>).find(
       ({ from, when }) => from === 'PUBLISH_DRAFT' && when === 'MATERIAL_CONTENT_CHANGED',
     );
     transition!.to = 'REVIEW';
-    expect(publicationChangeDiagnostics(directReview)).toContain('publication-change-bypasses-validation');
+    expect(publicationChangeDiagnostics(directReview)).toContain('publication-material-change-bypasses-validation');
+
+    const staleOperationalCoverage = structuredClone(contract);
+    const operationalTransition = (
+      staleOperationalCoverage.stateMachine?.transitions as Array<{ from: string; to: string; when: string }>
+    ).find(({ from, when }) => from === 'PUBLISH_DRAFT' && when === 'OPERATIONAL_EVIDENCE_OR_COVERAGE_CHANGED');
+    operationalTransition!.to = 'WAIT_MERGE_APPROVAL';
+    expect(publicationChangeDiagnostics(staleOperationalCoverage)).toContain(
+      'publication-operational-or-coverage-change-bypasses-validation',
+    );
   });
 
   it('makes fresh agents consume the exact machine state contract with deny-on-conflict precedence', async () => {
@@ -982,12 +1194,13 @@ describe('skill-evidence delivery supervisor', () => {
       await Promise.all([
         writeFile(
           join(repositoryRoot, 'docs', 'execplans', 'README.md'),
-          '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active: implementation |\n',
+          '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active |\n',
         ),
         writeFile(
           join(repositoryRoot, 'docs', 'execplans', '2026-08-14-fixture.md'),
-          '# Fixture\n\n## Supervisor Record\n\n- State: IMPLEMENT\n\n## Scope\n\nMaterial scope.\n\n## Progress\n\n- [ ] Work\n\n## Lessons Learned\n\n- Initial.\n',
+          '# Fixture\n\n## Approval Record\n\n- Contract revision: 1\n\n## Existing Context\n\nContext.\n\n## Supervisor Record\n\n- State: IMPLEMENT\n\n## Scope\n\nMaterial scope.\n\n## Progress\n\n- [ ] Work\n\n## Lessons Learned\n\n- Initial.\n',
         ),
+        writeFile(join(repositoryRoot, 'docs', 'execplans', '2026-08-13-inactive.md'), '# Historical\n\nTerminal history.\n'),
         writeFile(join(repositoryRoot, 'material.txt'), 'base material\n'),
         writeFile(join(repositoryRoot, 'deleted.txt'), 'delete me\n'),
       ]);
@@ -1004,7 +1217,7 @@ describe('skill-evidence delivery supervisor', () => {
         writeFile(join(repositoryRoot, 'run.sh'), '#!/bin/sh\nexit 0\n'),
         writeFile(
           join(repositoryRoot, 'docs', 'execplans', '2026-08-14-fixture.md'),
-          '# Fixture\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Scope\n\nMaterial scope.\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- First run.\n',
+          '# Fixture\n\n## Approval Record\n\n- Contract revision: 1\n\n## Existing Context\n\nContext.\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Scope\n\nMaterial scope.\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- First run.\n',
         ),
       ]);
       await chmod(join(repositoryRoot, 'run.sh'), 0o755);
@@ -1020,38 +1233,116 @@ describe('skill-evidence delivery supervisor', () => {
       expect(first.stdout).toBe(second.stdout);
       expect(statusAfter).toBe(statusBefore);
       expect(reviewedContentOutputDiagnostics(first.output, expectedPaths)).toEqual([]);
-      expect(first.output.manifest?.baseCommit).toBe(baseCommit);
-      expect(first.output.manifest?.activeExecPlan).toBe('docs/execplans/2026-08-14-fixture.md');
-      expect(first.output.manifest?.entries).toEqual([
+      expect(first.output.material?.manifest?.baseCommit).toBe(baseCommit);
+      expect(first.output.material?.manifest?.activeExecPlan).toBe('docs/execplans/2026-08-14-fixture.md');
+      expect(first.output.material?.manifest?.entries).toEqual([
         expect.objectContaining({ mode: '100644', path: 'added.txt', status: 'ADDED' }),
         { contentSha256: null, mode: null, path: 'deleted.txt', status: 'DELETED' },
         expect.objectContaining({ mode: '120000', path: 'material-link', status: 'ADDED' }),
         expect.objectContaining({ mode: '100644', path: 'material.txt', status: 'MODIFIED' }),
         expect.objectContaining({ mode: '100755', path: 'run.sh', status: 'ADDED' }),
       ]);
+      expect(first.output.operationalEvidence?.manifest?.entries).toEqual([]);
+
+      await writeFile(
+        join(repositoryRoot, 'docs', 'execplans', '2026-08-13-inactive.md'),
+        '# Historical\n\nTerminal history.\n\n## Existing Context\n\nContext.\n\n## Supervisor Record\n\n- State: CLOSE\n\n## Progress\n\n- [x] Done\n\n## Lessons Learned\n\n- Terminal.\n',
+      );
+      const inactiveSectionsAdded = await runReviewedContentIdentity(repositoryRoot, baseCommit);
+      expect(inactiveSectionsAdded.output.material?.identity).toBe(first.output.material?.identity);
+      expect(inactiveSectionsAdded.output.operationalEvidence?.identity).not.toBe(first.output.operationalEvidence?.identity);
+      expect(inactiveSectionsAdded.output.operationalEvidence?.manifest?.entries).toHaveLength(4);
+      expect(inactiveSectionsAdded.output.operationalEvidence?.manifest?.entries).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ path: 'docs/execplans/2026-08-13-inactive.md', section: 'Existing Context', status: 'ADDED' }),
+          expect.objectContaining({ path: 'docs/execplans/2026-08-13-inactive.md', section: 'Supervisor Record', status: 'ADDED' }),
+          expect.objectContaining({ path: 'docs/execplans/2026-08-13-inactive.md', section: 'Progress', status: 'ADDED' }),
+          expect.objectContaining({ path: 'docs/execplans/2026-08-13-inactive.md', section: 'Lessons Learned', status: 'ADDED' }),
+        ]),
+      );
+      await writeFile(join(repositoryRoot, 'docs', 'execplans', '2026-08-13-inactive.md'), '# Historical\n\nTerminal history.\n');
+      const inactiveSectionsRemoved = await runReviewedContentIdentity(repositoryRoot, baseCommit);
+      expect(inactiveSectionsRemoved.output.material?.identity).toBe(first.output.material?.identity);
+      expect(inactiveSectionsRemoved.output.operationalEvidence?.identity).toBe(first.output.operationalEvidence?.identity);
 
       const malformedSerialization = structuredClone(first.output);
-      malformedSerialization.canonicalManifest = `${String(malformedSerialization.canonicalManifest).trimEnd()}\r\n`;
+      malformedSerialization.material!.canonicalManifest = `${String(malformedSerialization.material?.canonicalManifest).trimEnd()}\r\n`;
       expect(reviewedContentOutputDiagnostics(malformedSerialization, expectedPaths)).toContain('manifest-serialization');
 
       const incompleteManifest = structuredClone(first.output);
-      incompleteManifest.manifest!.entries = (incompleteManifest.manifest!.entries as ReviewedContentEntry[]).slice(1);
-      incompleteManifest.canonicalManifest = `${JSON.stringify(incompleteManifest.manifest)}\n`;
-      incompleteManifest.identity = `sha256:${createHash('sha256')
-        .update(incompleteManifest.canonicalManifest as string, 'utf8')
+      incompleteManifest.material!.manifest!.entries = (incompleteManifest.material!.manifest!.entries as ReviewedContentEntry[]).slice(1);
+      incompleteManifest.material!.canonicalManifest = `${JSON.stringify(incompleteManifest.material!.manifest)}\n`;
+      incompleteManifest.material!.identity = `sha256:${createHash('sha256')
+        .update(incompleteManifest.material!.canonicalManifest as string, 'utf8')
         .digest('hex')}`;
       expect(reviewedContentOutputDiagnostics(incompleteManifest, expectedPaths)).toContain('manifest-paths');
 
       await writeFile(
         join(repositoryRoot, 'docs', 'execplans', '2026-08-14-fixture.md'),
-        '# Fixture\n\n## Supervisor Record\n\n- State: PUBLISH_DRAFT\n\n## Scope\n\nMaterial scope.\n\n## Progress\n\n- [x] Work\n- [x] Review\n\n## Lessons Learned\n\n- Second run.\n',
+        '# Fixture\n\n## Approval Record\n\n- Contract revision: 1\n\n## Existing Context\n\nContext.\n\n## Supervisor Record\n\n- State: PUBLISH_DRAFT\n\n## Scope\n\nMaterial scope.\n\n## Progress\n\n- [x] Work\n- [x] Review\n\n## Lessons Learned\n\n- Second run.\n',
       );
       const evidenceOnlyChange = await runReviewedContentIdentity(repositoryRoot, baseCommit);
-      expect(evidenceOnlyChange.output.identity).toBe(first.output.identity);
+      expect(evidenceOnlyChange.output.material?.identity).toBe(first.output.material?.identity);
+      expect(evidenceOnlyChange.output.operationalEvidence?.identity).toBe(first.output.operationalEvidence?.identity);
+
+      await writeFile(
+        join(repositoryRoot, 'docs', 'execplans', '2026-08-14-fixture.md'),
+        '# Fixture\n\n## Approval Record\n\n- Contract revision: 1\n\n## Existing Context\n\nChanged context.\n\n## Supervisor Record\n\n- State: PUBLISH_DRAFT\n\n## Scope\n\nMaterial scope.\n\n## Progress\n\n- [x] Work\n- [x] Review\n\n## Lessons Learned\n\n- Second run.\n',
+      );
+      const operationalChange = await runReviewedContentIdentity(repositoryRoot, baseCommit);
+      expect(operationalChange.output.material?.identity).toBe(first.output.material?.identity);
+      expect(operationalChange.output.operationalEvidence?.identity).not.toBe(first.output.operationalEvidence?.identity);
+      expect(operationalChange.output.operationalEvidence?.manifest?.entries).toEqual([
+        expect.objectContaining({
+          path: 'docs/execplans/2026-08-14-fixture.md',
+          section: 'Existing Context',
+          status: 'MODIFIED',
+        }),
+      ]);
 
       await writeFile(join(repositoryRoot, 'material.txt'), 'second material change\n');
       const materialChange = await runReviewedContentIdentity(repositoryRoot, baseCommit);
-      expect(materialChange.output.identity).not.toBe(first.output.identity);
+      expect(materialChange.output.material?.identity).not.toBe(first.output.material?.identity);
+    } finally {
+      await rm(repositoryRoot, { force: true, recursive: true });
+    }
+  });
+
+  it('rejects carriage returns in protected material and operational ExecPlan sections without emitting a manifest', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-execplan-line-endings-'));
+
+    try {
+      await mkdir(join(repositoryRoot, 'docs', 'execplans'), { recursive: true });
+      const lfPlan =
+        '# Fixture\n\n## Approval Record\n\n- Contract revision: 1\n\n## Existing Context\n\nContext.\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Scope\n\nMaterial scope.\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n';
+      await Promise.all([
+        writeFile(
+          join(repositoryRoot, 'docs', 'execplans', 'README.md'),
+          '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active |\n',
+        ),
+        writeFile(join(repositoryRoot, 'docs', 'execplans', '2026-08-14-fixture.md'), lfPlan),
+      ]);
+      await git(repositoryRoot, ['init', '--quiet']);
+      await git(repositoryRoot, ['config', 'user.email', 'fixture@example.com']);
+      await git(repositoryRoot, ['config', 'user.name', 'Fixture']);
+      await git(repositoryRoot, ['add', '.']);
+      await git(repositoryRoot, ['commit', '--quiet', '-m', 'fixture base']);
+      const baseCommit = await git(repositoryRoot, ['rev-parse', 'HEAD']);
+
+      const canonical = await runReviewedContentIdentity(repositoryRoot, baseCommit);
+      expect(canonical.output.material?.manifest?.entries).toEqual([]);
+
+      for (const noncanonicalPlan of [
+        lfPlan.replace('Material scope.\n', 'Material scope.\r\n'),
+        lfPlan.replace('Context.\n', 'Context.\r\n'),
+      ]) {
+        await writeFile(join(repositoryRoot, 'docs', 'execplans', '2026-08-14-fixture.md'), noncanonicalPlan);
+        const failure = await runReviewedContentIdentityFailure(repositoryRoot, baseCommit);
+
+        expect(failure?.code).toBe(1);
+        expect(failure?.stdout).toBe('');
+        expect(failure?.stderr).toContain('contains a noncanonical carriage return');
+      }
     } finally {
       await rm(repositoryRoot, { force: true, recursive: true });
     }
@@ -1066,11 +1357,11 @@ describe('skill-evidence delivery supervisor', () => {
       await Promise.all([
         writeFile(
           join(repositoryRoot, 'docs', 'execplans', 'README.md'),
-          '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active: implementation |\n',
+          '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active |\n',
         ),
         writeFile(
           join(repositoryRoot, 'docs', 'execplans', '2026-08-14-fixture.md'),
-          '# Fixture\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n',
+          '# Fixture\n\n## Approval Record\n\n- Contract revision: 1\n\n## Existing Context\n\nContext.\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n',
         ),
         writeFile(join(repositoryRoot, 'nested', 'material.txt'), 'inside material\n'),
       ]);
@@ -1096,6 +1387,387 @@ describe('skill-evidence delivery supervisor', () => {
     }
   });
 
+  it('classifies validated prior receipts compositionally and persists requested receipts without changing Git status', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-review-receipt-'));
+
+    try {
+      await mkdir(join(repositoryRoot, 'docs', 'execplans'), { recursive: true });
+      await Promise.all([
+        writeFile(join(repositoryRoot, '.gitignore'), '.skill-evidence/\n'),
+        writeFile(
+          join(repositoryRoot, 'docs', 'execplans', 'README.md'),
+          '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active |\n',
+        ),
+        writeFile(
+          join(repositoryRoot, 'docs', 'execplans', '2026-08-14-fixture.md'),
+          '# Fixture\n\n## Approval Record\n\n- Contract revision: 1\n\n## Existing Context\n\nInitial context.\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Scope\n\nMaterial scope.\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n',
+        ),
+        writeFile(join(repositoryRoot, 'material.txt'), 'base\n'),
+      ]);
+      await git(repositoryRoot, ['init', '--quiet']);
+      await git(repositoryRoot, ['config', 'user.email', 'fixture@example.com']);
+      await git(repositoryRoot, ['config', 'user.name', 'Fixture']);
+      await git(repositoryRoot, ['add', '.']);
+      await git(repositoryRoot, ['commit', '--quiet', '-m', 'fixture base']);
+      const baseCommit = await git(repositoryRoot, ['rev-parse', 'HEAD']);
+      await writeFile(join(repositoryRoot, 'material.txt'), 'candidate\n');
+      const statusBefore = await git(repositoryRoot, ['status', '--porcelain=v1', '--untracked-files=all']);
+
+      const initial = await runReviewedContentIdentity(repositoryRoot, baseCommit, ['--write-receipt', 'foundation.json']);
+      const receiptPath = join(repositoryRoot, '.skill-evidence', 'supervisor', 'reviews', 'foundation.json');
+      const initialAsPrevious = await runReviewedContentIdentity(repositoryRoot, baseCommit, ['--previous-receipt', 'foundation.json']);
+      const planRevision = initial.output.receipt?.planRevision as number;
+      const foundationReview = `${JSON.stringify({
+        format: 'skill-evidence-foundation-review/v1',
+        kind: 'FOUNDATION_REVIEW',
+        baseCommit,
+        activeExecPlan: 'docs/execplans/2026-08-14-fixture.md',
+        planRevision,
+        materialIdentity: initial.output.material?.identity,
+        operationalEvidenceIdentity: initial.output.operationalEvidence?.identity,
+        topology: 'REINFORCED',
+        outcome: 'P0_P2_NONE',
+      })}\n`;
+      const findingDisposition = `${JSON.stringify({
+        format: 'skill-evidence-finding-disposition/v1',
+        kind: 'FINDING_DISPOSITION',
+        baseCommit,
+        activeExecPlan: 'docs/execplans/2026-08-14-fixture.md',
+        planRevision,
+        materialIdentity: initial.output.material?.identity,
+        operationalEvidenceIdentity: initial.output.operationalEvidence?.identity,
+        outcome: 'P0_P2_NONE',
+      })}\n`;
+      const reinforcedRoundA = `${JSON.stringify({
+        format: 'skill-evidence-reinforced-round-start/v1',
+        kind: 'REINFORCED_ROUND_STARTED',
+        activeExecPlan: 'docs/execplans/2026-08-14-fixture.md',
+        planRevision,
+        baseCommitAtDispatch: baseCommit,
+        materialIdentity: initial.output.material?.identity,
+        topology: 'REINFORCED',
+        outcome: 'STARTED',
+      })}\n`;
+      const foundationReviewPath = join(repositoryRoot, '.skill-evidence', 'supervisor', 'reviews', 'foundation.md');
+      const findingDispositionPath = join(repositoryRoot, '.skill-evidence', 'supervisor', 'reviews', 'finding-disposition.md');
+      const reinforcedRoundAPath = join(repositoryRoot, '.skill-evidence', 'supervisor', 'reviews', 'reinforced-round-a.md');
+      await Promise.all([
+        writeFile(foundationReviewPath, foundationReview),
+        writeFile(findingDispositionPath, findingDisposition),
+        writeFile(reinforcedRoundAPath, reinforcedRoundA),
+      ]);
+      const coveredReceipt = JSON.parse(await readFile(receiptPath, 'utf8')) as {
+        coverage: {
+          acceptedOperationalDeltaReviews: Array<null | { path: string; sha256: string }>;
+          findingDisposition: null | { path: string; sha256: string };
+          foundationReview: null | { path: string; sha256: string };
+          reinforcedRounds: Array<null | { path: string; sha256: string }>;
+        };
+      };
+      coveredReceipt.coverage.foundationReview = {
+        path: '.skill-evidence/supervisor/reviews/foundation.md',
+        sha256: createHash('sha256').update(foundationReview).digest('hex'),
+      };
+      coveredReceipt.coverage.findingDisposition = {
+        path: '.skill-evidence/supervisor/reviews/finding-disposition.md',
+        sha256: createHash('sha256').update(findingDisposition).digest('hex'),
+      };
+      coveredReceipt.coverage.reinforcedRounds.push({
+        path: '.skill-evidence/supervisor/reviews/reinforced-round-a.md',
+        sha256: createHash('sha256').update(reinforcedRoundA).digest('hex'),
+      });
+      await writeFile(receiptPath, `${JSON.stringify(coveredReceipt)}\n`);
+      const unchanged = await runReviewedContentIdentity(repositoryRoot, baseCommit, ['--previous-receipt', 'foundation.json']);
+
+      expect(initial.output.comparison).toEqual({
+        classification: 'FULL_REVIEW_REQUIRED',
+        reason: 'NO_PREVIOUS_RECEIPT',
+        changedOperationalSections: [],
+      });
+      expect(initial.output.receipt?.coverage).toEqual({
+        foundationReview: null,
+        acceptedOperationalDeltaReviews: [],
+        reinforcedRounds: [],
+        findingDisposition: null,
+      });
+      expect(initialAsPrevious.output.comparison).toEqual({
+        classification: 'FULL_REVIEW_REQUIRED',
+        reason: 'PREVIOUS_COVERAGE_INCOMPLETE',
+        changedOperationalSections: [],
+      });
+      expect(initial.output.persistedReceipt?.path).toBe('.skill-evidence/supervisor/reviews/foundation.json');
+      expect(initial.output.persistedReceipt?.sha256).toMatch(/^[0-9a-f]{64}$/u);
+      expect(unchanged.output.comparison).toEqual({
+        classification: 'UNCHANGED',
+        reason: 'IDENTITIES_UNCHANGED',
+        changedOperationalSections: [],
+      });
+      expect((unchanged.output.receipt?.coverage as { foundationReview?: unknown }).foundationReview).toEqual({
+        path: '.skill-evidence/supervisor/reviews/foundation.md',
+        sha256: createHash('sha256').update(foundationReview).digest('hex'),
+      });
+      expect(await git(repositoryRoot, ['status', '--porcelain=v1', '--untracked-files=all'])).toBe(statusBefore);
+
+      const missingReference = structuredClone(coveredReceipt);
+      missingReference.coverage.foundationReview = {
+        ...missingReference.coverage.foundationReview!,
+        path: '.skill-evidence/supervisor/reviews/missing-foundation.md',
+      };
+      await writeFile(receiptPath, `${JSON.stringify(missingReference)}\n`);
+      const missingReferencePrevious = await runReviewedContentIdentity(repositoryRoot, baseCommit, [
+        '--previous-receipt',
+        'foundation.json',
+      ]);
+      expect(missingReferencePrevious.output.comparison).toEqual({
+        classification: 'FULL_REVIEW_REQUIRED',
+        reason: 'PREVIOUS_COVERAGE_INCOMPLETE',
+        changedOperationalSections: [],
+      });
+
+      const wrongDigest = structuredClone(coveredReceipt);
+      wrongDigest.coverage.foundationReview = {
+        ...wrongDigest.coverage.foundationReview!,
+        sha256: '0'.repeat(64),
+      };
+      await writeFile(receiptPath, `${JSON.stringify(wrongDigest)}\n`);
+      const wrongDigestPrevious = await runReviewedContentIdentity(repositoryRoot, baseCommit, ['--previous-receipt', 'foundation.json']);
+      expect(wrongDigestPrevious.output.comparison).toEqual({
+        classification: 'FULL_REVIEW_REQUIRED',
+        reason: 'PREVIOUS_COVERAGE_INCOMPLETE',
+        changedOperationalSections: [],
+      });
+
+      const nullArrayEntry = structuredClone(coveredReceipt);
+      nullArrayEntry.coverage.acceptedOperationalDeltaReviews.push(null);
+      await writeFile(receiptPath, `${JSON.stringify(nullArrayEntry)}\n`);
+      const nullArrayEntryPrevious = await runReviewedContentIdentity(repositoryRoot, baseCommit, [
+        '--previous-receipt',
+        'foundation.json',
+      ]);
+      expect(nullArrayEntryPrevious.output.comparison).toEqual({
+        classification: 'FULL_REVIEW_REQUIRED',
+        reason: 'PREVIOUS_COVERAGE_INCOMPLETE',
+        changedOperationalSections: [],
+      });
+
+      const extraRawContent = structuredClone(coveredReceipt);
+      (extraRawContent.coverage.foundationReview as { rawContent?: string }).rawContent = foundationReview;
+      await writeFile(receiptPath, `${JSON.stringify(extraRawContent)}\n`);
+      const extraRawContentPrevious = await runReviewedContentIdentity(repositoryRoot, baseCommit, [
+        '--previous-receipt',
+        'foundation.json',
+      ]);
+      expect(extraRawContentPrevious.output.comparison).toEqual({
+        classification: 'FULL_REVIEW_REQUIRED',
+        reason: 'PREVIOUS_COVERAGE_INCOMPLETE',
+        changedOperationalSections: [],
+      });
+      await writeFile(receiptPath, `${JSON.stringify(coveredReceipt)}\n`);
+
+      await writeFile(
+        join(repositoryRoot, 'docs', 'execplans', '2026-08-14-fixture.md'),
+        '# Fixture\n\n## Approval Record\n\n- Contract revision: 1\n\n## Existing Context\n\nChanged context.\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Scope\n\nMaterial scope.\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n',
+      );
+      const operational = await runReviewedContentIdentity(repositoryRoot, baseCommit, ['--previous-receipt', 'foundation.json']);
+      expect(operational.output.comparison).toEqual({
+        classification: 'COMPOSABLE_OPERATIONAL_DELTA',
+        reason: 'ONLY_OPERATIONAL_EVIDENCE_CHANGED',
+        changedOperationalSections: ['docs/execplans/2026-08-14-fixture.md#Existing Context'],
+      });
+      expect((operational.output.receipt?.coverage as { foundationReview?: unknown }).foundationReview).toEqual({
+        path: '.skill-evidence/supervisor/reviews/foundation.md',
+        sha256: createHash('sha256').update(foundationReview).digest('hex'),
+      });
+
+      const deltaReview = `${JSON.stringify({
+        format: 'skill-evidence-operational-delta-review/v1',
+        kind: 'OPERATIONAL_DELTA_REVIEW',
+        baseCommit,
+        activeExecPlan: 'docs/execplans/2026-08-14-fixture.md',
+        planRevision,
+        materialIdentity: operational.output.material?.identity,
+        fromOperationalEvidenceIdentity: initial.output.operationalEvidence?.identity,
+        toOperationalEvidenceIdentity: operational.output.operationalEvidence?.identity,
+        topology: 'STANDARD',
+        outcome: 'P0_P2_NONE',
+      })}\n`;
+      const operationalDisposition = `${JSON.stringify({
+        format: 'skill-evidence-finding-disposition/v1',
+        kind: 'FINDING_DISPOSITION',
+        baseCommit,
+        activeExecPlan: 'docs/execplans/2026-08-14-fixture.md',
+        planRevision,
+        materialIdentity: operational.output.material?.identity,
+        operationalEvidenceIdentity: operational.output.operationalEvidence?.identity,
+        outcome: 'P0_P2_NONE',
+      })}\n`;
+      await Promise.all([
+        writeFile(join(repositoryRoot, '.skill-evidence', 'supervisor', 'reviews', 'operational-delta.json'), deltaReview),
+        writeFile(join(repositoryRoot, '.skill-evidence', 'supervisor', 'reviews', 'operational-disposition.json'), operationalDisposition),
+      ]);
+      const operationalCoveredReceipt = structuredClone(operational.output.receipt) as typeof coveredReceipt;
+      operationalCoveredReceipt.coverage.acceptedOperationalDeltaReviews.push({
+        path: '.skill-evidence/supervisor/reviews/operational-delta.json',
+        sha256: createHash('sha256').update(deltaReview).digest('hex'),
+      });
+      operationalCoveredReceipt.coverage.findingDisposition = {
+        path: '.skill-evidence/supervisor/reviews/operational-disposition.json',
+        sha256: createHash('sha256').update(operationalDisposition).digest('hex'),
+      };
+      await writeFile(receiptPath, `${JSON.stringify(operationalCoveredReceipt)}\n`);
+      const operationalUnchanged = await runReviewedContentIdentity(repositoryRoot, baseCommit, ['--previous-receipt', 'foundation.json']);
+      expect(operationalUnchanged.output.comparison?.classification).toBe('UNCHANGED');
+
+      await writeFile(join(repositoryRoot, 'material.txt'), 'second candidate\n');
+      const material = await runReviewedContentIdentity(repositoryRoot, baseCommit, ['--previous-receipt', 'foundation.json']);
+      expect(material.output.comparison?.classification).toBe('MATERIAL_DELTA');
+      expect(material.output.material?.identity).not.toBe(initial.output.material?.identity);
+      expect(material.output.receipt?.coverage).toEqual({
+        foundationReview: null,
+        acceptedOperationalDeltaReviews: [],
+        reinforcedRounds: [
+          {
+            path: '.skill-evidence/supervisor/reviews/reinforced-round-a.md',
+            sha256: createHash('sha256').update(reinforcedRoundA).digest('hex'),
+          },
+        ],
+        findingDisposition: null,
+      });
+
+      const foundationReviewB = `${JSON.stringify({
+        format: 'skill-evidence-foundation-review/v1',
+        kind: 'FOUNDATION_REVIEW',
+        baseCommit,
+        activeExecPlan: 'docs/execplans/2026-08-14-fixture.md',
+        planRevision,
+        materialIdentity: material.output.material?.identity,
+        operationalEvidenceIdentity: material.output.operationalEvidence?.identity,
+        topology: 'REINFORCED',
+        outcome: 'P0_P2_NONE',
+      })}\n`;
+      const findingDispositionB = `${JSON.stringify({
+        format: 'skill-evidence-finding-disposition/v1',
+        kind: 'FINDING_DISPOSITION',
+        baseCommit,
+        activeExecPlan: 'docs/execplans/2026-08-14-fixture.md',
+        planRevision,
+        materialIdentity: material.output.material?.identity,
+        operationalEvidenceIdentity: material.output.operationalEvidence?.identity,
+        outcome: 'P0_P2_NONE',
+      })}\n`;
+      const reinforcedRoundB = `${JSON.stringify({
+        format: 'skill-evidence-reinforced-round-start/v1',
+        kind: 'REINFORCED_ROUND_STARTED',
+        activeExecPlan: 'docs/execplans/2026-08-14-fixture.md',
+        planRevision,
+        baseCommitAtDispatch: baseCommit,
+        materialIdentity: material.output.material?.identity,
+        topology: 'REINFORCED',
+        outcome: 'STARTED',
+      })}\n`;
+      await Promise.all([
+        writeFile(join(repositoryRoot, '.skill-evidence', 'supervisor', 'reviews', 'foundation-b.md'), foundationReviewB),
+        writeFile(join(repositoryRoot, '.skill-evidence', 'supervisor', 'reviews', 'finding-disposition-b.md'), findingDispositionB),
+        writeFile(join(repositoryRoot, '.skill-evidence', 'supervisor', 'reviews', 'reinforced-round-b.md'), reinforcedRoundB),
+      ]);
+      const secondCoveredReceipt = structuredClone(material.output.receipt) as typeof coveredReceipt;
+      secondCoveredReceipt.coverage.foundationReview = {
+        path: '.skill-evidence/supervisor/reviews/foundation-b.md',
+        sha256: createHash('sha256').update(foundationReviewB).digest('hex'),
+      };
+      secondCoveredReceipt.coverage.reinforcedRounds.push({
+        path: '.skill-evidence/supervisor/reviews/reinforced-round-b.md',
+        sha256: createHash('sha256').update(reinforcedRoundB).digest('hex'),
+      });
+      secondCoveredReceipt.coverage.findingDisposition = {
+        path: '.skill-evidence/supervisor/reviews/finding-disposition-b.md',
+        sha256: createHash('sha256').update(findingDispositionB).digest('hex'),
+      };
+      await writeFile(receiptPath, `${JSON.stringify(secondCoveredReceipt)}\n`);
+
+      await writeFile(join(repositoryRoot, 'material.txt'), 'third candidate\n');
+      const thirdMaterial = await runReviewedContentIdentity(repositoryRoot, baseCommit, ['--previous-receipt', 'foundation.json']);
+      const contract = JSON.parse(await readFile(join(skillRoot, 'references', 'supervisor-contract.json'), 'utf8')) as SupervisorContract;
+
+      expect(thirdMaterial.output.material?.identity).not.toBe(material.output.material?.identity);
+      expect(thirdMaterial.output.receipt?.coverage).toEqual({
+        foundationReview: null,
+        acceptedOperationalDeltaReviews: [],
+        reinforcedRounds: [
+          {
+            path: '.skill-evidence/supervisor/reviews/reinforced-round-a.md',
+            sha256: createHash('sha256').update(reinforcedRoundA).digest('hex'),
+          },
+          {
+            path: '.skill-evidence/supervisor/reviews/reinforced-round-b.md',
+            sha256: createHash('sha256').update(reinforcedRoundB).digest('hex'),
+          },
+        ],
+        findingDisposition: null,
+      });
+      expect(reinforcedDispatchState(contract, thirdMaterial.output.receipt)).toBe('WAIT_RISK_APPROVAL');
+
+      const tampered = JSON.parse(await readFile(receiptPath, 'utf8')) as { material: { identity: string } };
+      tampered.material.identity = `sha256:${'0'.repeat(64)}`;
+      await writeFile(receiptPath, `${JSON.stringify(tampered)}\n`);
+      const invalid = await runReviewedContentIdentity(repositoryRoot, baseCommit, ['--previous-receipt', 'foundation.json']);
+      expect(invalid.output.comparison?.classification).toBe('FULL_REVIEW_REQUIRED');
+      expect(invalid.output.comparison?.reason).toBe('PREVIOUS_RECEIPT_INVALID');
+
+      const unsafe = structuredClone(initial.output.receipt) as {
+        operationalEvidence: { identity: string; manifest: { entries: unknown[] } };
+      };
+      unsafe.operationalEvidence.manifest.entries = [
+        { path: '../outside.md', section: 'Existing Context', status: 'MODIFIED', contentSha256: '1'.repeat(64) },
+      ];
+      unsafe.operationalEvidence.identity = `sha256:${createHash('sha256')
+        .update(`${JSON.stringify(unsafe.operationalEvidence.manifest)}\n`, 'utf8')
+        .digest('hex')}`;
+      await writeFile(receiptPath, `${JSON.stringify(unsafe)}\n`);
+      const unsafePrevious = await runReviewedContentIdentity(repositoryRoot, baseCommit, ['--previous-receipt', 'foundation.json']);
+      expect(unsafePrevious.output.comparison?.classification).toBe('FULL_REVIEW_REQUIRED');
+      expect(unsafePrevious.output.comparison?.reason).toBe('PREVIOUS_RECEIPT_INVALID');
+    } finally {
+      await rm(repositoryRoot, { force: true, recursive: true });
+    }
+  });
+
+  it('rejects a receipt directory symlink before persisting outside the supervisor artifact directory', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-receipt-symlink-'));
+
+    try {
+      await mkdir(join(repositoryRoot, 'docs', 'execplans'), { recursive: true });
+      await mkdir(join(repositoryRoot, 'redirected-receipts'));
+      await Promise.all([
+        writeFile(join(repositoryRoot, '.gitignore'), '.skill-evidence/\nredirected-receipts/\n'),
+        writeFile(
+          join(repositoryRoot, 'docs', 'execplans', 'README.md'),
+          '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active |\n',
+        ),
+        writeFile(
+          join(repositoryRoot, 'docs', 'execplans', '2026-08-14-fixture.md'),
+          '# Fixture\n\n## Approval Record\n\n- Contract revision: 1\n\n## Existing Context\n\nContext.\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n',
+        ),
+      ]);
+      await git(repositoryRoot, ['init', '--quiet']);
+      await git(repositoryRoot, ['config', 'user.email', 'fixture@example.com']);
+      await git(repositoryRoot, ['config', 'user.name', 'Fixture']);
+      await git(repositoryRoot, ['add', '.']);
+      await git(repositoryRoot, ['commit', '--quiet', '-m', 'fixture base']);
+      const baseCommit = await git(repositoryRoot, ['rev-parse', 'HEAD']);
+      await symlink('redirected-receipts', join(repositoryRoot, '.skill-evidence'));
+
+      const failure = await runReviewedContentIdentityFailure(repositoryRoot, baseCommit, {}, ['--write-receipt', 'review.json']);
+
+      expect(failure?.code).toBe(1);
+      expect(failure?.stdout).toBe('');
+      expect(failure?.stderr).toContain('receipt directory ancestor is a symlink');
+      await expect(readFile(join(repositoryRoot, 'redirected-receipts', 'supervisor', 'reviews', 'review.json'))).rejects.toThrow();
+    } finally {
+      await rm(repositoryRoot, { force: true, recursive: true });
+    }
+  });
+
   it('rejects an ancestor symlink before reading candidate content', async () => {
     const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-ancestor-symlink-'));
     const externalRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-external-'));
@@ -1107,11 +1779,11 @@ describe('skill-evidence delivery supervisor', () => {
         writeFile(join(repositoryRoot, '.gitignore'), '/nested\n'),
         writeFile(
           join(repositoryRoot, 'docs', 'execplans', 'README.md'),
-          '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active: implementation |\n',
+          '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active |\n',
         ),
         writeFile(
           join(repositoryRoot, 'docs', 'execplans', '2026-08-14-fixture.md'),
-          '# Fixture\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n',
+          '# Fixture\n\n## Approval Record\n\n- Contract revision: 1\n\n## Existing Context\n\nContext.\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n',
         ),
         writeFile(join(repositoryRoot, 'nested', 'material.txt'), 'inside material\n'),
         writeFile(join(externalRoot, 'material.txt'), 'outside material must not be read\n'),
@@ -1153,11 +1825,11 @@ describe('skill-evidence delivery supervisor', () => {
       await Promise.all([
         writeFile(
           join(repositoryRoot, 'docs', 'execplans', 'README.md'),
-          '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active: implementation |\n',
+          '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active |\n',
         ),
         writeFile(
           join(repositoryRoot, 'docs', 'execplans', '2026-08-14-fixture.md'),
-          '# Fixture\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n',
+          '# Fixture\n\n## Approval Record\n\n- Contract revision: 1\n\n## Existing Context\n\nContext.\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n',
         ),
         writeFile(materialPath, 'stable material\n'),
       ]);
@@ -1224,11 +1896,11 @@ describe('skill-evidence delivery supervisor', () => {
       await Promise.all([
         writeFile(
           join(repositoryRoot, 'docs', 'execplans', 'README.md'),
-          '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active: implementation |\n',
+          '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active |\n',
         ),
         writeFile(
           join(repositoryRoot, 'docs', 'execplans', '2026-08-14-fixture.md'),
-          '# Fixture\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n',
+          '# Fixture\n\n## Approval Record\n\n- Contract revision: 1\n\n## Existing Context\n\nContext.\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n',
         ),
         writeFile(materialPath, 'base material\n'),
         writeFile(externalPath, 'outside material must not be read\n'),
@@ -1272,11 +1944,11 @@ describe('skill-evidence delivery supervisor', () => {
       await Promise.all([
         writeFile(
           join(repositoryRoot, 'docs', 'execplans', 'README.md'),
-          '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active: implementation |\n',
+          '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active |\n',
         ),
         writeFile(
           join(repositoryRoot, 'docs', 'execplans', '2026-08-14-fixture.md'),
-          '# Fixture\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n',
+          '# Fixture\n\n## Approval Record\n\n- Contract revision: 1\n\n## Existing Context\n\nContext.\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n',
         ),
         writeFile(join(repositoryRoot, 'material.txt'), 'base material\n'),
         writeFile(replacementTarget, 'outside material must not be read\n'),
@@ -1319,11 +1991,11 @@ describe('skill-evidence delivery supervisor', () => {
       await Promise.all([
         writeFile(
           join(repositoryRoot, 'docs', 'execplans', 'README.md'),
-          '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active: implementation |\n',
+          '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active |\n',
         ),
         writeFile(
           join(repositoryRoot, 'docs', 'execplans', '2026-08-14-fixture.md'),
-          '# Fixture\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n',
+          '# Fixture\n\n## Approval Record\n\n- Contract revision: 1\n\n## Existing Context\n\nContext.\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n',
         ),
         writeFile(materialPath, 'base material\n'),
       ]);
@@ -1376,7 +2048,7 @@ describe('skill-evidence delivery supervisor', () => {
       await mkdir(join(repositoryRoot, 'docs', 'execplans'), { recursive: true });
       await writeFile(
         join(repositoryRoot, 'docs', 'execplans', 'README.md'),
-        '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active: implementation |\n',
+        '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active |\n',
       );
       await git(repositoryRoot, ['init', '--quiet']);
       await git(repositoryRoot, ['config', 'user.email', 'fixture@example.com']);
@@ -1393,7 +2065,7 @@ describe('skill-evidence delivery supervisor', () => {
       await writeFile(join(repositoryRoot, '.gitignore'), '/docs/execplans/2026-08-14-fixture.md\n');
       await writeFile(
         join(repositoryRoot, 'docs', 'execplans', '2026-08-14-fixture.md'),
-        '# Fixture\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n',
+        '# Fixture\n\n## Approval Record\n\n- Contract revision: 1\n\n## Existing Context\n\nContext.\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n',
       );
       const ignoredFailure = await runReviewedContentIdentityFailure(repositoryRoot, baseCommit);
 
@@ -1405,17 +2077,109 @@ describe('skill-evidence delivery supervisor', () => {
     }
   });
 
+  it('requires the active ExecPlan index status cell to equal Active exactly', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-exact-active-'));
+
+    try {
+      await mkdir(join(repositoryRoot, 'docs', 'execplans'), { recursive: true });
+      await Promise.all([
+        writeFile(
+          join(repositoryRoot, 'docs', 'execplans', 'README.md'),
+          '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active: implementation |\n',
+        ),
+        writeFile(
+          join(repositoryRoot, 'docs', 'execplans', '2026-08-14-fixture.md'),
+          '# Fixture\n\n## Approval Record\n\n- Contract revision: 1\n\n## Existing Context\n\nContext.\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n',
+        ),
+      ]);
+      await git(repositoryRoot, ['init', '--quiet']);
+      await git(repositoryRoot, ['config', 'user.email', 'fixture@example.com']);
+      await git(repositoryRoot, ['config', 'user.name', 'Fixture']);
+      await git(repositoryRoot, ['add', '.']);
+      await git(repositoryRoot, ['commit', '--quiet', '-m', 'fixture base']);
+      const baseCommit = await git(repositoryRoot, ['rev-parse', 'HEAD']);
+
+      const failure = await runReviewedContentIdentityFailure(repositoryRoot, baseCommit);
+
+      expect(failure?.code).toBe(1);
+      expect(failure?.stdout).toBe('');
+      expect(failure?.stderr).toContain('expected exactly 1 active ExecPlan');
+    } finally {
+      await rm(repositoryRoot, { force: true, recursive: true });
+    }
+  });
+
+  it('counts every exact Active status cell before validating the sole row link', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-active-cell-count-'));
+
+    try {
+      await mkdir(join(repositoryRoot, 'docs', 'execplans'), { recursive: true });
+      const plan =
+        '# Fixture\n\n## Approval Record\n\n- Contract revision: 1\n\n## Existing Context\n\nContext.\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n';
+      await Promise.all([
+        writeFile(
+          join(repositoryRoot, 'docs', 'execplans', 'README.md'),
+          '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active |\n',
+        ),
+        writeFile(join(repositoryRoot, 'docs', 'execplans', '2026-08-14-fixture.md'), plan),
+        writeFile(join(repositoryRoot, 'docs', 'execplans', '2026-08-14-second.md'), plan),
+      ]);
+      await git(repositoryRoot, ['init', '--quiet']);
+      await git(repositoryRoot, ['config', 'user.email', 'fixture@example.com']);
+      await git(repositoryRoot, ['config', 'user.name', 'Fixture']);
+      await git(repositoryRoot, ['add', '.']);
+      await git(repositoryRoot, ['commit', '--quiet', '-m', 'fixture base']);
+      const baseCommit = await git(repositoryRoot, ['rev-parse', 'HEAD']);
+
+      await writeFile(
+        join(repositoryRoot, 'docs', 'execplans', 'README.md'),
+        '| Plan | Status | Scope |\n| --- | --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active | Current work |\n',
+      );
+      const validThreeColumnRow = await runReviewedContentIdentity(repositoryRoot, baseCommit);
+      expect(validThreeColumnRow.output.material?.manifest?.activeExecPlan).toBe('docs/execplans/2026-08-14-fixture.md');
+
+      await writeFile(
+        join(repositoryRoot, 'docs', 'execplans', 'README.md'),
+        '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active |\n| [Malformed](unterminated.md | Active |\n',
+      );
+      const malformedSecondRow = await runReviewedContentIdentityFailure(repositoryRoot, baseCommit);
+      expect(malformedSecondRow?.code).toBe(1);
+      expect(malformedSecondRow?.stdout).toBe('');
+      expect(malformedSecondRow?.stderr).toContain('expected exactly 1 active ExecPlan status cell');
+
+      await writeFile(
+        join(repositoryRoot, 'docs', 'execplans', 'README.md'),
+        '| Plan | Status |\n| --- | --- |\n| [Malformed](unterminated.md | Active |\n',
+      );
+      const soleMalformedRow = await runReviewedContentIdentityFailure(repositoryRoot, baseCommit);
+      expect(soleMalformedRow?.code).toBe(1);
+      expect(soleMalformedRow?.stdout).toBe('');
+      expect(soleMalformedRow?.stderr).toContain('active ExecPlan row must contain one canonical direct-child plan link');
+
+      await writeFile(
+        join(repositoryRoot, 'docs', 'execplans', 'README.md'),
+        '| Plan | Status |\n| --- | --- |\n| [Fixture](2026-08-14-fixture.md) | Active |\n| [Second](2026-08-14-second.md) | Active |\n',
+      );
+      const twoActiveRows = await runReviewedContentIdentityFailure(repositoryRoot, baseCommit);
+      expect(twoActiveRows?.code).toBe(1);
+      expect(twoActiveRows?.stdout).toBe('');
+      expect(twoActiveRows?.stderr).toContain('expected exactly 1 active ExecPlan status cell');
+    } finally {
+      await rm(repositoryRoot, { force: true, recursive: true });
+    }
+  });
+
   it('rejects traversal and nested active ExecPlan targets before path normalization', async () => {
     const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-active-plan-confinement-'));
 
     try {
       await mkdir(join(repositoryRoot, 'docs', 'execplans', 'nested'), { recursive: true });
       const plan =
-        '# Fixture\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n';
+        '# Fixture\n\n## Approval Record\n\n- Contract revision: 1\n\n## Existing Context\n\nContext.\n\n## Supervisor Record\n\n- State: REVIEW\n\n## Progress\n\n- [x] Work\n\n## Lessons Learned\n\n- Initial.\n';
       await Promise.all([
         writeFile(
           join(repositoryRoot, 'docs', 'execplans', 'README.md'),
-          '| Plan | Status |\n| --- | --- |\n| [Fixture](../2026-08-14-outside.md) | Active: implementation |\n',
+          '| Plan | Status |\n| --- | --- |\n| [Fixture](../2026-08-14-outside.md) | Active |\n',
         ),
         writeFile(join(repositoryRoot, 'docs', '2026-08-14-outside.md'), plan),
         writeFile(join(repositoryRoot, 'docs', 'execplans', 'nested', '2026-08-14-nested.md'), plan),
@@ -1430,7 +2194,7 @@ describe('skill-evidence delivery supervisor', () => {
       for (const target of ['../2026-08-14-outside.md', 'nested/2026-08-14-nested.md']) {
         await writeFile(
           join(repositoryRoot, 'docs', 'execplans', 'README.md'),
-          `| Plan | Status |\n| --- | --- |\n| [Fixture](${target}) | Active: implementation |\n`,
+          `| Plan | Status |\n| --- | --- |\n| [Fixture](${target}) | Active |\n`,
         );
         const failure = await runReviewedContentIdentityFailure(repositoryRoot, baseCommit);
 
@@ -1459,6 +2223,13 @@ describe('skill-evidence delivery supervisor', () => {
     expect(mergeCard).toContain('Candidate merge tree: <exact Git tree object ID>');
     expect(policy).toContain('A moved target-branch tip invalidates the approval');
     expect(policy).toContain('proportionate validation and review');
+
+    const recursiveIdentity = structuredClone(contract);
+    const supervisorPartition = (
+      recursiveIdentity.reviewedContentIdentity?.partitions as { sections: Array<{ active: string; heading: string }> }
+    ).sections.find(({ heading }) => heading === 'Supervisor Record');
+    supervisorPartition!.active = 'OPERATIONAL';
+    expect(reviewedContentContractDiagnostics(recursiveIdentity)).toContain('partitions');
   });
 
   it('permits draft publication after plan approval but never silently crosses critical boundaries', async () => {
