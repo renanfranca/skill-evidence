@@ -90,6 +90,12 @@ Composition policy v4 adds `packetFingerprint` to `blueprintId`, binding semanti
 
 `capability.id` identifies a reusable required capability, not the observation or assessment entity that references it. The same capability ID may therefore appear in several observations or assessments. Claims, contracts, unresolved requirements, observability requirements, paths, observations, and assessments remain globally unique entities; duplicate IDs in those domains continue to make authorship incomplete.
 
+### 8. First model-backed protocol-v3 canary
+
+E22 is the first planned model-backed observation of protocol v3. It does not revise schema-3, the Authoring Context schema, composition policy v4, or any protocol-v1/v2 behavior. Its fresh `priority-queue-snapshot-renderer` instrument supplies three mandatory decision-critical claim requirements and records the decision owner's missing uncertainty limit as `REQUIRED_ABSENT`. Complete authorship must therefore compose the trusted blocker and derive `BLOCKED` without disclosing that expected lifecycle to the candidate.
+
+E22 is an out-of-band one-call Terra/xhigh canary with zero retries and a 600-second provider timeout. Preparation and CI remain provider-free. The exact campaign, full instrument and review fingerprints, published commit, condition, budget, and timeout require later authorization before atomic reservation. A complete canonical `BLOCKED` Blueprint is only `PENDING_SEMANTIC_REVIEW`; two independently qualified blind reviewers and disagreement-only resolution may advance it only to `VIABLE_CANDIDATE`. That result does not qualify Terra, establish stability, or authorize decision runs.
+
 ## Consequences
 
 - A model cannot promote known missing decision context by changing a blocker boolean.
@@ -99,3 +105,4 @@ Composition policy v4 adds `packetFingerprint` to `blueprintId`, binding semanti
 - Composed validation distinguishes provenance divergence (`AUTHOR_PROVENANCE_INTEGRITY`), persisted context divergence (`AUTHORING_CONTEXT_INTEGRITY`), unknown trusted references (`UNKNOWN_SYSTEM_REFERENCE`), and packet-bound identity divergence (`BLUEPRINT_ID_INTEGRITY`).
 - A valid `READY` Blueprint may reuse one capability across several evidence entities without weakening global entity-ID integrity.
 - Model-backed qualification remains out of band and requires fresh cases and separate authorization.
+- E22 exercises the accepted protocol through a fresh bounded canary while preserving the distinction between one viable candidate and model qualification.

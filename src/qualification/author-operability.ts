@@ -6,6 +6,8 @@ import {
   authorEvaluationBlueprint,
   prepareAuthorInvocation,
   type AuthorConditionSpec,
+  type AuthorErrorCode,
+  type AuthoringContext,
   type AuthorInvoker,
 } from '../author/evaluation-author.js';
 import { createAuthorPromptfooInvocation } from '../author/promptfoo-author-invoker.js';
@@ -23,11 +25,21 @@ export interface AuthorOperabilityFingerprints {
   snapshot: string;
 }
 
+export interface AuthorProtocolV3CanaryFingerprints extends AuthorOperabilityFingerprints {
+  authorInstrument: string;
+  authoringContext: string;
+  candidateSchema: string;
+  compositionPolicy: string;
+  resolutionPolicy: string;
+  reviewerInstructions: string;
+  reviewerProbes: string;
+}
+
 type AuthorOperabilityCondition =
   | { conditionFingerprint: string; reasoningEffort: 'max'; requestedModel: 'gpt-5.6-luna' }
   | { conditionFingerprint: string; reasoningEffort: 'xhigh'; requestedModel: 'gpt-5.6-terra' };
 
-export interface AuthorOperabilityCampaignPreparation {
+export interface HistoricalAuthorOperabilityCampaignPreparation {
   campaignId: string;
   condition: AuthorOperabilityCondition;
   fingerprints: AuthorOperabilityFingerprints;
@@ -41,6 +53,44 @@ export interface AuthorOperabilityCampaignPreparation {
   skillPath: string;
   timeouts: { maxEvalTimeMs: number; timeoutMs: number };
 }
+
+export interface AuthorProtocolV3CanaryPreparation {
+  authoringContextPath: string;
+  campaignId: 'e22-terra-xhigh-protocol-v3-canary-20260814-r1';
+  condition: Extract<AuthorOperabilityCondition, { requestedModel: 'gpt-5.6-terra' }>;
+  fingerprints: AuthorProtocolV3CanaryFingerprints;
+  invocationBudget: 1;
+  oraclePath: string;
+  outputDirectory: string;
+  policy: 'PROTOCOL_V3_CANARY';
+  pricingEstimate: {
+    actualChatGptCost: 'UNKNOWN';
+    asOf: '2026-08-14';
+    basis: 'API_EQUIVALENT';
+    cachedInputUsdPerMillionTokens: 0.2;
+    currency: 'USD';
+    inputUsdPerMillionTokens: 2;
+    outputUsdPerMillionTokens: 12;
+    source: 'https://developers.openai.com/api/docs/models/gpt-5.6-terra';
+  };
+  protocolVersion: 3;
+  reservationPath: string;
+  review: {
+    independentReviewers: 2;
+    qualifyBeforeCandidateExposure: true;
+    resolveOnlyDisagreements: true;
+    resolutionPolicyPath: string;
+    reviewerInstructionsPath: string;
+    reviewerProbesPath: string;
+  };
+  sanitizedReportPath: string;
+  schemaVersion: 2;
+  skillPath: string;
+  stoppingRules: { maxProviderInvocations: 1; retries: 0; terminalAfterReservation: true };
+  timeouts: { maxEvalTimeMs: 660_000; timeoutMs: 600_000 };
+}
+
+export type AuthorOperabilityCampaignPreparation = HistoricalAuthorOperabilityCampaignPreparation | AuthorProtocolV3CanaryPreparation;
 
 export interface AuthorOperabilityEnvironment {
   codexCliVersion: string;
@@ -85,7 +135,8 @@ export interface AuthorOperabilityPreflightReport {
 export type AuthorOperabilityOutcome =
   'COMPLETED_WITHIN_DIAGNOSTIC_BUDGET' | 'INSUFFICIENT' | 'INVALIDATED' | 'NOT_COMPLETED_WITHIN_DIAGNOSTIC_BUDGET';
 
-export type AuthorViabilityDecision = 'INSUFFICIENT' | 'NOT_VIABLE_FOR_AUTHOR' | 'PENDING_SEMANTIC_REVIEW' | 'VIABLE_CANDIDATE';
+export type AuthorViabilityDecision =
+  'INSUFFICIENT' | 'INVALIDATED' | 'NOT_VIABLE_FOR_AUTHOR' | 'PENDING_SEMANTIC_REVIEW' | 'VIABLE_CANDIDATE';
 
 export type AuthorComparisonConclusion =
   | 'INSUFFICIENT'
@@ -93,6 +144,52 @@ export type AuthorComparisonConclusion =
   | 'SHARED_INSTRUMENT_FAILURE_SUPPORTED'
   | 'TERRA_DOES_NOT_PASS_CURRENT_INSTRUMENT'
   | 'TERRA_PASSES_CURRENT_INSTRUMENT';
+
+type ProtocolV3CanaryTerminalObservation =
+  | {
+      elapsedMs: number;
+      lifecycle: 'BLOCKED' | 'DRAFT' | 'READY';
+      status: 'COMPLETED';
+      timeoutMs: number;
+    }
+  | {
+      errorCode: AuthorErrorCode;
+      providerTimedOut: boolean;
+      status: 'ERROR';
+    };
+
+export function classifyProtocolV3CanaryTerminal(observation: ProtocolV3CanaryTerminalObservation): {
+  operabilityOutcome: AuthorOperabilityOutcome;
+  viabilityDecision: AuthorViabilityDecision;
+} {
+  if (observation.status === 'COMPLETED') {
+    if (observation.elapsedMs > observation.timeoutMs) {
+      return {
+        operabilityOutcome: 'NOT_COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
+        viabilityDecision: 'NOT_VIABLE_FOR_AUTHOR',
+      };
+    }
+    if (observation.lifecycle === 'READY') {
+      return { operabilityOutcome: 'INVALIDATED', viabilityDecision: 'INVALIDATED' };
+    }
+    return {
+      operabilityOutcome: 'COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
+      viabilityDecision: observation.lifecycle === 'BLOCKED' ? 'PENDING_SEMANTIC_REVIEW' : 'NOT_VIABLE_FOR_AUTHOR',
+    };
+  }
+  if (observation.errorCode === 'COMPOSED_BLUEPRINT_INVALID') {
+    return { operabilityOutcome: 'INVALIDATED', viabilityDecision: 'INVALIDATED' };
+  }
+  if (observation.errorCode === 'PROVIDER_ERROR') {
+    return observation.providerTimedOut
+      ? {
+          operabilityOutcome: 'NOT_COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
+          viabilityDecision: 'NOT_VIABLE_FOR_AUTHOR',
+        }
+      : { operabilityOutcome: 'INSUFFICIENT', viabilityDecision: 'INSUFFICIENT' };
+  }
+  return { operabilityOutcome: 'INSUFFICIENT', viabilityDecision: 'NOT_VIABLE_FOR_AUTHOR' };
+}
 
 export interface AuthorOperabilityRunResult {
   collectionPersisted: boolean;
@@ -104,7 +201,7 @@ export interface AuthorOperabilityRunResult {
 }
 
 export interface InspectedAuthorOperabilityCampaign {
-  fingerprints: AuthorOperabilityFingerprints;
+  fingerprints: AuthorOperabilityFingerprints | AuthorProtocolV3CanaryFingerprints;
   invocationConfigurationValid: boolean;
   packet: string;
   packetBlind: boolean;
@@ -132,6 +229,13 @@ const campaignProfiles = {
     policy: 'TERRA_CONTRAST',
     timeoutMs: 1_800_000,
   },
+  'e22-terra-xhigh-protocol-v3-canary-20260814-r1': {
+    condition: { model: 'gpt-5.6-terra', reasoningEffort: 'xhigh' },
+    maxEvalTimeMs: 660_000,
+    oraclePath: 'evaluations/refactor-design/e5-author-operability/terra-xhigh-protocol-v3-canary-r1/oracle.json',
+    policy: 'PROTOCOL_V3_CANARY',
+    timeoutMs: 600_000,
+  },
 } as const;
 
 export function authorOperabilityCampaignPolicy(
@@ -148,8 +252,12 @@ function isTerraContrastCampaign(campaign: AuthorOperabilityCampaignPreparation)
   return authorOperabilityCampaignPolicy(campaign) === 'TERRA_CONTRAST';
 }
 
-function usesThirtyMinuteTimeoutPolicy(campaign: AuthorOperabilityCampaignPreparation): boolean {
-  return isViabilityCampaign(campaign) || isTerraContrastCampaign(campaign);
+function isProtocolV3Canary(campaign: AuthorOperabilityCampaignPreparation): campaign is AuthorProtocolV3CanaryPreparation {
+  return campaign.schemaVersion === 2 && authorOperabilityCampaignPolicy(campaign) === 'PROTOCOL_V3_CANARY';
+}
+
+function usesProviderTimeoutPolicy(campaign: AuthorOperabilityCampaignPreparation): boolean {
+  return isViabilityCampaign(campaign) || isTerraContrastCampaign(campaign) || isProtocolV3Canary(campaign);
 }
 
 function candidateFromBlueprint(blueprint: EvaluationBlueprint): BlueprintCandidate {
@@ -194,14 +302,30 @@ function fingerprintsValid(value: AuthorOperabilityFingerprints): boolean {
   );
 }
 
-export function validateAuthorOperabilityCampaignPreparation(value: unknown): value is AuthorOperabilityCampaignPreparation {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
-  const campaign = value as Partial<AuthorOperabilityCampaignPreparation>;
+function protocolV3FingerprintsValid(value: AuthorProtocolV3CanaryFingerprints): boolean {
+  return (
+    fingerprintsValid(value) &&
+    /^[a-f0-9]{64}$/u.test(value.authorInstrument) &&
+    /^[a-f0-9]{64}$/u.test(value.authoringContext) &&
+    /^[a-f0-9]{64}$/u.test(value.candidateSchema) &&
+    /^[a-f0-9]{64}$/u.test(value.compositionPolicy) &&
+    /^[a-f0-9]{64}$/u.test(value.resolutionPolicy) &&
+    /^[a-f0-9]{64}$/u.test(value.reviewerInstructions) &&
+    /^[a-f0-9]{64}$/u.test(value.reviewerProbes)
+  );
+}
+
+function hasExactKeys(value: object, expected: string[]): boolean {
+  return canonicalJson(Object.keys(value).sort()) === canonicalJson([...expected].sort());
+}
+
+function validateHistoricalPreparation(campaign: Partial<HistoricalAuthorOperabilityCampaignPreparation>): boolean {
   const profile =
     typeof campaign.campaignId === 'string' ? campaignProfiles[campaign.campaignId as keyof typeof campaignProfiles] : undefined;
   return (
     campaign.schemaVersion === 1 &&
     profile !== undefined &&
+    profile.policy !== 'PROTOCOL_V3_CANARY' &&
     campaign.invocationBudget === 1 &&
     campaign.protocolVersion === 2 &&
     campaign.condition?.requestedModel === profile.condition.model &&
@@ -222,10 +346,116 @@ export function validateAuthorOperabilityCampaignPreparation(value: unknown): va
   );
 }
 
-function sameFingerprints(left: AuthorOperabilityFingerprints, right: AuthorOperabilityFingerprints): boolean {
-  return Object.keys(left).every(
-    (key) => left[key as keyof AuthorOperabilityFingerprints] === right[key as keyof AuthorOperabilityFingerprints],
+function validateProtocolV3CanaryPreparation(campaign: Partial<AuthorProtocolV3CanaryPreparation>): boolean {
+  const campaignId = 'e22-terra-xhigh-protocol-v3-canary-20260814-r1';
+  const root = 'evaluations/refactor-design/e5-author-operability/terra-xhigh-protocol-v3-canary-r1';
+  return (
+    hasExactKeys(campaign, [
+      'authoringContextPath',
+      'campaignId',
+      'condition',
+      'fingerprints',
+      'invocationBudget',
+      'oraclePath',
+      'outputDirectory',
+      'policy',
+      'pricingEstimate',
+      'protocolVersion',
+      'reservationPath',
+      'review',
+      'sanitizedReportPath',
+      'schemaVersion',
+      'skillPath',
+      'stoppingRules',
+      'timeouts',
+    ]) &&
+    campaign.schemaVersion === 2 &&
+    campaign.campaignId === campaignId &&
+    campaign.policy === 'PROTOCOL_V3_CANARY' &&
+    campaign.invocationBudget === 1 &&
+    campaign.protocolVersion === 3 &&
+    campaign.condition?.requestedModel === 'gpt-5.6-terra' &&
+    campaign.condition.reasoningEffort === 'xhigh' &&
+    typeof campaign.condition.conditionFingerprint === 'string' &&
+    /^[a-f0-9]{64}$/u.test(campaign.condition.conditionFingerprint) &&
+    campaign.timeouts?.timeoutMs === 600_000 &&
+    campaign.timeouts.maxEvalTimeMs === 660_000 &&
+    campaign.stoppingRules?.maxProviderInvocations === 1 &&
+    campaign.stoppingRules.retries === 0 &&
+    campaign.stoppingRules.terminalAfterReservation === true &&
+    campaign.review?.independentReviewers === 2 &&
+    campaign.review.qualifyBeforeCandidateExposure === true &&
+    campaign.review.resolveOnlyDisagreements === true &&
+    hasExactKeys(campaign.review, [
+      'independentReviewers',
+      'qualifyBeforeCandidateExposure',
+      'resolutionPolicyPath',
+      'resolveOnlyDisagreements',
+      'reviewerInstructionsPath',
+      'reviewerProbesPath',
+    ]) &&
+    campaign.review.reviewerInstructionsPath === `${root}/reviewer-instructions.md` &&
+    campaign.review.resolutionPolicyPath === `${root}/resolution-policy.md` &&
+    campaign.review.reviewerProbesPath === `${root}/reviewer-probes.json` &&
+    typeof campaign.fingerprints === 'object' &&
+    campaign.fingerprints !== null &&
+    hasExactKeys(campaign.fingerprints, [
+      'authorInstrument',
+      'authoringContext',
+      'candidateSchema',
+      'compositionPolicy',
+      'condition',
+      'instruction',
+      'oracle',
+      'packet',
+      'protocol',
+      'resolutionPolicy',
+      'reviewerInstructions',
+      'reviewerProbes',
+      'schema',
+      'snapshot',
+    ]) &&
+    protocolV3FingerprintsValid(campaign.fingerprints) &&
+    campaign.condition.conditionFingerprint === campaign.fingerprints.condition &&
+    campaign.authoringContextPath === `${root}/authoring-context.json` &&
+    campaign.skillPath === `${root}/skill` &&
+    campaign.oraclePath === `${root}/oracle.json` &&
+    campaign.pricingEstimate?.actualChatGptCost === 'UNKNOWN' &&
+    campaign.pricingEstimate.asOf === '2026-08-14' &&
+    campaign.pricingEstimate.basis === 'API_EQUIVALENT' &&
+    campaign.pricingEstimate.cachedInputUsdPerMillionTokens === 0.2 &&
+    campaign.pricingEstimate.currency === 'USD' &&
+    campaign.pricingEstimate.inputUsdPerMillionTokens === 2 &&
+    campaign.pricingEstimate.outputUsdPerMillionTokens === 12 &&
+    campaign.pricingEstimate.source === 'https://developers.openai.com/api/docs/models/gpt-5.6-terra' &&
+    hasExactKeys(campaign.pricingEstimate, [
+      'actualChatGptCost',
+      'asOf',
+      'basis',
+      'cachedInputUsdPerMillionTokens',
+      'currency',
+      'inputUsdPerMillionTokens',
+      'outputUsdPerMillionTokens',
+      'source',
+    ]) &&
+    campaign.reservationPath === `.skill-evidence/author-operability-reservations/${campaignId}.json` &&
+    campaign.outputDirectory === `.skill-evidence/author-operability/${campaignId}` &&
+    campaign.sanitizedReportPath === `docs/experiments/${campaignId}.json`
   );
+}
+
+export function validateAuthorOperabilityCampaignPreparation(value: unknown): value is AuthorOperabilityCampaignPreparation {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const campaign = value as Partial<AuthorOperabilityCampaignPreparation>;
+  return campaign.schemaVersion === 1
+    ? validateHistoricalPreparation(campaign as Partial<HistoricalAuthorOperabilityCampaignPreparation>)
+    : validateProtocolV3CanaryPreparation(campaign as Partial<AuthorProtocolV3CanaryPreparation>);
+}
+
+function sameFingerprints(left: AuthorOperabilityFingerprints, right: AuthorOperabilityFingerprints): boolean {
+  const leftRecord = left as unknown as Record<string, string>;
+  const rightRecord = right as unknown as Record<string, string>;
+  return hasExactKeys(left, Object.keys(right)) && Object.keys(leftRecord).every((key) => leftRecord[key] === rightRecord[key]);
 }
 
 function environmentValid(environment: AuthorOperabilityEnvironment): boolean {
@@ -243,8 +473,21 @@ export async function inspectAuthorOperabilityCampaign(
   campaign: AuthorOperabilityCampaignPreparation,
 ): Promise<InspectedAuthorOperabilityCampaign> {
   const snapshot = await createSkillSnapshot({ rootDirectory: resolve(repositoryRoot, campaign.skillPath) });
-  const prepared = prepareAuthorInvocation(snapshot, authorCondition(campaign), 2);
-  const oracle = JSON.parse(await readFile(resolve(repositoryRoot, campaign.oraclePath), 'utf8')) as unknown;
+  const authoringContext =
+    campaign.schemaVersion === 2
+      ? (JSON.parse(await readFile(resolve(repositoryRoot, campaign.authoringContextPath), 'utf8')) as AuthoringContext)
+      : undefined;
+  const prepared = prepareAuthorInvocation(snapshot, authorCondition(campaign), campaign.protocolVersion, authoringContext);
+  const [oracleText, reviewerInstructions, reviewerProbesText, resolutionPolicy] = await Promise.all([
+    readFile(resolve(repositoryRoot, campaign.oraclePath), 'utf8'),
+    campaign.schemaVersion === 2
+      ? readFile(resolve(repositoryRoot, campaign.review.reviewerInstructionsPath), 'utf8')
+      : Promise.resolve(''),
+    campaign.schemaVersion === 2 ? readFile(resolve(repositoryRoot, campaign.review.reviewerProbesPath), 'utf8') : Promise.resolve('{}'),
+    campaign.schemaVersion === 2 ? readFile(resolve(repositoryRoot, campaign.review.resolutionPolicyPath), 'utf8') : Promise.resolve(''),
+  ]);
+  const oracle = JSON.parse(oracleText) as unknown;
+  const reviewerProbes = JSON.parse(reviewerProbesText) as unknown;
   const invocation = createAuthorPromptfooInvocation({
     codexHome: '/home/renanfranca/.codex',
     observation: {
@@ -258,16 +501,29 @@ export async function inspectAuthorOperabilityCampaign(
   });
   const provider = invocation.suite.providers[0]!.config;
   const packet = prepared.request.prompt;
+  const historicalFingerprints: AuthorOperabilityFingerprints = {
+    condition: prepared.conditionFingerprint,
+    instruction: prepared.digests.instructionDigest,
+    oracle: sha256(oracle),
+    packet: prepared.packetFingerprint,
+    protocol: prepared.digests.protocolDigest,
+    schema: prepared.digests.schemaDigest,
+    snapshot: snapshot.fingerprint,
+  };
   return {
-    fingerprints: {
-      condition: prepared.conditionFingerprint,
-      instruction: prepared.digests.instructionDigest,
-      oracle: sha256(oracle),
-      packet: prepared.packetFingerprint,
-      protocol: prepared.digests.protocolDigest,
-      schema: prepared.digests.schemaDigest,
-      snapshot: snapshot.fingerprint,
-    },
+    fingerprints:
+      campaign.schemaVersion === 1
+        ? historicalFingerprints
+        : {
+            ...historicalFingerprints,
+            authorInstrument: prepared.authorInstrumentFingerprint!,
+            authoringContext: prepared.authoringContextFingerprint!,
+            candidateSchema: prepared.digests.candidateSchemaDigest!,
+            compositionPolicy: prepared.digests.compositionPolicyDigest!,
+            resolutionPolicy: sha256(resolutionPolicy),
+            reviewerInstructions: sha256(reviewerInstructions),
+            reviewerProbes: sha256(reviewerProbes),
+          },
     invocationConfigurationValid:
       invocation.options.timeoutMs === campaign.timeouts.timeoutMs &&
       invocation.options.maxEvalTimeMs === campaign.timeouts.maxEvalTimeMs &&
@@ -282,7 +538,10 @@ export async function inspectAuthorOperabilityCampaign(
       !provider.network_access_enabled &&
       provider.web_search_mode === 'disabled',
     packet,
-    packetBlind: !/expectedLifecycle|minimalChecks|oracle\.json|e5-author-benchmark/u.test(packet),
+    packetBlind:
+      !/expectedLifecycle|minimalChecks|oracle\.json|e5-author-benchmark|PENDING_SEMANTIC_REVIEW|VIABLE_CANDIDATE|reviewer-probes|stable-priority-rendering-preservation/u.test(
+        packet,
+      ),
   };
 }
 
@@ -365,6 +624,60 @@ function terminalPath(reservationPath: string): string {
   return reservationPath.replace(/\.json$/u, '.terminal.json');
 }
 
+async function invalidateProtocolV3CanaryBeforeInvocation(input: {
+  campaign: AuthorProtocolV3CanaryPreparation;
+  commit: string;
+  diagnosticCode: string;
+  expectedCommit: string;
+  repositoryRoot: string;
+}): Promise<AuthorOperabilityRunResult> {
+  const campaignFingerprint = sha256(input.campaign);
+  const reservationPath = resolve(input.repositoryRoot, input.campaign.reservationPath);
+  const receiptPath = terminalPath(reservationPath);
+  const collectionPath = resolve(input.repositoryRoot, input.campaign.outputDirectory, 'collection.json');
+  await createExclusiveJson(reservationPath, {
+    campaignFingerprint,
+    campaignId: input.campaign.campaignId,
+    commit: input.commit,
+    expectedCommit: input.expectedCommit,
+    invocationBudget: 1,
+    status: 'RESERVED',
+  });
+  let collectionPersisted = false;
+  await createExclusiveJson(collectionPath, {
+    campaignFingerprint,
+    campaignId: input.campaign.campaignId,
+    diagnostic: { code: input.diagnosticCode },
+    operabilityOutcome: 'INVALIDATED',
+    providerInvocations: 0,
+    purpose: 'DEVELOPMENT',
+    schemaVersion: 2,
+    viabilityDecision: 'INVALIDATED',
+  })
+    .then(() => {
+      collectionPersisted = true;
+    })
+    .catch(() => undefined);
+  await createExclusiveJson(receiptPath, {
+    campaignFingerprint,
+    campaignId: input.campaign.campaignId,
+    collectionPersisted,
+    commit: input.commit,
+    operabilityOutcome: 'INVALIDATED',
+    providerInvocations: 0,
+    status: 'TERMINAL',
+    viabilityDecision: 'INVALIDATED',
+  });
+  return {
+    collectionPersisted,
+    comparisonConclusion: null,
+    operabilityOutcome: 'INVALIDATED',
+    providerInvocations: 0,
+    terminalReceiptPath: receiptPath,
+    viabilityDecision: 'INVALIDATED',
+  };
+}
+
 export async function runAuthorOperabilityCampaign(input: {
   approval: string;
   currentCommit: () => Promise<string>;
@@ -386,7 +699,16 @@ export async function runAuthorOperabilityCampaign(input: {
     throw new Error('OPERABILITY_PREFLIGHT_BLOCKED');
   }
   const [currentCommit, clean] = await Promise.all([input.currentCommit(), input.workingTreeClean()]);
-  if (!clean || currentCommit !== input.expectedCommit) throw new Error('OPERABILITY_COMMIT_DRIFT');
+  if (!clean || currentCommit !== input.expectedCommit) {
+    if (!isProtocolV3Canary(input.preparation)) throw new Error('OPERABILITY_COMMIT_DRIFT');
+    return await invalidateProtocolV3CanaryBeforeInvocation({
+      campaign: input.preparation,
+      commit: currentCommit,
+      diagnosticCode: 'COMMIT_DRIFT',
+      expectedCommit: input.expectedCommit,
+      repositoryRoot: input.repositoryRoot,
+    });
+  }
 
   const inspected = await (input.inspectCampaign ?? inspectAuthorOperabilityCampaign)(input.repositoryRoot, input.preparation);
   if (
@@ -394,7 +716,14 @@ export async function runAuthorOperabilityCampaign(input: {
     !inspected.packetBlind ||
     !inspected.invocationConfigurationValid
   ) {
-    throw new Error('OPERABILITY_IDENTITY_DRIFT');
+    if (!isProtocolV3Canary(input.preparation)) throw new Error('OPERABILITY_IDENTITY_DRIFT');
+    return await invalidateProtocolV3CanaryBeforeInvocation({
+      campaign: input.preparation,
+      commit: currentCommit,
+      diagnosticCode: 'IDENTITY_OR_BLINDNESS_DRIFT',
+      expectedCommit: input.expectedCommit,
+      repositoryRoot: input.repositoryRoot,
+    });
   }
 
   const reservationPath = resolve(input.repositoryRoot, input.preparation.reservationPath);
@@ -418,14 +747,29 @@ export async function runAuthorOperabilityCampaign(input: {
   const collectionPath = resolve(input.repositoryRoot, input.preparation.outputDirectory, 'collection.json');
   try {
     const snapshot = await createSkillSnapshot({ rootDirectory: resolve(input.repositoryRoot, input.preparation.skillPath) });
-    providerInvocations = 1;
-    const run = await authorEvaluationBlueprint({
-      campaignId: input.preparation.campaignId,
-      condition: authorCondition(input.preparation),
-      invoke: input.invoke,
-      protocolVersion: 2,
-      snapshot,
-    });
+    const invoke: AuthorInvoker = (request) => {
+      providerInvocations = 1;
+      return input.invoke(request);
+    };
+    const run =
+      input.preparation.schemaVersion === 2
+        ? await authorEvaluationBlueprint({
+            authoringContext: JSON.parse(
+              await readFile(resolve(input.repositoryRoot, input.preparation.authoringContextPath), 'utf8'),
+            ) as AuthoringContext,
+            campaignId: input.preparation.campaignId,
+            condition: authorCondition(input.preparation),
+            invoke,
+            protocolVersion: 3,
+            snapshot,
+          })
+        : await authorEvaluationBlueprint({
+            campaignId: input.preparation.campaignId,
+            condition: authorCondition(input.preparation),
+            invoke,
+            protocolVersion: 2,
+            snapshot,
+          });
     const elapsedMs = Math.max(0, Math.round(now() - startedAt));
     const timedOutAtPromptfooStep =
       run.status === 'ERROR' &&
@@ -433,7 +777,7 @@ export async function runAuthorOperabilityCampaign(input: {
       run.error.diagnostic.category === 'TIMEOUT' &&
       run.providerObservation?.timeoutOwner === 'PROMPTFOO_STEP';
     const providerTimedOut = run.status === 'ERROR' && run.error.code === 'PROVIDER_ERROR' && run.error.diagnostic.category === 'TIMEOUT';
-    const timedOutForCampaign = usesThirtyMinuteTimeoutPolicy(input.preparation) ? providerTimedOut : timedOutAtPromptfooStep;
+    const timedOutForCampaign = usesProviderTimeoutPolicy(input.preparation) ? providerTimedOut : timedOutAtPromptfooStep;
     operabilityOutcome =
       run.status === 'COMPLETED'
         ? elapsedMs <= input.preparation.timeouts.timeoutMs
@@ -468,6 +812,20 @@ export async function runAuthorOperabilityCampaign(input: {
             ? 'TERRA_DOES_NOT_PASS_CURRENT_INSTRUMENT'
             : 'INSUFFICIENT';
     }
+    if (isProtocolV3Canary(input.preparation)) {
+      const classification = classifyProtocolV3CanaryTerminal(
+        run.status === 'COMPLETED'
+          ? {
+              elapsedMs,
+              lifecycle: run.blueprint.lifecycle.state,
+              status: 'COMPLETED',
+              timeoutMs: input.preparation.timeouts.timeoutMs,
+            }
+          : { errorCode: run.error.code, providerTimedOut, status: 'ERROR' },
+      );
+      operabilityOutcome = classification.operabilityOutcome;
+      viabilityDecision = classification.viabilityDecision;
+    }
     const target300SecondsMet = run.status === 'COMPLETED' ? elapsedMs <= 300_000 : providerTimedOut ? false : null;
     const target600SecondsMet = run.status === 'COMPLETED' ? elapsedMs <= 600_000 : providerTimedOut ? false : null;
     const target1800SecondsMet = run.status === 'COMPLETED' ? elapsedMs <= 1_800_000 : providerTimedOut ? false : null;
@@ -486,7 +844,7 @@ export async function runAuthorOperabilityCampaign(input: {
             providerInvocations,
             providerObservation: run.providerObservation ?? null,
             purpose: 'DEVELOPMENT',
-            schemaVersion: 1,
+            schemaVersion: input.preparation.schemaVersion,
             target1800SecondsMet,
             target300SecondsMet,
             target600SecondsMet,
@@ -505,7 +863,7 @@ export async function runAuthorOperabilityCampaign(input: {
             providerInvocations,
             providerObservation: run.providerObservation ?? null,
             purpose: 'DEVELOPMENT',
-            schemaVersion: 1,
+            schemaVersion: input.preparation.schemaVersion,
             target1800SecondsMet,
             target300SecondsMet,
             target600SecondsMet,
@@ -518,6 +876,7 @@ export async function runAuthorOperabilityCampaign(input: {
     if (providerInvocations === 0) operabilityOutcome = 'INVALIDATED';
     if (isViabilityCampaign(input.preparation)) viabilityDecision = 'INSUFFICIENT';
     if (isTerraContrastCampaign(input.preparation)) comparisonConclusion = 'INSUFFICIENT';
+    if (isProtocolV3Canary(input.preparation)) viabilityDecision = providerInvocations === 0 ? 'INVALIDATED' : 'INSUFFICIENT';
     await mkdir(dirname(collectionPath), { recursive: true }).catch(() => undefined);
     await writeFile(
       collectionPath,
@@ -530,7 +889,7 @@ export async function runAuthorOperabilityCampaign(input: {
         providerInvocations,
         viabilityDecision,
         purpose: 'DEVELOPMENT',
-        schemaVersion: 1,
+        schemaVersion: input.preparation.schemaVersion,
       })}\n`,
       { flag: 'wx', mode: 0o600 },
     )

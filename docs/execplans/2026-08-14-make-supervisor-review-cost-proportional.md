@@ -67,7 +67,7 @@ At approval, `/home/renanfranca/projects/skill-evidence` is clean on synchronize
 
 ## Supervisor Record
 
-- State: `PUBLISH_DRAFT`
+- State: `COMPLETE`
 - Evidence refreshed: 2026-08-14 after direct user-directed completion and final mechanical validation
 - Contract: revision 1, `APPROVED`
 - Worktree: `/home/renanfranca/projects/skill-evidence-review-cost`
@@ -80,7 +80,7 @@ At approval, `/home/renanfranca/projects/skill-evidence` is clean on synchronize
 - Review mode for final identities: skipped by explicit user direction; no further reviewer or consolidator may be dispatched for this increment
 - Review coverage: no complete v2 receipt for the final identities; on 2026-08-14 the user explicitly directed that all agents stop and that no further review be performed, so delivery proceeds on deterministic validation evidence only without claiming independent review coverage
 - Reinforced rounds used: 0; reinforced review is prohibited for this increment by current user scope
-- Pull request: draft PR #11, `https://github.com/renanfranca/skill-evidence/pull/11`; direct correction is pending commit and push
+- Pull request: PR #11 merged into `main` as `5d1b09f787f161c0dc5ff9860e90818e2e3fa68e`
 - Pending gate: none
 - Operational blocker: none
 
@@ -178,7 +178,7 @@ Acceptance: no review agent is dispatched, the remote draft head equals the mech
   - Post-GREEN design review found no concrete behavior-preserving refactor warranted before delivery. The serializer remains one stateless collection transaction with explicit helpers for Git observation, ExecPlan partitioning, receipt validation, comparison, and persistence. Splitting those responsibilities further now would duplicate canonical identity rules or add temporal coupling without evidence of a current defect.
   - Complete validation is GREEN: focused 26/26, skill quick validation, typecheck, lint, full Vitest 215/215, repository-wide Prettier, build, offline `experiment:verify` with provider imports 0, and `git diff --check`.
   - Two complete real-worktree serializer invocations were byte-identical at material `sha256:2833f511e1169695d8ccd052f87a1e59e2ae88c8add4e385a6fa8c5c25db956d` (7 entries) and operational evidence `sha256:08ef0cf23eab557f4cf4aa4c3c09acfe1037f9770510c00a2a28dd690bd4eab8` (3 entries).
-- [ ] Complete Milestone 5 one-reviewer standard review and draft publication.
+- [x] Complete Milestone 5 mechanical validation and draft publication; PR #11 merged as `5d1b09f`.
   - A historical first standard review reproduced both identities and reported five blocking findings: incomplete or forged coverage reuse (P1), reinforced-round ledger reset across material identities (P1), CRLF collapsing to LF in ExecPlan identities (P2), incomplete counting of exact `Active` cells (P2), and no machine transition for publication-time operational or coverage change (P2). Direct supervisor reconciliation accepted all five. The later user direction ended all further review and made operational-only changes mechanical-only.
   - Coverage-completeness remediation observed five discriminating REDs in sequence: the initial null receipt, a missing artifact, a wrong artifact digest, a null array reference, and an extra raw-content reference key each incorrectly classified as `UNCHANGED`. GREEN now requires exact receipt, coverage, and reference keys; non-null foundation and finding references; non-null array references; and stable no-follow regular-file reads whose SHA-256 matches before any unchanged or composable reuse.
   - Reinforced-ledger remediation observed the first material delta return an empty ledger instead of its consumed round. GREEN preserves only the validated `reinforcedRounds` ledger across material identities at the same exact base and active plan, clears the other coverage fields, retains two distinct consumed rounds across two identities, and executes the contract budget to select `WAIT_RISK_APPROVAL` for the third identity before dispatch.

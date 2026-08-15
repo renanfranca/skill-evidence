@@ -8,14 +8,21 @@ import { createSkillSnapshot } from '../intake/skill-snapshot.js';
 import {
   createAuthorViabilityResolutionPacket,
   createAuthorViabilityReviewPacket,
+  createAuthorViabilityReviewerQualificationPacket,
+  createAuthorViabilityReviewerQualificationSubmission,
   createAuthorViabilityReviewerSubmission,
+  qualifyAuthorViabilityReviewers,
   resolveAuthorViabilityReview,
   validateAuthorViabilityOracle,
   validateAuthorViabilityReviewPacket,
+  validateAuthorViabilityReviewerProbeSet,
   validateAuthorViabilityReviewerSubmission,
   type AuthorViabilityJudgment,
   type AuthorViabilityResolutionPacket,
   type AuthorViabilityReviewPacket,
+  type AuthorViabilityReviewerQualificationInput,
+  type AuthorViabilityReviewerQualificationPacket,
+  type AuthorViabilityReviewerQualificationSubmission,
   type AuthorViabilityReviewerSubmission,
 } from './author-viability-review.js';
 import {
@@ -23,6 +30,7 @@ import {
   validateAuthorOperabilityCampaignPreparation,
   type AuthorComparisonConclusion,
   type AuthorOperabilityCampaignPreparation,
+  type AuthorProtocolV3CanaryPreparation,
   type AuthorViabilityDecision,
 } from './author-operability.js';
 
@@ -62,6 +70,15 @@ async function readJson(path: string): Promise<unknown> {
   return JSON.parse(await readFile(path, 'utf8')) as unknown;
 }
 
+async function readOptionalJson(path: string): Promise<unknown> {
+  try {
+    return await readJson(path);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+    throw error;
+  }
+}
+
 function isTerraContrast(preparation: AuthorOperabilityCampaignPreparation): boolean {
   return authorOperabilityCampaignPolicy(preparation) === 'TERRA_CONTRAST';
 }
@@ -82,6 +99,46 @@ function collectionDecision(
     : (collection.viabilityDecision as AuthorViabilityDecision | undefined);
 }
 
+function protocolV3CollectionMatchesPreparation(value: Record<string, unknown>, preparation: AuthorProtocolV3CanaryPreparation): boolean {
+  if (
+    value.schemaVersion !== 2 ||
+    value.actualLifecycle !== 'BLOCKED' ||
+    value.operabilityOutcome !== 'COMPLETED_WITHIN_DIAGNOSTIC_BUDGET' ||
+    value.providerInvocations !== 1 ||
+    typeof value.blueprint !== 'object' ||
+    value.blueprint === null
+  ) {
+    return false;
+  }
+  const blueprint = value.blueprint as Record<string, unknown>;
+  if (
+    blueprint.schemaVersion !== 3 ||
+    blueprint.snapshotFingerprint !== preparation.fingerprints.snapshot ||
+    typeof blueprint.lifecycle !== 'object' ||
+    blueprint.lifecycle === null ||
+    (blueprint.lifecycle as Record<string, unknown>).state !== 'BLOCKED' ||
+    typeof blueprint.authorProvenance !== 'object' ||
+    blueprint.authorProvenance === null
+  ) {
+    return false;
+  }
+  const provenance = blueprint.authorProvenance as Record<string, unknown>;
+  return (
+    provenance.authorInstrumentFingerprint === preparation.fingerprints.authorInstrument &&
+    provenance.authoringContextFingerprint === preparation.fingerprints.authoringContext &&
+    provenance.campaignId === preparation.campaignId &&
+    provenance.candidateSchemaDigest === preparation.fingerprints.candidateSchema &&
+    provenance.compositionPolicyDigest === preparation.fingerprints.compositionPolicy &&
+    provenance.conditionFingerprint === preparation.fingerprints.condition &&
+    provenance.instructionDigest === preparation.fingerprints.instruction &&
+    provenance.packetFingerprint === preparation.fingerprints.packet &&
+    provenance.protocolDigest === preparation.fingerprints.protocol &&
+    provenance.reasoningEffort === preparation.condition.reasoningEffort &&
+    provenance.requestedModel === preparation.condition.requestedModel &&
+    provenance.schemaDigest === preparation.fingerprints.schema
+  );
+}
+
 function parseCompletedCollection(value: unknown, preparation: AuthorOperabilityCampaignPreparation): CompletedViabilityCollection {
   if (
     typeof value !== 'object' ||
@@ -95,6 +152,9 @@ function parseCompletedCollection(value: unknown, preparation: AuthorOperability
     !validateComposedEvaluationBlueprint(value.blueprint).valid
   ) {
     throw new Error('AUTHOR_VIABILITY_REVIEW_NOT_REQUIRED');
+  }
+  if (preparation.schemaVersion === 2 && !protocolV3CollectionMatchesPreparation(value as Record<string, unknown>, preparation)) {
+    throw new Error('AUTHOR_VIABILITY_COLLECTION_INTEGRITY');
   }
   return value as unknown as CompletedViabilityCollection;
 }
@@ -113,10 +173,37 @@ function reviewerInput(value: unknown, reviewerId: 'reviewer-a' | 'reviewer-b'):
   return value as unknown as AuthorViabilityReviewerInput;
 }
 
+function reviewerQualificationInput(value: unknown, reviewerId: 'reviewer-a' | 'reviewer-b'): AuthorViabilityReviewerQualificationInput {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    !('reviewerId' in value) ||
+    value.reviewerId !== reviewerId ||
+    !('judgments' in value) ||
+    !Array.isArray(value.judgments) ||
+    value.judgments.some(
+      (judgment: unknown) =>
+        typeof judgment !== 'object' ||
+        judgment === null ||
+        !('probeId' in judgment) ||
+        typeof judgment.probeId !== 'string' ||
+        !('verdict' in judgment) ||
+        (judgment.verdict !== 'ACCEPT' && judgment.verdict !== 'REJECT'),
+    )
+  ) {
+    throw new Error('AUTHOR_VIABILITY_REVIEWER_QUALIFICATION_INPUT_INVALID');
+  }
+  return value as AuthorViabilityReviewerQualificationInput;
+}
+
 export async function prepareAuthorViabilityReview(input: {
   preparation: AuthorOperabilityCampaignPreparation;
   repositoryRoot: string;
-}): Promise<{ packetFingerprint: string; reviewDirectory: string }> {
+}): Promise<{
+  packetFingerprint: string;
+  reviewDirectory: string;
+  status?: 'PENDING_REVIEWER_QUALIFICATION' | 'READY_FOR_BLIND_REVIEW';
+}> {
   assertReviewCampaign(input.preparation);
   const collection = parseCompletedCollection(
     await readJson(resolve(input.repositoryRoot, input.preparation.outputDirectory, 'collection.json')),
@@ -125,12 +212,78 @@ export async function prepareAuthorViabilityReview(input: {
   const oracleValue = await readJson(resolve(input.repositoryRoot, input.preparation.oraclePath));
   if (!validateAuthorViabilityOracle(oracleValue)) throw new Error('AUTHOR_VIABILITY_ORACLE_INVALID');
   const snapshot = await createSkillSnapshot({ rootDirectory: resolve(input.repositoryRoot, input.preparation.skillPath) });
+  const reviewDirectory = resolve(input.repositoryRoot, input.preparation.outputDirectory, 'review');
+  if (input.preparation.schemaVersion === 2) {
+    const probeValue = await readJson(resolve(input.repositoryRoot, input.preparation.review.reviewerProbesPath));
+    if (!validateAuthorViabilityReviewerProbeSet(probeValue)) throw new Error('AUTHOR_VIABILITY_REVIEWER_PROBES_INVALID');
+    const qualificationPacket = createAuthorViabilityReviewerQualificationPacket(probeValue);
+    const qualificationPacketPath = join(reviewDirectory, 'qualification.packet.json');
+    const existingQualificationPacket = await readOptionalJson(qualificationPacketPath);
+    if (existingQualificationPacket === undefined) {
+      await mkdir(reviewDirectory, { recursive: true });
+      await Promise.all([
+        writeExclusive(qualificationPacketPath, qualificationPacket),
+        writeExclusive(join(reviewDirectory, 'manifest.json'), {
+          campaignFingerprint: collection.campaignFingerprint,
+          campaignId: collection.campaignId,
+          purpose: 'AUTHOR_VIABILITY_REVIEWER_QUALIFICATION',
+          qualificationPacketFingerprint: qualificationPacket.fingerprint,
+          schemaVersion: 2,
+        }),
+      ]);
+      return {
+        packetFingerprint: qualificationPacket.fingerprint,
+        reviewDirectory,
+        status: 'PENDING_REVIEWER_QUALIFICATION',
+      };
+    }
+    if (canonicalJson(existingQualificationPacket) !== canonicalJson(qualificationPacket)) {
+      throw new Error('AUTHOR_VIABILITY_REVIEWER_QUALIFICATION_PACKET_INVALID');
+    }
+    const qualificationInputs = await Promise.all([
+      readJson(join(reviewDirectory, 'reviewer-a.qualification.input.json')).then((value) =>
+        reviewerQualificationInput(value, 'reviewer-a'),
+      ),
+      readJson(join(reviewDirectory, 'reviewer-b.qualification.input.json')).then((value) =>
+        reviewerQualificationInput(value, 'reviewer-b'),
+      ),
+    ]);
+    const qualificationSubmissions = qualificationInputs.map((qualificationInput) =>
+      createAuthorViabilityReviewerQualificationSubmission({ input: qualificationInput, packet: qualificationPacket }),
+    );
+    const qualification = qualifyAuthorViabilityReviewers({
+      packet: qualificationPacket,
+      probes: probeValue,
+      submissions: qualificationSubmissions,
+    });
+    if (qualification.result !== 'QUALIFIED') throw new Error('AUTHOR_VIABILITY_REVIEWER_QUALIFICATION_FAILED');
+    const packet = createAuthorViabilityReviewPacket({
+      blueprint: collection.blueprint,
+      oracle: oracleValue,
+      skillFiles: snapshot.includedFiles,
+    });
+    if (!validateAuthorViabilityReviewPacket(packet)) throw new Error('AUTHOR_VIABILITY_PACKET_INVALID');
+    await Promise.all([
+      writeExclusive(join(reviewDirectory, 'reviewer-a.packet.json'), packet),
+      writeExclusive(join(reviewDirectory, 'reviewer-b.packet.json'), packet),
+      ...qualificationSubmissions.map((submission) =>
+        writeExclusive(join(reviewDirectory, `${submission.reviewerId}.qualification.json`), submission),
+      ),
+      writeExclusive(join(reviewDirectory, 'reviewer-qualification-result.json'), qualification),
+      writeExclusive(join(reviewDirectory, 'candidate.manifest.json'), {
+        campaignFingerprint: collection.campaignFingerprint,
+        packetFingerprint: packet.fingerprint,
+        qualificationFingerprint: qualification.fingerprint,
+        schemaVersion: 2,
+      }),
+    ]);
+    return { packetFingerprint: packet.fingerprint, reviewDirectory, status: 'READY_FOR_BLIND_REVIEW' };
+  }
   const packet = createAuthorViabilityReviewPacket({
     blueprint: collection.blueprint,
     oracle: oracleValue,
     skillFiles: snapshot.includedFiles,
   });
-  const reviewDirectory = resolve(input.repositoryRoot, input.preparation.outputDirectory, 'review');
   await mkdir(reviewDirectory, { recursive: true });
   await Promise.all([
     writeExclusive(join(reviewDirectory, 'reviewer-a.packet.json'), packet),
@@ -209,6 +362,35 @@ export async function scoreAuthorViability(input: {
     const collection = parseCompletedCollection(collectionValue, input.preparation);
     const reviewDirectory = resolve(input.repositoryRoot, input.preparation.outputDirectory, 'review');
     const packet = (await readJson(join(reviewDirectory, 'reviewer-a.packet.json'))) as AuthorViabilityReviewPacket;
+    let reviewerQualification: Record<string, unknown> | null = null;
+    if (input.preparation.schemaVersion === 2) {
+      const probeValue = await readJson(resolve(input.repositoryRoot, input.preparation.review.reviewerProbesPath));
+      if (!validateAuthorViabilityReviewerProbeSet(probeValue)) throw new Error('AUTHOR_VIABILITY_REVIEWER_PROBES_INVALID');
+      const expectedQualificationPacket = createAuthorViabilityReviewerQualificationPacket(probeValue);
+      const qualificationPacket = (await readJson(
+        join(reviewDirectory, 'qualification.packet.json'),
+      )) as AuthorViabilityReviewerQualificationPacket;
+      if (canonicalJson(qualificationPacket) !== canonicalJson(expectedQualificationPacket)) {
+        throw new Error('AUTHOR_VIABILITY_REVIEWER_QUALIFICATION_PACKET_INVALID');
+      }
+      const qualificationSubmissions = (await Promise.all([
+        readJson(join(reviewDirectory, 'reviewer-a.qualification.json')),
+        readJson(join(reviewDirectory, 'reviewer-b.qualification.json')),
+      ])) as AuthorViabilityReviewerQualificationSubmission[];
+      const expectedQualification = qualifyAuthorViabilityReviewers({
+        packet: qualificationPacket,
+        probes: probeValue,
+        submissions: qualificationSubmissions,
+      });
+      const qualification = await readJson(join(reviewDirectory, 'reviewer-qualification-result.json'));
+      if (expectedQualification.result !== 'QUALIFIED' || canonicalJson(qualification) !== canonicalJson(expectedQualification)) {
+        throw new Error('AUTHOR_VIABILITY_REVIEWER_QUALIFICATION_INVALID');
+      }
+      reviewerQualification = {
+        qualificationSubmissionFingerprints: qualificationSubmissions.map((submission) => submission.fingerprint).sort(),
+        reviewerQualificationFingerprint: expectedQualification.fingerprint,
+      };
+    }
     const submissions = (await Promise.all([
       readJson(join(reviewDirectory, 'reviewer-a.json')),
       readJson(join(reviewDirectory, 'reviewer-b.json')),
@@ -227,6 +409,7 @@ export async function scoreAuthorViability(input: {
       : resolved.decision;
     review = {
       packetFingerprint: packet.fingerprint,
+      ...(reviewerQualification ?? {}),
       resolutionFingerprint: resolved.fingerprint,
       reviewerSubmissionFingerprints: submissions.map((submission) => submission.fingerprint).sort(),
       judgments: resolved.judgments,
@@ -252,23 +435,30 @@ export async function scoreAuthorViability(input: {
     decisionEligible: false,
     elapsedMs: collection.elapsedMs ?? null,
     fingerprints: input.preparation.fingerprints,
-    limitations: isTerraContrast(input.preparation)
-      ? [
-          'This controlled development contrast applies only to Terra/xhigh on the frozen E19 protocol-v2 packet.',
-          'Passing the current instrument does not qualify Terra or prove a general intelligence difference from Luna.',
-          'A terminal result never authorizes reuse of this campaign, reservation, or output.',
-        ]
-      : [
-          'This adaptive development gate applies only to Luna/max with Author protocol v2 and the frozen locale-catalog packet.',
-          'VIABLE_CANDIDATE does not qualify the Author or establish reliability on blind cases.',
-          'A terminal result never authorizes reuse of this campaign, reservation, or output.',
-        ],
+    limitations:
+      input.preparation.schemaVersion === 2
+        ? [
+            'This single E22 protocol-v3 canary applies only to the frozen priority-queue snapshot-renderer instrument and Terra/xhigh condition.',
+            'VIABLE_CANDIDATE does not qualify Terra, establish stability or generalization, or enable decision runs.',
+            'A terminal result never authorizes reuse of this campaign, reservation, or output.',
+          ]
+        : isTerraContrast(input.preparation)
+          ? [
+              'This controlled development contrast applies only to Terra/xhigh on the frozen E19 protocol-v2 packet.',
+              'Passing the current instrument does not qualify Terra or prove a general intelligence difference from Luna.',
+              'A terminal result never authorizes reuse of this campaign, reservation, or output.',
+            ]
+          : [
+              'This adaptive development gate applies only to Luna/max with Author protocol v2 and the frozen locale-catalog packet.',
+              'VIABLE_CANDIDATE does not qualify the Author or establish reliability on blind cases.',
+              'A terminal result never authorizes reuse of this campaign, reservation, or output.',
+            ],
     operabilityOutcome: collection.operabilityOutcome,
     providerInvocations: collection.providerInvocations,
     purpose: 'DEVELOPMENT',
     result: decision,
     review,
-    schemaVersion: 1,
+    schemaVersion: input.preparation.schemaVersion,
     target1800SecondsMet: collection.target1800SecondsMet ?? null,
     target300SecondsMet: collection.target300SecondsMet ?? null,
     target600SecondsMet: collection.target600SecondsMet ?? null,

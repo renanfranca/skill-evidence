@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 2,
+  "campaignId": "e22-terra-xhigh-protocol-v3-canary-20260814-r1",
+  "policy": "PROTOCOL_V3_CANARY",
+  "condition": {
+    "conditionFingerprint": "54bcb8d029ab17f8d6ebe6ef9792e6d8da009e73074f35af3d892c25f0019736",
+    "requestedModel": "gpt-5.6-terra",
+    "reasoningEffort": "xhigh"
+  },
+  "fingerprints": {
+    "authorInstrument": "88511816a0a70b2b8a697763e0f69d5aecffc5d5e48456209343fea347e66b73",
+    "authoringContext": "a0e5dd88ff873ab54eaf3e7fe92f7da982484db6921224aed0869521a64ca648",
+    "candidateSchema": "2f69f8f493a03da98e6d0d22117cdfebb29567661d61460c5058467799f2fda4",
+    "compositionPolicy": "62bbf6a044face95965ddea1cd84469459c3ee54c9e7a23e96df44c6ca0ee647",
+    "condition": "54bcb8d029ab17f8d6ebe6ef9792e6d8da009e73074f35af3d892c25f0019736",
+    "instruction": "fa1503c38e982c6d877d6e4f3453e16e0bcee5fe683a4735c76732ab2c2d0e2a",
+    "oracle": "296702f1c021678a6f59b45085facc69336a5a7c47b9b127e4dc86d0857019e9",
+    "packet": "f744b20a3e49cef5be4ca6baa2bbad2a7fa44fcafb7a9e4f63c4c23b703d7b8c",
+    "protocol": "7fdf3d82edf6b54ff227c76b34db4d8146c4f874e55244f750b6e99b40d25d16",
+    "resolutionPolicy": "0866102d56577c46b92fda0659644ebe0ebcea315c3128d701c8a05e9211ea6a",
+    "reviewerInstructions": "2fa2feacc2167965ec53a51658850aa962e63364822f706984141c397e92b458",
+    "reviewerProbes": "dadb9d3ea5aeee658300722d1fefcefef49e1f90592d7db8328d183965b29093",
+    "schema": "140ca3a2352695082e49b5d0b123b6f15a5e066fee4d88a78fb731624a9abe29",
+    "snapshot": "d5094499f599f3dfeb4774da3ddefcb36fb9dca0a8c25b464fd74685277a97b1"
+  },
+  "invocationBudget": 1,
+  "protocolVersion": 3,
+  "authoringContextPath": "evaluations/refactor-design/e5-author-operability/terra-xhigh-protocol-v3-canary-r1/authoring-context.json",
+  "skillPath": "evaluations/refactor-design/e5-author-operability/terra-xhigh-protocol-v3-canary-r1/skill",
+  "oraclePath": "evaluations/refactor-design/e5-author-operability/terra-xhigh-protocol-v3-canary-r1/oracle.json",
+  "review": {
+    "independentReviewers": 2,
+    "qualifyBeforeCandidateExposure": true,
+    "resolveOnlyDisagreements": true,
+    "reviewerProbesPath": "evaluations/refactor-design/e5-author-operability/terra-xhigh-protocol-v3-canary-r1/reviewer-probes.json",
+    "reviewerInstructionsPath": "evaluations/refactor-design/e5-author-operability/terra-xhigh-protocol-v3-canary-r1/reviewer-instructions.md",
+    "resolutionPolicyPath": "evaluations/refactor-design/e5-author-operability/terra-xhigh-protocol-v3-canary-r1/resolution-policy.md"
+  },
+  "stoppingRules": {
+    "maxProviderInvocations": 1,
+    "retries": 0,
+    "terminalAfterReservation": true
+  },
+  "timeouts": {
+    "timeoutMs": 600000,
+    "maxEvalTimeMs": 660000
+  },
+  "pricingEstimate": {
+    "basis": "API_EQUIVALENT",
+    "asOf": "2026-08-14",
+    "currency": "USD",
+    "inputUsdPerMillionTokens": 2,
+    "cachedInputUsdPerMillionTokens": 0.2,
+    "outputUsdPerMillionTokens": 12,
+    "actualChatGptCost": "UNKNOWN",
+    "source": "https://developers.openai.com/api/docs/models/gpt-5.6-terra"
+  },
+  "reservationPath": ".skill-evidence/author-operability-reservations/e22-terra-xhigh-protocol-v3-canary-20260814-r1.json",
+  "outputDirectory": ".skill-evidence/author-operability/e22-terra-xhigh-protocol-v3-canary-20260814-r1",
+  "sanitizedReportPath": "docs/experiments/e22-terra-xhigh-protocol-v3-canary-20260814-r1.json"
+}
