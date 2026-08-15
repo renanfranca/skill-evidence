@@ -4,16 +4,20 @@ import { performance } from 'node:perf_hooks';
 
 import {
   authorEvaluationBlueprint,
+  executePreparedAuthorInvocation,
   prepareAuthorInvocation,
   type AuthorConditionSpec,
   type AuthorErrorCode,
   type AuthoringContext,
   type AuthorInvoker,
+  type PreparedAuthorInvocation,
 } from '../author/evaluation-author.js';
 import { createAuthorPromptfooInvocation } from '../author/promptfoo-author-invoker.js';
 import { validateEvaluationBlueprint, type BlueprintCandidate, type EvaluationBlueprint } from '../blueprint/evaluation-blueprint.js';
+import { canonicalFrozenCopy } from '../canonical-frozen.js';
 import { canonicalJson, sha256 } from '../canonical-json.js';
-import { createSkillSnapshot } from '../intake/skill-snapshot.js';
+import { createSkillSnapshot, type IncludedSkillFile } from '../intake/skill-snapshot.js';
+import { assertConfinedArtifactPath, publishJsonNoReplace, readConfinedJson, readConfinedText } from './author-artifact-store.js';
 
 export interface AuthorOperabilityFingerprints {
   condition: string;
@@ -163,14 +167,14 @@ export function classifyProtocolV3CanaryTerminal(observation: ProtocolV3CanaryTe
   viabilityDecision: AuthorViabilityDecision;
 } {
   if (observation.status === 'COMPLETED') {
+    if (observation.lifecycle === 'READY') {
+      return { operabilityOutcome: 'INVALIDATED', viabilityDecision: 'INVALIDATED' };
+    }
     if (observation.elapsedMs > observation.timeoutMs) {
       return {
         operabilityOutcome: 'NOT_COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
         viabilityDecision: 'NOT_VIABLE_FOR_AUTHOR',
       };
-    }
-    if (observation.lifecycle === 'READY') {
-      return { operabilityOutcome: 'INVALIDATED', viabilityDecision: 'INVALIDATED' };
     }
     return {
       operabilityOutcome: 'COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
@@ -205,6 +209,12 @@ export interface InspectedAuthorOperabilityCampaign {
   invocationConfigurationValid: boolean;
   packet: string;
   packetBlind: boolean;
+  preparedInvocation?: PreparedAuthorInvocation;
+  reviewMaterial?: {
+    oracle: unknown;
+    reviewerProbes: unknown;
+    skillFiles: IncludedSkillFile[];
+  };
 }
 
 const campaignProfiles = {
@@ -374,15 +384,19 @@ function validateProtocolV3CanaryPreparation(campaign: Partial<AuthorProtocolV3C
     campaign.policy === 'PROTOCOL_V3_CANARY' &&
     campaign.invocationBudget === 1 &&
     campaign.protocolVersion === 3 &&
+    campaign.condition !== undefined &&
+    hasExactKeys(campaign.condition, ['conditionFingerprint', 'reasoningEffort', 'requestedModel']) &&
     campaign.condition?.requestedModel === 'gpt-5.6-terra' &&
     campaign.condition.reasoningEffort === 'xhigh' &&
     typeof campaign.condition.conditionFingerprint === 'string' &&
     /^[a-f0-9]{64}$/u.test(campaign.condition.conditionFingerprint) &&
     campaign.timeouts?.timeoutMs === 600_000 &&
     campaign.timeouts.maxEvalTimeMs === 660_000 &&
+    hasExactKeys(campaign.timeouts, ['maxEvalTimeMs', 'timeoutMs']) &&
     campaign.stoppingRules?.maxProviderInvocations === 1 &&
     campaign.stoppingRules.retries === 0 &&
     campaign.stoppingRules.terminalAfterReservation === true &&
+    hasExactKeys(campaign.stoppingRules, ['maxProviderInvocations', 'retries', 'terminalAfterReservation']) &&
     campaign.review?.independentReviewers === 2 &&
     campaign.review.qualifyBeforeCandidateExposure === true &&
     campaign.review.resolveOnlyDisagreements === true &&
@@ -468,23 +482,29 @@ function environmentValid(environment: AuthorOperabilityEnvironment): boolean {
   );
 }
 
-export async function inspectAuthorOperabilityCampaign(
+async function inspectAuthorOperabilityCampaignOnce(
   repositoryRoot: string,
   campaign: AuthorOperabilityCampaignPreparation,
 ): Promise<InspectedAuthorOperabilityCampaign> {
   const snapshot = await createSkillSnapshot({ rootDirectory: resolve(repositoryRoot, campaign.skillPath) });
   const authoringContext =
     campaign.schemaVersion === 2
-      ? (JSON.parse(await readFile(resolve(repositoryRoot, campaign.authoringContextPath), 'utf8')) as AuthoringContext)
+      ? ((await readConfinedJson(repositoryRoot, resolve(repositoryRoot, campaign.authoringContextPath))) as AuthoringContext)
       : undefined;
   const prepared = prepareAuthorInvocation(snapshot, authorCondition(campaign), campaign.protocolVersion, authoringContext);
   const [oracleText, reviewerInstructions, reviewerProbesText, resolutionPolicy] = await Promise.all([
-    readFile(resolve(repositoryRoot, campaign.oraclePath), 'utf8'),
     campaign.schemaVersion === 2
-      ? readFile(resolve(repositoryRoot, campaign.review.reviewerInstructionsPath), 'utf8')
+      ? readConfinedText(repositoryRoot, resolve(repositoryRoot, campaign.oraclePath))
+      : readFile(resolve(repositoryRoot, campaign.oraclePath), 'utf8'),
+    campaign.schemaVersion === 2
+      ? readConfinedText(repositoryRoot, resolve(repositoryRoot, campaign.review.reviewerInstructionsPath))
       : Promise.resolve(''),
-    campaign.schemaVersion === 2 ? readFile(resolve(repositoryRoot, campaign.review.reviewerProbesPath), 'utf8') : Promise.resolve('{}'),
-    campaign.schemaVersion === 2 ? readFile(resolve(repositoryRoot, campaign.review.resolutionPolicyPath), 'utf8') : Promise.resolve(''),
+    campaign.schemaVersion === 2
+      ? readConfinedText(repositoryRoot, resolve(repositoryRoot, campaign.review.reviewerProbesPath))
+      : Promise.resolve('{}'),
+    campaign.schemaVersion === 2
+      ? readConfinedText(repositoryRoot, resolve(repositoryRoot, campaign.review.resolutionPolicyPath))
+      : Promise.resolve(''),
   ]);
   const oracle = JSON.parse(oracleText) as unknown;
   const reviewerProbes = JSON.parse(reviewerProbesText) as unknown;
@@ -510,7 +530,7 @@ export async function inspectAuthorOperabilityCampaign(
     schema: prepared.digests.schemaDigest,
     snapshot: snapshot.fingerprint,
   };
-  return {
+  return canonicalFrozenCopy({
     fingerprints:
       campaign.schemaVersion === 1
         ? historicalFingerprints
@@ -542,7 +562,35 @@ export async function inspectAuthorOperabilityCampaign(
       !/expectedLifecycle|minimalChecks|oracle\.json|e5-author-benchmark|PENDING_SEMANTIC_REVIEW|VIABLE_CANDIDATE|reviewer-probes|stable-priority-rendering-preservation/u.test(
         packet,
       ),
-  };
+    preparedInvocation: prepared,
+    ...(campaign.schemaVersion === 2
+      ? {
+          reviewMaterial: {
+            oracle,
+            reviewerProbes,
+            skillFiles: snapshot.includedFiles,
+          },
+        }
+      : {}),
+  });
+}
+
+export async function inspectAuthorOperabilityCampaign(
+  repositoryRoot: string,
+  campaign: AuthorOperabilityCampaignPreparation,
+): Promise<InspectedAuthorOperabilityCampaign> {
+  const first = await inspectAuthorOperabilityCampaignOnce(repositoryRoot, campaign);
+  const second = await inspectAuthorOperabilityCampaignOnce(repositoryRoot, campaign);
+  if (
+    canonicalJson(first.fingerprints) !== canonicalJson(second.fingerprints) ||
+    first.packet !== second.packet ||
+    first.packetBlind !== second.packetBlind ||
+    first.invocationConfigurationValid !== second.invocationConfigurationValid ||
+    canonicalJson(first.reviewMaterial ?? null) !== canonicalJson(second.reviewMaterial ?? null)
+  ) {
+    throw new Error('OPERABILITY_UNSTABLE_READ');
+  }
+  return second;
 }
 
 export function evaluateAuthorOperabilityPreflight(
@@ -624,6 +672,188 @@ function terminalPath(reservationPath: string): string {
   return reservationPath.replace(/\.json$/u, '.terminal.json');
 }
 
+function existingArtifactError(): NodeJS.ErrnoException {
+  return Object.assign(new Error('OPERABILITY_TERMINAL_RECEIPT_EXISTS'), { code: 'EEXIST' });
+}
+
+function invalidatedProtocolV3Result(receiptPath: string): AuthorOperabilityRunResult {
+  return {
+    collectionPersisted: false,
+    comparisonConclusion: null,
+    operabilityOutcome: 'INVALIDATED',
+    providerInvocations: 0,
+    terminalReceiptPath: receiptPath,
+    viabilityDecision: 'INVALIDATED',
+  };
+}
+
+async function readExistingConfinedText(repositoryRoot: string, path: string): Promise<string | undefined> {
+  try {
+    return await readConfinedText(repositoryRoot, path);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+    throw error;
+  }
+}
+
+async function recoverProtocolV3OrphanedDependentArtifact(input: {
+  campaign: AuthorProtocolV3CanaryPreparation;
+  collectionPath: string;
+  receiptPath: string;
+  repositoryRoot: string;
+}): Promise<AuthorOperabilityRunResult | undefined> {
+  const receiptBytes = await readExistingConfinedText(input.repositoryRoot, input.receiptPath);
+  if (receiptBytes !== undefined) return invalidatedProtocolV3Result(input.receiptPath);
+  const collectionBytes = await readExistingConfinedText(input.repositoryRoot, input.collectionPath);
+  if (collectionBytes === undefined) return undefined;
+  await publishJsonNoReplace({
+    repositoryRoot: input.repositoryRoot,
+    targetPath: input.receiptPath,
+    value: {
+      campaignFingerprint: sha256(input.campaign),
+      campaignId: input.campaign.campaignId,
+      collectionBytesDigest: sha256({ collectionBytes }),
+      collectionRecovered: false,
+      diagnostic: { code: 'ORPHANED_COLLECTION' },
+      operabilityOutcome: 'INVALIDATED',
+      providerInvocations: 0,
+      status: 'TERMINAL',
+      viabilityDecision: 'INVALIDATED',
+    },
+  });
+  return invalidatedProtocolV3Result(input.receiptPath);
+}
+
+async function recoverProtocolV3Reservation(input: {
+  campaign: AuthorProtocolV3CanaryPreparation;
+  repositoryRoot: string;
+}): Promise<AuthorOperabilityRunResult | undefined> {
+  const reservationPath = resolve(input.repositoryRoot, input.campaign.reservationPath);
+  const receiptPath = terminalPath(reservationPath);
+  const collectionPath = resolve(input.repositoryRoot, input.campaign.outputDirectory, 'collection.json');
+  await Promise.all([
+    assertConfinedArtifactPath(input.repositoryRoot, reservationPath),
+    assertConfinedArtifactPath(input.repositoryRoot, receiptPath),
+    assertConfinedArtifactPath(input.repositoryRoot, collectionPath),
+  ]);
+  let reservationBytes: string;
+  try {
+    reservationBytes = await readConfinedText(input.repositoryRoot, reservationPath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return await recoverProtocolV3OrphanedDependentArtifact({
+        campaign: input.campaign,
+        collectionPath,
+        receiptPath,
+        repositoryRoot: input.repositoryRoot,
+      });
+    }
+    throw error;
+  }
+  try {
+    await readConfinedText(input.repositoryRoot, receiptPath);
+    throw existingArtifactError();
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
+  const campaignFingerprint = sha256(input.campaign);
+  const reservationBytesDigest = sha256({ reservationBytes });
+  const corrupt = async (code: 'RESERVATION_CORRUPT' | 'RESERVATION_RECOVERY_CONFLICT') => {
+    await publishJsonNoReplace({
+      repositoryRoot: input.repositoryRoot,
+      targetPath: receiptPath,
+      value: {
+        campaignFingerprint,
+        campaignId: input.campaign.campaignId,
+        collectionRecovered: false,
+        diagnostic: { code },
+        operabilityOutcome: 'INVALIDATED',
+        providerInvocations: 0,
+        reservationBytesDigest,
+        status: 'TERMINAL',
+        viabilityDecision: 'INVALIDATED',
+      },
+    });
+    return {
+      collectionPersisted: false,
+      comparisonConclusion: null,
+      operabilityOutcome: 'INVALIDATED' as const,
+      providerInvocations: 0 as const,
+      terminalReceiptPath: receiptPath,
+      viabilityDecision: 'INVALIDATED' as const,
+    };
+  };
+  let reservation: Record<string, unknown>;
+  try {
+    const parsed = JSON.parse(reservationBytes) as unknown;
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return await corrupt('RESERVATION_CORRUPT');
+    reservation = parsed as Record<string, unknown>;
+  } catch {
+    return await corrupt('RESERVATION_CORRUPT');
+  }
+  const normalKeys = ['campaignFingerprint', 'campaignId', 'commit', 'invocationBudget', 'status'];
+  const invalidationKeys = [...normalKeys, 'expectedCommit'];
+  if (
+    (!hasExactKeys(reservation, normalKeys) && !hasExactKeys(reservation, invalidationKeys)) ||
+    reservation.campaignFingerprint !== campaignFingerprint ||
+    reservation.campaignId !== input.campaign.campaignId ||
+    typeof reservation.commit !== 'string' ||
+    !/^[a-f0-9]{40}$/u.test(reservation.commit) ||
+    reservation.invocationBudget !== 1 ||
+    reservation.status !== 'RESERVED' ||
+    (Object.hasOwn(reservation, 'expectedCommit') &&
+      (typeof reservation.expectedCommit !== 'string' || !/^[a-f0-9]{40}$/u.test(reservation.expectedCommit)))
+  ) {
+    return await corrupt('RESERVATION_CORRUPT');
+  }
+  const reservationFingerprint = sha256(reservation);
+  const collection = {
+    campaignFingerprint,
+    campaignId: input.campaign.campaignId,
+    diagnostic: { code: 'ORPHANED_RESERVATION' },
+    operabilityOutcome: 'INVALIDATED',
+    providerInvocations: 0,
+    purpose: 'DEVELOPMENT',
+    reservationFingerprint,
+    schemaVersion: 2,
+    viabilityDecision: 'INVALIDATED',
+  };
+  try {
+    await publishJsonNoReplace({
+      repositoryRoot: input.repositoryRoot,
+      targetPath: collectionPath,
+      value: collection,
+      verifyExisting: true,
+    });
+  } catch {
+    return await corrupt('RESERVATION_RECOVERY_CONFLICT');
+  }
+  await publishJsonNoReplace({
+    repositoryRoot: input.repositoryRoot,
+    targetPath: receiptPath,
+    value: {
+      campaignFingerprint,
+      campaignId: input.campaign.campaignId,
+      collectionDigest: sha256(collection),
+      collectionPersisted: true,
+      commit: reservation.commit,
+      operabilityOutcome: 'INVALIDATED',
+      providerInvocations: 0,
+      reservationFingerprint,
+      status: 'TERMINAL',
+      viabilityDecision: 'INVALIDATED',
+    },
+  });
+  return {
+    collectionPersisted: true,
+    comparisonConclusion: null,
+    operabilityOutcome: 'INVALIDATED',
+    providerInvocations: 0,
+    terminalReceiptPath: receiptPath,
+    viabilityDecision: 'INVALIDATED',
+  };
+}
+
 async function invalidateProtocolV3CanaryBeforeInvocation(input: {
   campaign: AuthorProtocolV3CanaryPreparation;
   commit: string;
@@ -635,38 +865,53 @@ async function invalidateProtocolV3CanaryBeforeInvocation(input: {
   const reservationPath = resolve(input.repositoryRoot, input.campaign.reservationPath);
   const receiptPath = terminalPath(reservationPath);
   const collectionPath = resolve(input.repositoryRoot, input.campaign.outputDirectory, 'collection.json');
-  await createExclusiveJson(reservationPath, {
+  const reservation = {
     campaignFingerprint,
     campaignId: input.campaign.campaignId,
     commit: input.commit,
     expectedCommit: input.expectedCommit,
     invocationBudget: 1,
     status: 'RESERVED',
-  });
+  };
+  await Promise.all([
+    assertConfinedArtifactPath(input.repositoryRoot, reservationPath),
+    assertConfinedArtifactPath(input.repositoryRoot, receiptPath),
+    assertConfinedArtifactPath(input.repositoryRoot, collectionPath),
+  ]);
+  await publishJsonNoReplace({ repositoryRoot: input.repositoryRoot, targetPath: reservationPath, value: reservation });
+  const reservationFingerprint = sha256(reservation);
   let collectionPersisted = false;
-  await createExclusiveJson(collectionPath, {
+  const collection = {
     campaignFingerprint,
     campaignId: input.campaign.campaignId,
     diagnostic: { code: input.diagnosticCode },
     operabilityOutcome: 'INVALIDATED',
     providerInvocations: 0,
     purpose: 'DEVELOPMENT',
+    reservationFingerprint,
     schemaVersion: 2,
     viabilityDecision: 'INVALIDATED',
-  })
+  };
+  await publishJsonNoReplace({ repositoryRoot: input.repositoryRoot, targetPath: collectionPath, value: collection })
     .then(() => {
       collectionPersisted = true;
     })
     .catch(() => undefined);
-  await createExclusiveJson(receiptPath, {
-    campaignFingerprint,
-    campaignId: input.campaign.campaignId,
-    collectionPersisted,
-    commit: input.commit,
-    operabilityOutcome: 'INVALIDATED',
-    providerInvocations: 0,
-    status: 'TERMINAL',
-    viabilityDecision: 'INVALIDATED',
+  await publishJsonNoReplace({
+    repositoryRoot: input.repositoryRoot,
+    targetPath: receiptPath,
+    value: {
+      campaignFingerprint,
+      campaignId: input.campaign.campaignId,
+      collectionDigest: collectionPersisted ? sha256(collection) : null,
+      collectionPersisted,
+      commit: input.commit,
+      operabilityOutcome: 'INVALIDATED',
+      providerInvocations: 0,
+      reservationFingerprint,
+      status: 'TERMINAL',
+      viabilityDecision: 'INVALIDATED',
+    },
   });
   return {
     collectionPersisted,
@@ -699,6 +944,10 @@ export async function runAuthorOperabilityCampaign(input: {
     throw new Error('OPERABILITY_PREFLIGHT_BLOCKED');
   }
   const [currentCommit, clean] = await Promise.all([input.currentCommit(), input.workingTreeClean()]);
+  if (isProtocolV3Canary(input.preparation)) {
+    const recovered = await recoverProtocolV3Reservation({ campaign: input.preparation, repositoryRoot: input.repositoryRoot });
+    if (recovered !== undefined) return recovered;
+  }
   if (!clean || currentCommit !== input.expectedCommit) {
     if (!isProtocolV3Canary(input.preparation)) throw new Error('OPERABILITY_COMMIT_DRIFT');
     return await invalidateProtocolV3CanaryBeforeInvocation({
@@ -710,7 +959,24 @@ export async function runAuthorOperabilityCampaign(input: {
     });
   }
 
-  const inspected = await (input.inspectCampaign ?? inspectAuthorOperabilityCampaign)(input.repositoryRoot, input.preparation);
+  let inspected: InspectedAuthorOperabilityCampaign;
+  try {
+    if (isProtocolV3Canary(input.preparation)) {
+      await input.inspectCampaign?.(input.repositoryRoot, input.preparation);
+      inspected = await inspectAuthorOperabilityCampaign(input.repositoryRoot, input.preparation);
+    } else {
+      inspected = await (input.inspectCampaign ?? inspectAuthorOperabilityCampaign)(input.repositoryRoot, input.preparation);
+    }
+  } catch {
+    if (!isProtocolV3Canary(input.preparation)) throw new Error('OPERABILITY_IDENTITY_DRIFT');
+    return await invalidateProtocolV3CanaryBeforeInvocation({
+      campaign: input.preparation,
+      commit: currentCommit,
+      diagnosticCode: 'FROZEN_INPUT_READ_FAILURE',
+      expectedCommit: input.expectedCommit,
+      repositoryRoot: input.repositoryRoot,
+    });
+  }
   if (
     !sameFingerprints(input.preparation.fingerprints, inspected.fingerprints) ||
     !inspected.packetBlind ||
@@ -729,13 +995,37 @@ export async function runAuthorOperabilityCampaign(input: {
   const reservationPath = resolve(input.repositoryRoot, input.preparation.reservationPath);
   const receiptPath = terminalPath(reservationPath);
   const campaignFingerprint = sha256(input.preparation);
-  await createExclusiveJson(reservationPath, {
+  const reservation = {
     campaignFingerprint,
     campaignId: input.preparation.campaignId,
     commit: currentCommit,
     invocationBudget: 1,
     status: 'RESERVED',
-  });
+  };
+  const collectionPath = resolve(input.repositoryRoot, input.preparation.outputDirectory, 'collection.json');
+  if (input.preparation.schemaVersion === 2) {
+    await Promise.all([
+      assertConfinedArtifactPath(input.repositoryRoot, reservationPath),
+      assertConfinedArtifactPath(input.repositoryRoot, receiptPath),
+      assertConfinedArtifactPath(input.repositoryRoot, collectionPath),
+    ]);
+    await publishJsonNoReplace({ repositoryRoot: input.repositoryRoot, targetPath: reservationPath, value: reservation });
+    const dependentArtifactAppeared =
+      (await readExistingConfinedText(input.repositoryRoot, receiptPath)) !== undefined ||
+      (await readExistingConfinedText(input.repositoryRoot, collectionPath)) !== undefined;
+    if (dependentArtifactAppeared) {
+      try {
+        const recovered = await recoverProtocolV3Reservation({ campaign: input.preparation, repositoryRoot: input.repositoryRoot });
+        if (recovered !== undefined) return recovered;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'EEXIST') return invalidatedProtocolV3Result(receiptPath);
+        throw error;
+      }
+    }
+  } else {
+    await createExclusiveJson(reservationPath, reservation);
+  }
+  const reservationFingerprint = sha256(reservation);
 
   const now = input.now ?? (() => performance.now());
   const startedAt = now();
@@ -744,31 +1034,24 @@ export async function runAuthorOperabilityCampaign(input: {
   let operabilityOutcome: AuthorOperabilityOutcome = 'INSUFFICIENT';
   let viabilityDecision: AuthorViabilityDecision | null = null;
   let providerInvocations: 0 | 1 = 0;
-  const collectionPath = resolve(input.repositoryRoot, input.preparation.outputDirectory, 'collection.json');
   try {
-    const snapshot = await createSkillSnapshot({ rootDirectory: resolve(input.repositoryRoot, input.preparation.skillPath) });
     const invoke: AuthorInvoker = (request) => {
       providerInvocations = 1;
       return input.invoke(request);
     };
     const run =
       input.preparation.schemaVersion === 2
-        ? await authorEvaluationBlueprint({
-            authoringContext: JSON.parse(
-              await readFile(resolve(input.repositoryRoot, input.preparation.authoringContextPath), 'utf8'),
-            ) as AuthoringContext,
+        ? await executePreparedAuthorInvocation({
             campaignId: input.preparation.campaignId,
-            condition: authorCondition(input.preparation),
             invoke,
-            protocolVersion: 3,
-            snapshot,
+            prepared: inspected.preparedInvocation!,
           })
         : await authorEvaluationBlueprint({
             campaignId: input.preparation.campaignId,
             condition: authorCondition(input.preparation),
             invoke,
             protocolVersion: 2,
-            snapshot,
+            snapshot: await createSkillSnapshot({ rootDirectory: resolve(input.repositoryRoot, input.preparation.skillPath) }),
           });
     const elapsedMs = Math.max(0, Math.round(now() - startedAt));
     const timedOutAtPromptfooStep =
@@ -844,6 +1127,7 @@ export async function runAuthorOperabilityCampaign(input: {
             providerInvocations,
             providerObservation: run.providerObservation ?? null,
             purpose: 'DEVELOPMENT',
+            ...(input.preparation.schemaVersion === 2 ? { reservationFingerprint } : {}),
             schemaVersion: input.preparation.schemaVersion,
             target1800SecondsMet,
             target300SecondsMet,
@@ -863,6 +1147,7 @@ export async function runAuthorOperabilityCampaign(input: {
             providerInvocations,
             providerObservation: run.providerObservation ?? null,
             purpose: 'DEVELOPMENT',
+            ...(input.preparation.schemaVersion === 2 ? { reservationFingerprint } : {}),
             schemaVersion: input.preparation.schemaVersion,
             target1800SecondsMet,
             target300SecondsMet,
@@ -870,45 +1155,66 @@ export async function runAuthorOperabilityCampaign(input: {
             tokenUsage: run.tokenUsage,
             viabilityDecision,
           };
-    await createExclusiveJson(collectionPath, collection);
+    if (input.preparation.schemaVersion === 2) {
+      await publishJsonNoReplace({ repositoryRoot: input.repositoryRoot, targetPath: collectionPath, value: collection });
+    } else {
+      await createExclusiveJson(collectionPath, collection);
+    }
     collectionPersisted = true;
   } catch {
     if (providerInvocations === 0) operabilityOutcome = 'INVALIDATED';
     if (isViabilityCampaign(input.preparation)) viabilityDecision = 'INSUFFICIENT';
     if (isTerraContrastCampaign(input.preparation)) comparisonConclusion = 'INSUFFICIENT';
-    if (isProtocolV3Canary(input.preparation)) viabilityDecision = providerInvocations === 0 ? 'INVALIDATED' : 'INSUFFICIENT';
-    await mkdir(dirname(collectionPath), { recursive: true }).catch(() => undefined);
-    await writeFile(
-      collectionPath,
-      `${canonicalJson({
-        campaignFingerprint,
-        campaignId: input.preparation.campaignId,
-        comparisonConclusion,
-        diagnostic: { code: providerInvocations === 0 ? 'PRE_INVOCATION_FAILURE' : 'COLLECTION_FAILURE' },
-        operabilityOutcome,
-        providerInvocations,
-        viabilityDecision,
-        purpose: 'DEVELOPMENT',
-        schemaVersion: input.preparation.schemaVersion,
-      })}\n`,
-      { flag: 'wx', mode: 0o600 },
-    )
+    if (isProtocolV3Canary(input.preparation)) {
+      operabilityOutcome = providerInvocations === 0 ? 'INVALIDATED' : 'INSUFFICIENT';
+      viabilityDecision = providerInvocations === 0 ? 'INVALIDATED' : 'INSUFFICIENT';
+    }
+    const failureCollection = {
+      campaignFingerprint,
+      campaignId: input.preparation.campaignId,
+      comparisonConclusion,
+      diagnostic: { code: providerInvocations === 0 ? 'PRE_INVOCATION_FAILURE' : 'COLLECTION_FAILURE' },
+      operabilityOutcome,
+      providerInvocations,
+      ...(input.preparation.schemaVersion === 2 ? { reservationFingerprint } : {}),
+      viabilityDecision,
+      purpose: 'DEVELOPMENT',
+      schemaVersion: input.preparation.schemaVersion,
+    };
+    const failurePublication =
+      input.preparation.schemaVersion === 2
+        ? publishJsonNoReplace({ repositoryRoot: input.repositoryRoot, targetPath: collectionPath, value: failureCollection })
+        : mkdir(dirname(collectionPath), { recursive: true }).then(() =>
+            writeFile(collectionPath, `${canonicalJson(failureCollection)}\n`, { flag: 'wx', mode: 0o600 }),
+          );
+    await failurePublication
       .then(() => {
         collectionPersisted = true;
       })
       .catch(() => undefined);
   }
-  await createExclusiveJson(receiptPath, {
+  const receipt = {
     campaignFingerprint,
     campaignId: input.preparation.campaignId,
+    ...(input.preparation.schemaVersion === 2
+      ? {
+          collectionDigest: collectionPersisted ? sha256(await readConfinedJson(input.repositoryRoot, collectionPath)) : null,
+        }
+      : {}),
     collectionPersisted,
     comparisonConclusion,
     commit: currentCommit,
     operabilityOutcome,
     providerInvocations,
+    ...(input.preparation.schemaVersion === 2 ? { reservationFingerprint } : {}),
     status: 'TERMINAL',
     viabilityDecision,
-  });
+  };
+  if (input.preparation.schemaVersion === 2) {
+    await publishJsonNoReplace({ repositoryRoot: input.repositoryRoot, targetPath: receiptPath, value: receipt });
+  } else {
+    await createExclusiveJson(receiptPath, receipt);
+  }
   return {
     collectionPersisted,
     comparisonConclusion,

@@ -1,5 +1,7 @@
 # ExecPlan 25 — Gate Terra/xhigh Author protocol v3 canary
 
+> **Archived by the owner on 2026-08-15.** E22 was never invoked. This branch preserves the unfinished provider-free implementation as a historical record. The final independent review, publication validation, formal preflight, and model-backed execution were not performed; this is neither release-ready nor Terra/protocol-v3 qualification evidence.
+
 This ExecPlan is a living document. Keep `Progress`, `Decisions`, `Risks and Mitigations`, and `Lessons Learned` current as work advances.
 
 - Date: 2026-08-14
@@ -46,6 +48,15 @@ Out of scope:
 - **Critical rejection precedence:** any rejected critical criterion prevents `VIABLE_CANDIDATE`; agreement or resolution cannot average it away.
 - **External inconclusive failure:** rate limit, authentication, availability, provider, or other external failure that prevents model-quality observation and produces `INSUFFICIENT`.
 
+## Approval Record
+
+- Contract revision: 1
+- Approval status: `APPROVED`
+- User decision: “Implemente.”
+- Approved on: 2026-08-15
+- Material sections covered: Purpose / Big Picture, Scope, Desired End State, Milestones 1–6, safety and authority boundaries, validation and acceptance, rollout and recovery, and existing Decisions.
+- Revision rule: a material change to any covered section increments the revision, restores `PENDING`, and returns supervision to `WAIT_PLAN_APPROVAL`; execution evidence, finding disposition, observed risks, and lessons do not change the revision.
+
 ## Existing Context
 
 E20 ran Terra/xhigh once under protocol v2 and returned `READY` despite missing decision context, so the frozen E20 instrument concluded `TERRA_DOES_NOT_PASS_CURRENT_INSTRUMENT`. E21 introduced protocol v3 without a live campaign. Protocol v3 now gives the system authority over trusted decision context, atomic claim requirements, blocker composition, lifecycle derivation, packet-bound identity, observation/assessment separation, and reusable capabilities. The deterministic protocol-v3 qualifier covers eight local cases and zero external calls.
@@ -53,6 +64,28 @@ E20 ran Terra/xhigh once under protocol v2 and returned `READY` despite missing 
 The existing operability subsystem in `src/qualification/author-operability.ts` accepts only exact schema-1 E18–E20 profiles and uses Author protocol 2. `src/qualification/author-viability-review.ts` and `author-viability-workflow.ts` support the earlier operability review shape and conclusions. `src/qualification/qualify-author-operability.ts` currently traverses nine local processes. Existing CLI entrypoints already cover preflight, canary, review preparation, disagreement resolution, and scoring; E22 extends those entrypoints rather than creating a product CLI.
 
 OpenAI's official model guidance, consulted on 2026-08-14, recommends evaluating reasoning effort on representative work and not presuming the highest effort is the best tradeoff. The official Terra page listed API-equivalent text-token estimates of USD 2.00 per million input tokens, USD 0.20 per million cached input tokens, and USD 12.00 per million output tokens. E22 records those values as a dated estimate only; actual ChatGPT account cost remains `UNKNOWN`.
+
+## Supervisor Record
+
+- State: `ARCHIVED`
+- Evidence refreshed: 2026-08-15 when the owner ended the project and declined further review or model-backed work
+- Contract: revision 1, `APPROVED`
+- Worktree: `/home/renanfranca/projects/skill-evidence`
+- Branch: `feat/e22-author-protocol-v3-canary`
+- Exact base tip: `5d1b09f787f161c0dc5ff9860e90818e2e3fa68e`
+- Published feature head before supervisor evidence updates: `9717d66656bffc226b2d420ec46b15ff05a3ff0b`; synchronized with `origin/feat/e22-author-protocol-v3-canary`
+- Working tree: clean at orientation; the living Supervisor Record and Progress are subsequently identity-neutral operational evidence
+- Material identity: `sha256:4500813b1cb83d11dd6ff7be38f2c7a395787f5addacd9335d99f33c9446f01b`
+- Operational-evidence identity: `sha256:7583b92297b1c3bd3b2bc99d1b56f658ae46316181a7910c236cb6d9a1780ae1`
+- Validation: after round-2 remediation and post-GREEN design review, the complete prescribed provider-free matrix passed on 2026-08-15 at material identity `sha256:4500813b1cb83d11dd6ff7be38f2c7a395787f5addacd9335d99f33c9446f01b` and operational-evidence identity `sha256:7583b92297b1c3bd3b2bc99d1b56f658ae46316181a7910c236cb6d9a1780ae1`: audit 0, typecheck, lint, 251/251 tests, formatting, build, every named qualifier, 12 E22 operability processes, benchmark runner 18 local processes, zero external provider calls, and `git diff --check`; the hosted `validation` remains historical evidence for published head `9717d6` and must be rerun only after complete review coverage and republication
+- Review: reinforced topology required for schema, compatibility, provenance, lifecycle, reservations, budgets, stopping rules, provider/model-backed execution, campaign mechanics, persistence, and cross-cutting evidence architecture; no prior E22 coverage receipt exists
+- Coverage receipt: incomplete by owner decision; the uncommitted local candidate `.skill-evidence/supervisor/reviews/e22-r1-round3-candidate.json` was never authorized for execution and is not project evidence
+- Reinforced rounds: 2 consumed for this active plan revision: round 1 at material identity `sha256:103617a23a91460b82ff76047df379dca9865d57742495fbbc4ee6020204a32d` and round 2 at `sha256:e0a6a95cd3934cbbb8d46f78041756d7b08d7fbe0736e3858eb14191d8187cc8`; ledgers `.skill-evidence/supervisor/reviews/e22-r1-round-1.json` and `.skill-evidence/supervisor/reviews/e22-r1-round-2.json`
+- Finding disposition: reinforced round 2 retained no P0, two P1, and four P2 after a fresh consolidator validated both independent reports against the repository. All six received behavior-first remediation and the full provider-free matrix was GREEN at the recorded identities. Final P0–P2 disposition remains incomplete because the owner declined the proposed third reinforced round and archived the project. The rejected generic-word blind-leak allegation remains rejected, and rename/ABA remains the documented residual P3.
+- Pull request: draft [#12](https://github.com/renanfranca/skill-evidence/pull/12), base `main`, exact hosted base `5d1b09f787f161c0dc5ff9860e90818e2e3fa68e`, exact hosted head `9717d66656bffc226b2d420ec46b15ff05a3ff0b`, mergeable, hosted `validation` GREEN, no reviews or threads
+- Candidate merge-tree object ID: not derivable by the repository host's Git 2.34.1 because it lacks `git merge-tree --write-tree`; this blocks a future Merge card, not provider-free validation or review
+- Pending gate: none; the project is archived and no further work is authorized
+- Operational blocker: work intentionally stopped by owner decision; E22 remains unconsumed
 
 ## Desired End State
 
@@ -175,10 +208,21 @@ Acceptance: one reservation, at most one provider invocation, one canonical term
   - `experiment:qualify:author-operability` reports `SUPPORTED_FOR_DEVELOPMENT`, 12 deterministic local processes, all E18–E22 completion/timeout/process cases, all three eligible historical/E22 review workflows, and zero external provider calls.
   - `$refactor-design` extracted the E22 terminal matrix into one pure exhaustive policy and identified the missing composed-integrity classification plus cross-condition Blueprint substitution risk; both received behavior-first regressions and fail-closed fixes before the gate resumed.
   - Post-refactor evidence is GREEN: 101 focused Author tests, typecheck, `experiment:verify` with provider imports 0, the eight-case protocol-v3 qualifier, and the 12-process operability qualifier.
-- [ ] Complete Milestone 5 documentation, final offline validation, commit, draft PR, hosted CI, and exact-SHA preflight.
+- [x] Complete Milestone 5 documentation, final offline validation, commit, draft PR, hosted CI, and exact-SHA preflight.
   - Documentation is reconciled across this plan, the index, `AGENTS.md`, and ADR 0003. The prescribed local matrix is GREEN on the complete candidate tree: `npm audit` reports zero vulnerabilities; typecheck, lint, Prettier, build, and `git diff --check` pass; Vitest reports 234/234 across 19 files; every offline qualifier returns its supported development disposition; E22 operability qualification reports 12 local processes and zero external calls.
-  - The draft PR, hosted-CI, and provider-free exact-SHA preflight evidence remain the publication portion of this milestone. Because recording those future exact-head observations in the candidate would change that head, their terminal evidence belongs in the draft PR handoff rather than a self-invalidating follow-up edit.
-- [ ] Await separate exact authorization for Milestone 6; no E22 reservation or provider call is authorized by this plan.
+  - Commit `9717d66656bffc226b2d420ec46b15ff05a3ff0b` is published in draft PR #12. Hosted `validation` passed in run `31860534385`, job `94953033862`. Exact-SHA provider-free preflight returned `READY_FOR_AUTHORIZATION` with campaign fingerprint `40e146aa1b17fede232d2f9741f84b8e94e6d0b305f572c0827e92fa670a17d1`, zero provider invocations, zero external calls, and no reservation.
+- [x] Activate `$supervise-skill-evidence`, reconstruct durable state, and route the existing implementation to a provider-free reinforced review before any continuation.
+- [x] Reproduce material identity `sha256:103617a23a91460b82ff76047df379dca9865d57742495fbbc4ee6020204a32d` and operational-evidence identity `sha256:7583b92297b1c3bd3b2bc99d1b56f658ae46316181a7910c236cb6d9a1780ae1`; persist the create-only candidate receipt and first-round ledger.
+- [x] Repeat the complete provider-free validation matrix at those identities: audit 0, 234/234 tests, all deterministic qualifiers GREEN, 12 local E22 operability processes, and zero external calls.
+- [x] Complete reinforced review round 1 for material identity `sha256:103617a23a91460b82ff76047df379dca9865d57742495fbbc4ee6020204a32d`: two fresh independent reviewers and a fresh consolidator reproduced the identities and retained six P1 plus five P2, with no P0.
+- [x] Remediate every retained round-1 finding through `$tdd-behavior-autonomous-quiet`: 112 focused tests now cover invocation identity, collection/reservation/receipt/review/score integrity, all completed Blueprint provenance, zero-call invalidation scoring, strict timeout/process metrics, frozen fingerprint rederivation, sanitization, path confinement, atomic/idempotent publication and recovery, opaque probes and reviewer principals, own-property JSON Pointer semantics, exact schema-2 nested objects, and allowlisted packet blindness while preserving schema-1 behavior.
+- [x] Re-run `$refactor-design`: after returning three missing behaviors to RED/GREEN, the design pass replaced validation-then-reread temporal coupling and duplicated packet construction with one immutable frozen review material shared by preparation, resolution, and scoring. Focused tests, `experiment:verify`, both E22 qualifiers, typecheck, and lint remain GREEN.
+- [x] Run the complete provider-free validation matrix and serialize material identity `sha256:e0a6a95cd3934cbbb8d46f78041756d7b08d7fbe0736e3858eb14191d8187cc8` plus operational-evidence identity `sha256:7583b92297b1c3bd3b2bc99d1b56f658ae46316181a7910c236cb6d9a1780ae1`: audit 0, 245/245 tests, all named qualifiers GREEN, 12 local E22 processes, zero external calls, and diff check GREEN.
+- [x] Complete reinforced review round 2 at material identity `sha256:e0a6a95cd3934cbbb8d46f78041756d7b08d7fbe0736e3858eb14191d8187cc8`: two fresh independent reviewers and a fresh consolidator retained two P1 plus four P2, rejected one alleged generic-word blind leak, and left the documented directory rename/ABA race as P3.
+- [x] Remediate every round-2 P1/P2 through behavior-first RED/GREEN: 118 focused tests now cover one shared terminal classifier and strict persisted metrics/diagnostics, reviewer identity continuity in scoring, no-follow reads from the preparation through every schema-2 review leaf, immutable packets in resolution, exact reserved-commit/worktree binding for all E22 materializers, commit provenance in the sanitized report, and zero-call preservation of receipt/collection orphans. `$refactor-design` returned the initial preparation read to RED/GREEN after proving it followed an invalid external JSON symlink before rejecting it; the corrected first read is confined while regular schema-1 preparations remain byte-identically interpreted.
+- [x] Run the complete provider-free validation matrix and serialize the new identities: audit 0, typecheck, lint, 251/251 tests, formatting, build, all named qualifiers and benchmark gates GREEN, E22 operability 12 local processes, benchmark runner 18 local processes, zero external calls, and diff check GREEN at material identity `sha256:4500813b1cb83d11dd6ff7be38f2c7a395787f5addacd9335d99f33c9446f01b` plus operational-evidence identity `sha256:7583b92297b1c3bd3b2bc99d1b56f658ae46316181a7910c236cb6d9a1780ae1`.
+- [x] Stop before a third reinforced round when the owner declined further review and archived the project on 2026-08-15; final review coverage remains explicitly incomplete.
+- [x] Close Milestone 6 without execution by owner decision; no E22 reservation or provider call occurred.
 
 ## Decisions
 
@@ -214,6 +258,10 @@ Acceptance: one reservation, at most one provider invocation, one canonical term
   Rationale: completion, timeout, provider failure, structural failure, composition failure, and lifecycle outcomes must remain exhaustive and cannot drift across nested orchestration branches.
   Date/Author: 2026-08-14 / post-GREEN design review.
 
+- Decision: archive the project in its current unfinished state and preserve this branch as the historical record.
+  Rationale: the owner determined that continued complexity and cost were no longer viable and explicitly declined further supervision, review, preflight, or provider execution. E22 therefore remains unconsumed and makes no qualification or release-readiness claim.
+  Date/Author: 2026-08-15 / user.
+
 ## Risks and Mitigations
 
 - Risk: schema 2 changes historical campaign meaning. Mitigation: discriminate on `schemaVersion`, retain exact schema-1 branch and regression fingerprints, and refuse unknown versions.
@@ -225,6 +273,7 @@ Acceptance: one reservation, at most one provider invocation, one canonical term
 - Risk: `VIABLE_CANDIDATE` is reported as Terra qualification. Mitigation: hard-code `NOT_QUALIFIED`, `decisionEligible: false`, one-sample scope, and explicit unsupported claims in the sanitized report.
 - Risk: official API prices change before collection. Mitigation: fingerprint the dated preparation estimate as contextual metadata without treating it as actual ChatGPT cost or a decision gate.
 - Risk: preparation discovers a material protocol-v3/schema defect. Mitigation: stop before reservation; correct it under a different ExecPlan and fresh campaign/fingerprint rather than weakening E22.
+- Risk: Node's portable filesystem API does not expose a complete cross-platform `openat2`/dirfd walk for every ancestor, so an adversarial local process with permission to rename directories in the repository could still race between confinement checks and the same-directory publication. Mitigation: derive every path from the validated preparation, reject absolute/traversal and observed symlinks, recheck after parent creation, publish a fully synced temporary file through an atomic no-replace hard link, keep CI/provider execution isolated, and route this residual threat explicitly through reinforced review rather than claiming absolute filesystem isolation.
 
 ## Validation Strategy
 
@@ -257,3 +306,9 @@ Draft PR publication is reversible and does not authorize the model call. Merge 
 - A composed Blueprint can be internally valid yet belong to a different frozen condition. Review eligibility therefore needs both composed validation and equality against the E22 campaign fingerprints.
 - Keeping the E22 terminal matrix in one pure policy exposed the previously unclassified `COMPOSED_BLUEPRINT_INVALID` path and made its `INVALIDATED` disposition explicit.
 - The first complete final matrix stopped at lint because runtime-safe `unknown` validators still exposed `any` to typed ESLint and projection destructuring used names only for omission. Explicit `unknown` callback parameters and key-filter projections preserved behavior and made the restarted matrix fully GREEN.
+- Nominal reviewer slots do not establish independence. Opaque principal and session fingerprints can mechanically require distinct submissions and bind qualification to judgment without leaking identities, while operational supervision remains responsible for selecting genuinely independent reviewers.
+- Fingerprint validation followed by fresh filesystem reads recreates the TOCTOU it is meant to prevent. The invocation and semantic-review paths now consume immutable material from the same stable inspection that established their fingerprints.
+- Append-only multi-file phases need both no-replace leaf publication and recoverable phase semantics: create-or-verify components plus a manifest written last allow safe continuation without overwriting or authorizing another provider call.
+- A no-follow read applied only after parsing the preparation is too late: confinement now begins with the first preparation byte and continues through every schema-2 campaign and review artifact.
+- The authorized commit freezes the evaluator as well as the provider request. Qualification-packet exposure, disagreement materialization, and scoring now fail closed unless tracked `HEAD` still equals the reservation commit, which is also archived in the sanitized report.
+- Passing provider-free checks does not make unfinished work release-ready. The archive must preserve the incomplete final-review status and the fact that E22 was never invoked.

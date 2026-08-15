@@ -239,8 +239,14 @@ async function qualifyProtocolV3Reviewers(
   };
   const judgments = probes.probes.map((probe) => ({ probeId: probe.id, verdict: probe.expected }));
   await Promise.all([
-    writeFile(join(reviewDirectory, 'reviewer-a.qualification.input.json'), canonicalJson({ judgments, reviewerId: 'reviewer-a' })),
-    writeFile(join(reviewDirectory, 'reviewer-b.qualification.input.json'), canonicalJson({ judgments, reviewerId: 'reviewer-b' })),
+    writeFile(
+      join(reviewDirectory, 'reviewer-a.qualification.input.json'),
+      canonicalJson({ judgments, principalFingerprint: '1'.repeat(64), reviewerId: 'reviewer-a', sessionFingerprint: '3'.repeat(64) }),
+    ),
+    writeFile(
+      join(reviewDirectory, 'reviewer-b.qualification.input.json'),
+      canonicalJson({ judgments, principalFingerprint: '2'.repeat(64), reviewerId: 'reviewer-b', sessionFingerprint: '4'.repeat(64) }),
+    ),
   ]);
 }
 
@@ -361,10 +367,16 @@ export async function qualifyAuthorOperabilityRunner(root = process.cwd()): Prom
           viabilityDecision: result.viabilityDecision,
         });
         if (campaign.campaignId !== 'e18-luna-max-locale-catalog-20260812-r1' && scenario.id === 'completion') {
-          let prepared = await prepareAuthorViabilityReview({ preparation: campaign, repositoryRoot });
+          const materializationEvidence =
+            campaign.schemaVersion === 2
+              ? {
+                  inspectRepositoryState: () => Promise.resolve({ currentCommit: commit, trackedWorktreeClean: true }),
+                }
+              : {};
+          let prepared = await prepareAuthorViabilityReview({ ...materializationEvidence, preparation: campaign, repositoryRoot });
           if (campaign.schemaVersion === 2) {
             await qualifyProtocolV3Reviewers(campaign, repositoryRoot, prepared.reviewDirectory);
-            prepared = await prepareAuthorViabilityReview({ preparation: campaign, repositoryRoot });
+            prepared = await prepareAuthorViabilityReview({ ...materializationEvidence, preparation: campaign, repositoryRoot });
           }
           const packet = JSON.parse(await readFile(join(prepared.reviewDirectory, 'reviewer-a.packet.json'), 'utf8')) as {
             criteria: Array<{ id: string }>;
@@ -375,15 +387,30 @@ export async function qualifyAuthorOperabilityRunner(root = process.cwd()): Prom
             rationale: 'Deterministic local qualification accepts this synthetic candidate.',
             verdict: 'ACCEPT',
           }));
+          const reviewerIdentity =
+            campaign.schemaVersion === 2
+              ? {
+                  left: { principalFingerprint: '1'.repeat(64), sessionFingerprint: '3'.repeat(64) },
+                  right: { principalFingerprint: '2'.repeat(64), sessionFingerprint: '4'.repeat(64) },
+                }
+              : { left: {}, right: {} };
           await Promise.all([
-            writeFile(join(prepared.reviewDirectory, 'reviewer-a.input.json'), canonicalJson({ judgments, reviewerId: 'reviewer-a' })),
-            writeFile(join(prepared.reviewDirectory, 'reviewer-b.input.json'), canonicalJson({ judgments, reviewerId: 'reviewer-b' })),
+            writeFile(
+              join(prepared.reviewDirectory, 'reviewer-a.input.json'),
+              canonicalJson({ judgments, ...reviewerIdentity.left, reviewerId: 'reviewer-a' }),
+            ),
+            writeFile(
+              join(prepared.reviewDirectory, 'reviewer-b.input.json'),
+              canonicalJson({ judgments, ...reviewerIdentity.right, reviewerId: 'reviewer-b' }),
+            ),
           ]);
           const resolution = await prepareAuthorViabilityResolution({
+            ...materializationEvidence,
+            preparation: campaign,
             repositoryRoot,
-            reviewDirectory: prepared.reviewDirectory,
           });
           const report = await scoreAuthorViability({
+            ...materializationEvidence,
             outputPath: campaign.sanitizedReportPath,
             preparation: campaign,
             repositoryRoot,

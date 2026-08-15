@@ -26,7 +26,9 @@
 | [ExecPlan 22 — Supervise skill-evidence delivery](2026-08-14-supervise-skill-evidence-delivery.md)                   | Integrated; historical record           | Repository delivery supervision  |
 | [ExecPlan 23 — Remediate PR #9 final-review findings](2026-08-14-remediate-pr-9-final-review-findings.md)            | Complete: merged through PR #9          | PR #9 final-review remediation   |
 | [ExecPlan 24 — Make supervisor review cost proportional](2026-08-14-make-supervisor-review-cost-proportional.md)     | Complete: merged as `5d1b09f`           | Proportional review revalidation |
-| [ExecPlan 25 — Gate Terra/xhigh Author protocol v3 canary](2026-08-14-gate-terra-xhigh-author-protocol-v3-canary.md) | Active                                  | Protocol-v3 Author viability     |
+| [ExecPlan 25 — Gate Terra/xhigh Author protocol v3 canary](2026-08-14-gate-terra-xhigh-author-protocol-v3-canary.md) | Archived: E22 unconsumed                | Protocol-v3 Author viability     |
 | [Historical record — Pre-live instrument hardening](2026-08-08-pre-live-instrument-hardening-record.md)              | Closed and blocked at `60c0240`         | Preserved hardening provenance   |
 
 Live experiments are separate from offline validation. Their sanitized curated reports may be committed only after the corresponding provider invocation has completed.
+
+The project was archived by its owner on 2026-08-15. No ExecPlan is active and no further experiment is authorized.

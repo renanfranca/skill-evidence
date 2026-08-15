@@ -3,11 +3,12 @@ import { pathToFileURL } from 'node:url';
 
 import { canonicalJson } from '../canonical-json.js';
 import type { AuthorViabilityResolutionPacket } from './author-viability-review.js';
-import { prepareAuthorViabilityResolution } from './author-viability-workflow.js';
+import { loadAuthorViabilityPreparation, prepareAuthorViabilityResolution } from './author-viability-workflow.js';
 
-function reviewDirectory(args: string[]): string {
-  const index = args.indexOf('--review-directory');
-  if (args.length !== 2 || index === -1 || args[index + 1] === undefined) throw new Error('USAGE: --review-directory <directory>');
+function preparationPath(args: string[]): string {
+  const index = args.indexOf('--preparation');
+  if (args.length !== 2 || index === -1 || args[index + 1] === undefined)
+    throw new Error('USAGE: --preparation <campaign-preparation.json>');
   return args[index + 1]!;
 }
 
@@ -15,7 +16,8 @@ export async function runPrepareAuthorViabilityResolution(
   args: string[],
   repositoryRoot = process.cwd(),
 ): Promise<AuthorViabilityResolutionPacket> {
-  return await prepareAuthorViabilityResolution({ repositoryRoot, reviewDirectory: reviewDirectory(args) });
+  const preparation = await loadAuthorViabilityPreparation(repositoryRoot, preparationPath(args));
+  return await prepareAuthorViabilityResolution({ preparation, repositoryRoot });
 }
 
 async function main(): Promise<void> {

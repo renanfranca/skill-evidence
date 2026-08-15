@@ -1,4 +1,4 @@
-import { access, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, symlink, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -14,13 +14,17 @@ import {
   createAuthorViabilityReviewerSubmission,
   resolveAuthorViabilityReview,
   validateAuthorViabilityReviewPacket,
+  validateAuthorViabilityReviewerProbeSet,
   validateAuthorViabilityReviewerSubmission,
   type AuthorViabilityOracle,
+  type AuthorViabilityReviewPacket,
+  type AuthorViabilityReviewerSubmission,
 } from '../src/qualification/author-viability-review.js';
 import {
-  prepareAuthorViabilityResolution,
-  prepareAuthorViabilityReview,
-  scoreAuthorViability,
+  loadAuthorViabilityPreparation,
+  prepareAuthorViabilityResolution as prepareAuthorViabilityResolutionWithRepositoryState,
+  prepareAuthorViabilityReview as prepareAuthorViabilityReviewWithRepositoryState,
+  scoreAuthorViability as scoreAuthorViabilityWithRepositoryState,
 } from '../src/qualification/author-viability-workflow.js';
 import { runAuthorOperabilityPreflight } from '../src/qualification/preflight-author-operability.js';
 import { qualifyAuthorOperabilityRunner } from '../src/qualification/qualify-author-operability.js';
@@ -38,6 +42,47 @@ import {
 
 const fingerprint = 'a'.repeat(64);
 const commit = 'b'.repeat(40);
+const reviewerPrincipalA = '1'.repeat(64);
+const reviewerPrincipalB = '2'.repeat(64);
+const reviewerSessionA = '3'.repeat(64);
+const reviewerSessionB = '4'.repeat(64);
+
+function testMaterializationRepositoryState(preparation: AuthorProtocolV3CanaryPreparation, repositoryRoot: string) {
+  return async () => {
+    const reservation = JSON.parse(await readFile(join(repositoryRoot, preparation.reservationPath), 'utf8')) as { commit: string };
+    return { currentCommit: reservation.commit, trackedWorktreeClean: true };
+  };
+}
+
+function prepareAuthorViabilityReview(input: Parameters<typeof prepareAuthorViabilityReviewWithRepositoryState>[0]) {
+  const inspectRepositoryState =
+    input.inspectRepositoryState ??
+    (input.preparation.schemaVersion === 2 ? testMaterializationRepositoryState(input.preparation, input.repositoryRoot) : undefined);
+  return prepareAuthorViabilityReviewWithRepositoryState({
+    ...input,
+    ...(inspectRepositoryState === undefined ? {} : { inspectRepositoryState }),
+  });
+}
+
+function prepareAuthorViabilityResolution(input: Parameters<typeof prepareAuthorViabilityResolutionWithRepositoryState>[0]) {
+  const inspectRepositoryState =
+    input.inspectRepositoryState ??
+    (input.preparation.schemaVersion === 2 ? testMaterializationRepositoryState(input.preparation, input.repositoryRoot) : undefined);
+  return prepareAuthorViabilityResolutionWithRepositoryState({
+    ...input,
+    ...(inspectRepositoryState === undefined ? {} : { inspectRepositoryState }),
+  });
+}
+
+function scoreAuthorViability(input: Parameters<typeof scoreAuthorViabilityWithRepositoryState>[0]) {
+  const inspectRepositoryState =
+    input.inspectRepositoryState ??
+    (input.preparation.schemaVersion === 2 ? testMaterializationRepositoryState(input.preparation, input.repositoryRoot) : undefined);
+  return scoreAuthorViabilityWithRepositoryState({
+    ...input,
+    ...(inspectRepositoryState === undefined ? {} : { inspectRepositoryState }),
+  });
+}
 
 function preparation(): HistoricalAuthorOperabilityCampaignPreparation {
   return {
@@ -341,11 +386,15 @@ async function prepareProtocolV3CanaryWorkspace(repositoryRoot: string, campaign
     await mkdir(dirname(join(repositoryRoot, path)), { recursive: true });
     await writeFile(join(repositoryRoot, path), await readFile(path, 'utf8'));
   }
+  const inspected = await inspectAuthorOperabilityCampaign(repositoryRoot, campaign);
+  Object.assign(campaign.fingerprints, inspected.fingerprints);
+  campaign.condition.conditionFingerprint = campaign.fingerprints.condition;
 }
 
 async function persistCompletedProtocolV3CanaryCollection(
   repositoryRoot: string,
   campaign: AuthorProtocolV3CanaryPreparation,
+  persistReceiptChain = true,
 ): Promise<void> {
   const snapshot = await createSkillSnapshot({ rootDirectory: join(repositoryRoot, campaign.skillPath) });
   const context = JSON.parse(await readFile(join(repositoryRoot, campaign.authoringContextPath), 'utf8')) as AuthoringContext;
@@ -372,27 +421,58 @@ async function persistCompletedProtocolV3CanaryCollection(
     snapshot: run.blueprint.snapshotFingerprint,
   });
   campaign.condition.conditionFingerprint = provenance.conditionFingerprint;
+  const reservation = {
+    campaignFingerprint: sha256(campaign),
+    campaignId: campaign.campaignId,
+    commit,
+    invocationBudget: 1,
+    status: 'RESERVED',
+  };
+  if (persistReceiptChain) {
+    await mkdir(dirname(join(repositoryRoot, campaign.reservationPath)), { recursive: true });
+    await writeFile(join(repositoryRoot, campaign.reservationPath), JSON.stringify(reservation));
+  }
   await mkdir(join(repositoryRoot, campaign.outputDirectory), { recursive: true });
-  await writeFile(
-    join(repositoryRoot, campaign.outputDirectory, 'collection.json'),
-    JSON.stringify({
-      actualLifecycle: 'BLOCKED',
-      blueprint: run.blueprint,
-      campaignFingerprint: sha256(campaign),
-      campaignId: campaign.campaignId,
-      comparisonConclusion: null,
-      elapsedMs: 100_000,
-      operabilityOutcome: 'COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
-      providerInvocations: 1,
-      providerObservation: null,
-      schemaVersion: 2,
-      target1800SecondsMet: true,
-      target300SecondsMet: true,
-      target600SecondsMet: true,
-      tokenUsage: null,
-      viabilityDecision: 'PENDING_SEMANTIC_REVIEW',
-    }),
-  );
+  const collection = {
+    actualLifecycle: 'BLOCKED',
+    blueprint: run.blueprint,
+    campaignFingerprint: sha256(campaign),
+    campaignId: campaign.campaignId,
+    comparisonConclusion: null,
+    elapsedMs: 100_000,
+    historicalTargetMet: true,
+    lifecycleExpectationMet: true,
+    operabilityOutcome: 'COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
+    providerInvocations: 1,
+    providerObservation: null,
+    purpose: 'DEVELOPMENT',
+    reservationFingerprint: sha256(reservation),
+    schemaVersion: 2,
+    target1800SecondsMet: true,
+    target300SecondsMet: true,
+    target600SecondsMet: true,
+    tokenUsage: null,
+    viabilityDecision: 'PENDING_SEMANTIC_REVIEW',
+  };
+  await writeFile(join(repositoryRoot, campaign.outputDirectory, 'collection.json'), JSON.stringify(collection));
+  if (persistReceiptChain) {
+    await writeFile(
+      join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json')),
+      JSON.stringify({
+        campaignFingerprint: sha256(campaign),
+        campaignId: campaign.campaignId,
+        collectionDigest: sha256(collection),
+        collectionPersisted: true,
+        comparisonConclusion: null,
+        commit,
+        operabilityOutcome: 'COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
+        providerInvocations: 1,
+        reservationFingerprint: sha256(reservation),
+        status: 'TERMINAL',
+        viabilityDecision: 'PENDING_SEMANTIC_REVIEW',
+      }),
+    );
+  }
 }
 
 function evidence(): AuthorOperabilityPreflightEvidence {
@@ -427,10 +507,19 @@ describe('Evaluation Author operability canary', () => {
     delete incompleteFingerprints.fingerprints.reviewerProbes;
     const withoutPricing = structuredClone(e22);
     delete withoutPricing.pricingEstimate;
+    const conditionWithExtra = structuredClone(e22) as { condition: Record<string, unknown> };
+    conditionWithExtra.condition.untrusted = true;
+    const timeoutsWithExtra = structuredClone(e22) as { timeouts: Record<string, unknown> };
+    timeoutsWithExtra.timeouts.untrusted = true;
+    const stoppingRulesWithExtra = structuredClone(e22) as { stoppingRules: Record<string, unknown> };
+    stoppingRulesWithExtra.stoppingRules.untrusted = true;
 
     expect(validateAuthorOperabilityCampaignPreparation(e22)).toBe(true);
     expect(validateAuthorOperabilityCampaignPreparation(incompleteFingerprints)).toBe(false);
     expect(validateAuthorOperabilityCampaignPreparation(withoutPricing)).toBe(false);
+    expect(validateAuthorOperabilityCampaignPreparation(conditionWithExtra)).toBe(false);
+    expect(validateAuthorOperabilityCampaignPreparation(timeoutsWithExtra)).toBe(false);
+    expect(validateAuthorOperabilityCampaignPreparation(stoppingRulesWithExtra)).toBe(false);
     expect(validateAuthorOperabilityCampaignPreparation({ ...e22, schemaVersion: 1 })).toBe(false);
     expect(validateAuthorOperabilityCampaignPreparation({ ...e22, protocolVersion: 2 })).toBe(false);
     expect(validateAuthorOperabilityCampaignPreparation({ ...e22, policy: 'TERRA_CONTRAST' })).toBe(false);
@@ -778,16 +867,7 @@ describe('Evaluation Author operability canary', () => {
     expect(validateAuthorOperabilityCampaignPreparation(value)).toBe(true);
     if (!validateAuthorOperabilityCampaignPreparation(value) || value.schemaVersion !== 2) return;
     const campaign = value;
-    await mkdir(join(repositoryRoot, campaign.skillPath), { recursive: true });
-    await writeFile(
-      join(repositoryRoot, campaign.skillPath, 'SKILL.md'),
-      await readFile('evaluations/refactor-design/e5-author-operability/terra-xhigh-protocol-v3-canary-r1/skill/SKILL.md', 'utf8'),
-    );
-    await mkdir(dirname(join(repositoryRoot, campaign.authoringContextPath)), { recursive: true });
-    await writeFile(
-      join(repositoryRoot, campaign.authoringContextPath),
-      await readFile('evaluations/refactor-design/e5-author-operability/terra-xhigh-protocol-v3-canary-r1/authoring-context.json', 'utf8'),
-    );
+    await prepareProtocolV3CanaryWorkspace(repositoryRoot, campaign);
     let packet: Record<string, unknown> | undefined;
 
     const result = await runAuthorOperabilityCampaign({
@@ -814,6 +894,37 @@ describe('Evaluation Author operability canary', () => {
       protocol: { authorProtocolVersion: 3 },
     });
     expect(result.providerInvocations).toBe(1);
+  });
+
+  it('invalidates protocol-v3 read drift before invoking and never trusts an injected inspection as the effective request', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-protocol-v3-stable-read-'));
+    const campaign = frozenProtocolV3CanaryPreparation();
+    await prepareProtocolV3CanaryWorkspace(repositoryRoot, campaign);
+    const inspected = await inspectAuthorOperabilityCampaign(repositoryRoot, campaign);
+    Object.assign(campaign.fingerprints, inspected.fingerprints);
+    campaign.condition.conditionFingerprint = campaign.fingerprints.condition;
+    let invocations = 0;
+
+    const result = await runAuthorOperabilityCampaign({
+      approval: '1',
+      currentCommit: () => Promise.resolve(commit),
+      expectedCommit: commit,
+      inspectCampaign: async () => {
+        await writeFile(join(repositoryRoot, campaign.skillPath, 'SKILL.md'), '# Drifted after the injected inspection\n');
+        return inspected;
+      },
+      invoke: () => {
+        invocations += 1;
+        throw new AuthorProviderError({ category: 'PROCESS', code: 'EXIT_NONZERO', stage: 'RESULT' });
+      },
+      preparation: campaign,
+      preflight: evaluateAuthorOperabilityPreflight(campaign, { ...evidence(), derivedFingerprints: campaign.fingerprints }),
+      repositoryRoot,
+      workingTreeClean: () => Promise.resolve(true),
+    });
+
+    expect(result).toMatchObject({ operabilityOutcome: 'INVALIDATED', providerInvocations: 0, viabilityDecision: 'INVALIDATED' });
+    expect(invocations).toBe(0);
   });
 
   it('sends only a canonical complete BLOCKED protocol-v3 Blueprint to semantic review', async () => {
@@ -896,13 +1007,19 @@ describe('Evaluation Author operability canary', () => {
       const terminal = JSON.parse(
         await readFile(join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json')), 'utf8'),
       ) as Record<string, unknown>;
+      const report = await scoreAuthorViability({
+        outputPath: campaign.sanitizedReportPath,
+        preparation: campaign,
+        repositoryRoot,
+      });
 
       expect(result).toMatchObject({ providerInvocations: 1, viabilityDecision: 'NOT_VIABLE_FOR_AUTHOR' });
       expect(terminal).toMatchObject({ status: 'TERMINAL', viabilityDecision: 'NOT_VIABLE_FOR_AUTHOR' });
+      expect(report).toMatchObject({ providerInvocations: 1, result: 'NOT_VIABLE_FOR_AUTHOR', review: null });
     }
   });
 
-  it('invalidates a protocol-v3 composition or integrity failure', () => {
+  it('invalidates a protocol-v3 composition or integrity failure through the canonical terminal chain', async () => {
     expect(
       classifyProtocolV3CanaryTerminal({
         errorCode: 'COMPOSED_BLUEPRINT_INVALID',
@@ -910,6 +1027,29 @@ describe('Evaluation Author operability canary', () => {
         status: 'ERROR',
       }),
     ).toEqual({ operabilityOutcome: 'INVALIDATED', viabilityDecision: 'INVALIDATED' });
+
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-protocol-v3-composition-terminal-'));
+    const campaign = frozenProtocolV3CanaryPreparation();
+    await prepareProtocolV3CanaryWorkspace(repositoryRoot, campaign);
+    const result = await runAuthorOperabilityCampaign({
+      approval: '1',
+      currentCommit: () => Promise.resolve(commit),
+      expectedCommit: commit,
+      invoke: () =>
+        Promise.resolve({
+          observedModel: 7 as never,
+          output: JSON.stringify(completeProtocolV3CanaryCandidate()),
+        }),
+      preparation: campaign,
+      preflight: evaluateAuthorOperabilityPreflight(campaign, { ...evidence(), derivedFingerprints: campaign.fingerprints }),
+      repositoryRoot,
+      workingTreeClean: () => Promise.resolve(true),
+    });
+    expect(result).toMatchObject({ operabilityOutcome: 'INVALIDATED', providerInvocations: 1, viabilityDecision: 'INVALIDATED' });
+
+    await expect(
+      scoreAuthorViability({ outputPath: campaign.sanitizedReportPath, preparation: campaign, repositoryRoot }),
+    ).resolves.toMatchObject({ providerInvocations: 1, result: 'INVALIDATED', review: null });
   });
 
   it('classifies a confirmed protocol-v3 ten-minute timeout as not viable for E22', async () => {
@@ -954,6 +1094,9 @@ describe('Evaluation Author operability canary', () => {
       viabilityDecision: 'NOT_VIABLE_FOR_AUTHOR',
     });
     expect(collection).toMatchObject({ target600SecondsMet: false, viabilityDecision: 'NOT_VIABLE_FOR_AUTHOR' });
+    await expect(
+      scoreAuthorViability({ outputPath: campaign.sanitizedReportPath, preparation: campaign, repositoryRoot }),
+    ).resolves.toMatchObject({ providerInvocations: 1, result: 'NOT_VIABLE_FOR_AUTHOR', review: null });
   });
 
   it('keeps external protocol-v3 failures inconclusive under E22', async () => {
@@ -987,6 +1130,9 @@ describe('Evaluation Author operability canary', () => {
         providerInvocations: 1,
         viabilityDecision: 'INSUFFICIENT',
       });
+      await expect(
+        scoreAuthorViability({ outputPath: campaign.sanitizedReportPath, preparation: campaign, repositoryRoot }),
+      ).resolves.toMatchObject({ providerInvocations: 1, result: 'INSUFFICIENT', review: null });
     }
   });
 
@@ -1057,6 +1203,145 @@ describe('Evaluation Author operability canary', () => {
     expect(invocations).toBe(0);
     await expect(runAuthorOperabilityCampaign(input)).rejects.toMatchObject({ code: 'EEXIST' });
     expect(invocations).toBe(0);
+  });
+
+  it('scores a canonical zero-call protocol-v3 invalidation without creating review artifacts', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-protocol-v3-invalidated-score-'));
+    const campaign = frozenProtocolV3CanaryPreparation();
+    await prepareProtocolV3CanaryWorkspace(repositoryRoot, campaign);
+    let invocations = 0;
+    await runAuthorOperabilityCampaign({
+      approval: '1',
+      currentCommit: () => Promise.resolve('c'.repeat(40)),
+      expectedCommit: commit,
+      invoke: (): Promise<AuthorInvocationResponse> => {
+        invocations += 1;
+        return Promise.resolve({ observedModel: null, output: '{}' });
+      },
+      preparation: campaign,
+      preflight: evaluateAuthorOperabilityPreflight(campaign, { ...evidence(), derivedFingerprints: campaign.fingerprints }),
+      repositoryRoot,
+      workingTreeClean: () => Promise.resolve(true),
+    });
+
+    const report = await scoreAuthorViability({
+      outputPath: campaign.sanitizedReportPath,
+      preparation: campaign,
+      repositoryRoot,
+    });
+
+    expect(invocations).toBe(0);
+    expect(report).toMatchObject({ providerInvocations: 0, result: 'INVALIDATED', review: null, schemaVersion: 2 });
+    expect(JSON.stringify(report)).not.toMatch(/diagnostic|expectedCommit|rawReasoning|rawResponse/u);
+    await expect(access(join(repositoryRoot, campaign.outputDirectory, 'review'))).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('terminalizes existing protocol-v3 reservations fail-closed without retrying or replacing reservation bytes', async () => {
+    const runWithExistingReservation = async (reservationText: string) => {
+      const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-protocol-v3-existing-reservation-'));
+      const campaign = frozenProtocolV3CanaryPreparation();
+      await prepareProtocolV3CanaryWorkspace(repositoryRoot, campaign);
+      const reservationPath = join(repositoryRoot, campaign.reservationPath);
+      await mkdir(dirname(reservationPath), { recursive: true });
+      const persistedReservationText =
+        reservationText === 'VALID'
+          ? JSON.stringify({
+              campaignFingerprint: sha256(campaign),
+              campaignId: campaign.campaignId,
+              commit,
+              invocationBudget: 1,
+              status: 'RESERVED',
+            })
+          : reservationText;
+      await writeFile(reservationPath, persistedReservationText);
+      let invocations = 0;
+
+      const result = await runAuthorOperabilityCampaign({
+        approval: '1',
+        currentCommit: () => Promise.resolve(commit),
+        expectedCommit: commit,
+        invoke: (): Promise<AuthorInvocationResponse> => {
+          invocations += 1;
+          return Promise.resolve({ observedModel: null, output: '{}' });
+        },
+        preparation: campaign,
+        preflight: evaluateAuthorOperabilityPreflight(campaign, { ...evidence(), derivedFingerprints: campaign.fingerprints }),
+        repositoryRoot,
+        workingTreeClean: () => Promise.resolve(true),
+      });
+      return { campaign, invocations, persistedReservationText, repositoryRoot, reservationPath, result };
+    };
+
+    const valid = await runWithExistingReservation('VALID');
+    expect(valid.invocations).toBe(0);
+    expect(valid.result).toMatchObject({ collectionPersisted: true, providerInvocations: 0, viabilityDecision: 'INVALIDATED' });
+    expect(await readFile(valid.reservationPath, 'utf8')).toBe(valid.persistedReservationText);
+    await expect(
+      scoreAuthorViability({
+        outputPath: valid.campaign.sanitizedReportPath,
+        preparation: valid.campaign,
+        repositoryRoot: valid.repositoryRoot,
+      }),
+    ).resolves.toMatchObject({ providerInvocations: 0, result: 'INVALIDATED', review: null });
+
+    const truncated = await runWithExistingReservation('{');
+    expect(truncated.invocations).toBe(0);
+    expect(truncated.result).toMatchObject({ collectionPersisted: false, providerInvocations: 0, viabilityDecision: 'INVALIDATED' });
+    expect(await readFile(truncated.reservationPath, 'utf8')).toBe('{');
+    const corruptReceipt = JSON.parse(await readFile(truncated.reservationPath.replace(/\.json$/u, '.terminal.json'), 'utf8')) as Record<
+      string,
+      unknown
+    >;
+    expect(corruptReceipt).toMatchObject({
+      collectionRecovered: false,
+      diagnostic: { code: 'RESERVATION_CORRUPT' },
+      providerInvocations: 0,
+      status: 'TERMINAL',
+      viabilityDecision: 'INVALIDATED',
+    });
+    expect(corruptReceipt).toHaveProperty('reservationBytesDigest', expect.stringMatching(/^[a-f0-9]{64}$/u));
+    expect(JSON.stringify(corruptReceipt)).not.toContain('{"raw"');
+    await expect(access(join(truncated.repositoryRoot, truncated.campaign.outputDirectory, 'collection.json'))).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+  });
+
+  it('preserves orphaned protocol-v3 receipt or collection bytes and never invokes a provider', async () => {
+    for (const orphan of ['receipt', 'collection'] as const) {
+      const repositoryRoot = await mkdtemp(join(tmpdir(), `skill-evidence-protocol-v3-orphan-${orphan}-`));
+      const campaign = frozenProtocolV3CanaryPreparation();
+      await prepareProtocolV3CanaryWorkspace(repositoryRoot, campaign);
+      const receiptPath = join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json'));
+      const collectionPath = join(repositoryRoot, campaign.outputDirectory, 'collection.json');
+      const orphanPath = orphan === 'receipt' ? receiptPath : collectionPath;
+      const orphanBytes = JSON.stringify({ orphan, sentinel: 'preserve-these-bytes' });
+      await mkdir(dirname(orphanPath), { recursive: true });
+      await writeFile(orphanPath, orphanBytes);
+      let invocations = 0;
+
+      const result = await runAuthorOperabilityCampaign({
+        approval: '1',
+        currentCommit: () => Promise.resolve(commit),
+        expectedCommit: commit,
+        invoke: (): Promise<AuthorInvocationResponse> => {
+          invocations += 1;
+          return Promise.resolve({ observedModel: null, output: '{}' });
+        },
+        preparation: campaign,
+        preflight: evaluateAuthorOperabilityPreflight(campaign, { ...evidence(), derivedFingerprints: campaign.fingerprints }),
+        repositoryRoot,
+        workingTreeClean: () => Promise.resolve(true),
+      });
+
+      expect(invocations).toBe(0);
+      expect(result).toMatchObject({ collectionPersisted: false, providerInvocations: 0, viabilityDecision: 'INVALIDATED' });
+      expect(await readFile(orphanPath, 'utf8')).toBe(orphanBytes);
+      await expect(access(join(repositoryRoot, campaign.reservationPath))).rejects.toMatchObject({ code: 'ENOENT' });
+      if (orphan === 'collection') {
+        const receipt = JSON.parse(await readFile(receiptPath, 'utf8')) as Record<string, unknown>;
+        expect(receipt).toMatchObject({ diagnostic: { code: 'ORPHANED_COLLECTION' }, providerInvocations: 0, status: 'TERMINAL' });
+      }
+    }
   });
 
   it('invalidates protocol-v3 freeze or packet-blindness drift after one atomic reservation', async () => {
@@ -1157,9 +1442,51 @@ describe('Evaluation Author operability canary', () => {
 
     expect(result).toMatchObject({
       operabilityOutcome: 'INVALIDATED',
-      providerInvocations: 1,
+      providerInvocations: 0,
       viabilityDecision: 'INVALIDATED',
     });
+  });
+
+  it('gives READY invalidation precedence over latency from runner through sanitized scoring', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-protocol-v3-ready-terminal-'));
+    const campaign = frozenProtocolV3CanaryPreparation();
+    await prepareProtocolV3CanaryWorkspace(repositoryRoot, campaign);
+    const contextPath = join(repositoryRoot, campaign.authoringContextPath);
+    const context = JSON.parse(await readFile(contextPath, 'utf8')) as AuthoringContext;
+    context.decisionContext.requiredUncertainty = {
+      disposition: 'SUPPLIED',
+      source: 'test-owned frozen decision context',
+      value: 'No decision uncertainty is required for this development-only rendering check.',
+    };
+    await writeFile(contextPath, JSON.stringify(context));
+    const inspected = await inspectAuthorOperabilityCampaign(repositoryRoot, campaign);
+    Object.assign(campaign.fingerprints, inspected.fingerprints);
+    campaign.condition.conditionFingerprint = inspected.fingerprints.condition;
+    let clockCalls = 0;
+
+    const result = await runAuthorOperabilityCampaign({
+      approval: '1',
+      currentCommit: () => Promise.resolve(commit),
+      expectedCommit: commit,
+      invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(completeProtocolV3CanaryCandidate()) }),
+      now: () => (clockCalls++ === 0 ? 0 : 600_001),
+      preparation: campaign,
+      preflight: evaluateAuthorOperabilityPreflight(campaign, { ...evidence(), derivedFingerprints: campaign.fingerprints }),
+      repositoryRoot,
+      workingTreeClean: () => Promise.resolve(true),
+    });
+    const report = await scoreAuthorViability({
+      outputPath: campaign.sanitizedReportPath,
+      preparation: campaign,
+      repositoryRoot,
+    });
+    const receipt = JSON.parse(
+      await readFile(join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json')), 'utf8'),
+    ) as Record<string, unknown>;
+
+    expect(result).toMatchObject({ operabilityOutcome: 'INVALIDATED', providerInvocations: 1, viabilityDecision: 'INVALIDATED' });
+    expect(receipt).toMatchObject({ operabilityOutcome: 'INVALIDATED', viabilityDecision: 'INVALIDATED' });
+    expect(report).toMatchObject({ actualLifecycle: 'READY', result: 'INVALIDATED', review: null });
   });
 
   it('terminalizes one completed or timed-out invocation without conflating operability and lifecycle', async () => {
@@ -1563,13 +1890,129 @@ describe('Evaluation Author operability canary', () => {
     expect(packet.schemaVersion).toBe(2);
     expect(validateAuthorViabilityReviewPacket(packet)).toBe(true);
     expect(packetText).not.toMatch(
-      /gpt-5\.6-terra|xhigh|e22-|BLOCKED|authorProvenance|blueprintId|claimRequirements|decisionContext|"lifecycle":|missingEvidenceSemantics|populationScopeIds|snapshotFingerprint|SYSTEM_AUTHORING_CONTEXT/u,
+      /gpt-5\.6-terra|xhigh|e22-|BLOCKED|authorProvenance|blueprintId|claimRequirementId|claimRequirements|decisionContext|"lifecycle":|missingEvidenceSemantics|populationScopeIds|snapshotFingerprint|SYSTEM_AUTHORING_CONTEXT/u,
     );
     expect(packet.purpose).toBe('AUTHOR_VIABILITY_BLIND_REVIEW');
     expect((packet.candidate.claims as Array<Record<string, unknown>>)[0]).toMatchObject({
-      claimRequirementId: 'system:authoring-context:claim-requirement:render-order-preserve',
       id: 'claim-rendering',
     });
+    expect((packet.candidate.claims as Array<Record<string, unknown>>)[0]).not.toHaveProperty('claimRequirementId');
+
+    const forged = structuredClone(packet);
+    (forged.candidate.skill as Record<string, unknown>).rawResponse = 'apparently harmless';
+    forged.fingerprint = sha256(Object.fromEntries(Object.entries(forged).filter(([key]) => key !== 'fingerprint')));
+    expect(validateAuthorViabilityReviewPacket(forged)).toBe(false);
+    for (const [key, value] of [
+      ['lifecycleHint', 'BLOCKED'],
+      ['conditionHint', 'author condition alpha'],
+      ['reasoningTrace', 'private assessment trace'],
+      ['Lifecycle', 'blocked'],
+    ] as const) {
+      const leaking = structuredClone(packet);
+      (leaking.candidate.skill as Record<string, unknown>)[key] = value;
+      leaking.fingerprint = sha256(Object.fromEntries(Object.entries(leaking).filter(([entryKey]) => entryKey !== 'fingerprint')));
+      expect(validateAuthorViabilityReviewPacket(leaking), key).toBe(false);
+    }
+  });
+
+  it('accepts only canonical own-property JSON Pointers as reviewer evidence', async () => {
+    const campaign = frozenProtocolV3CanaryPreparation();
+    const snapshot = await createSkillSnapshot({ rootDirectory: campaign.skillPath });
+    const context = JSON.parse(await readFile(campaign.authoringContextPath, 'utf8')) as AuthoringContext;
+    const run = await authorEvaluationBlueprint({
+      authoringContext: context,
+      campaignId: campaign.campaignId,
+      condition: { model: 'gpt-5.6-terra', reasoningEffort: 'xhigh' },
+      invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(completeProtocolV3CanaryCandidate()) }),
+      protocolVersion: 3,
+      snapshot,
+    });
+    if (run.status !== 'COMPLETED') throw new Error('expected completed protocol-v3 Blueprint');
+    const oracle = JSON.parse(await readFile(campaign.oraclePath, 'utf8')) as AuthorViabilityOracle;
+    const packet = createAuthorViabilityReviewPacket({ blueprint: run.blueprint, oracle, skillFiles: snapshot.includedFiles });
+    const criterionId = packet.criteria[0]!.id;
+    const submissionFor = (path: string) =>
+      createAuthorViabilityReviewerSubmission({
+        judgments: packet.criteria.map((criterion) => ({
+          criterionId: criterion.id,
+          evidencePaths: [criterion.id === criterionId ? path : '/candidate/contracts'],
+          rationale: 'Grounded in a canonical candidate path.',
+          verdict: 'ACCEPT',
+        })),
+        packet,
+        principalFingerprint: reviewerPrincipalA,
+        reviewerId: 'reviewer-a',
+        sessionFingerprint: reviewerSessionA,
+      });
+
+    expect(validateAuthorViabilityReviewerSubmission(packet, submissionFor('/candidate/contracts/0/id'))).toBe(true);
+    for (const path of [
+      '/candidate/toString',
+      '/candidate/contracts/constructor',
+      '/candidate/contracts/__proto__',
+      '/candidate/contracts/length',
+      '/candidate/contracts/-',
+      '/candidate/contracts/01',
+      '/candidate/contracts/1e0',
+      '/candidate/contracts/99',
+      '/candidate/contracts/~2',
+      '/candidate/contracts/~',
+    ]) {
+      expect(validateAuthorViabilityReviewerSubmission(packet, submissionFor(path)), path).toBe(false);
+    }
+  });
+
+  it('rejects unsanitized resolver judgments instead of archiving their extra fields', async () => {
+    const campaign = frozenProtocolV3CanaryPreparation();
+    const snapshot = await createSkillSnapshot({ rootDirectory: campaign.skillPath });
+    const context = JSON.parse(await readFile(campaign.authoringContextPath, 'utf8')) as AuthoringContext;
+    const run = await authorEvaluationBlueprint({
+      authoringContext: context,
+      campaignId: campaign.campaignId,
+      condition: { model: 'gpt-5.6-terra', reasoningEffort: 'xhigh' },
+      invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(completeProtocolV3CanaryCandidate()) }),
+      protocolVersion: 3,
+      snapshot,
+    });
+    if (run.status !== 'COMPLETED') throw new Error('expected completed protocol-v3 Blueprint');
+    const oracle = JSON.parse(await readFile(campaign.oraclePath, 'utf8')) as AuthorViabilityOracle;
+    const packet = createAuthorViabilityReviewPacket({ blueprint: run.blueprint, oracle, skillFiles: snapshot.includedFiles });
+    const accepted = packet.criteria.map((criterion) => ({
+      criterionId: criterion.id,
+      evidencePaths: ['/candidate/contracts'],
+      rationale: 'Grounded in candidate contracts.',
+      verdict: 'ACCEPT' as const,
+    }));
+    const reviewerA = createAuthorViabilityReviewerSubmission({
+      judgments: accepted,
+      packet,
+      principalFingerprint: reviewerPrincipalA,
+      reviewerId: 'reviewer-a',
+      sessionFingerprint: reviewerSessionA,
+    });
+    const reviewerB = createAuthorViabilityReviewerSubmission({
+      judgments: accepted.map((judgment, index) => (index === 0 ? { ...judgment, verdict: 'REJECT' as const } : judgment)),
+      packet,
+      principalFingerprint: reviewerPrincipalB,
+      reviewerId: 'reviewer-b',
+      sessionFingerprint: reviewerSessionB,
+    });
+
+    expect(() =>
+      resolveAuthorViabilityReview(
+        packet,
+        [reviewerA, reviewerB],
+        [
+          {
+            criterionId: packet.criteria[0]!.id,
+            evidencePaths: ['/candidate/contracts'],
+            rationale: 'Resolve from candidate evidence only.',
+            rawReasoning: 'must never be retained',
+            verdict: 'ACCEPT',
+          } as never,
+        ],
+      ),
+    ).toThrow('resolver judgments must cover exactly the disagreements');
   });
 
   it('rejects a self-consistent protocol-v3 Blueprint from a different frozen condition before review', async () => {
@@ -1591,11 +2034,274 @@ describe('Evaluation Author operability canary', () => {
     if (foreign.status !== 'COMPLETED') return;
     const collectionPath = join(repositoryRoot, campaign.outputDirectory, 'collection.json');
     const collection = JSON.parse(await readFile(collectionPath, 'utf8')) as Record<string, unknown>;
-    await writeFile(collectionPath, JSON.stringify({ ...collection, blueprint: foreign.blueprint }));
+    const forgedCollection = { ...collection, blueprint: foreign.blueprint };
+    await writeFile(collectionPath, JSON.stringify(forgedCollection));
+    const receiptPath = join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json'));
+    const receipt = JSON.parse(await readFile(receiptPath, 'utf8')) as Record<string, unknown>;
+    await writeFile(receiptPath, JSON.stringify({ ...receipt, collectionDigest: sha256(forgedCollection) }));
 
     await expect(prepareAuthorViabilityReview({ preparation: campaign, repositoryRoot })).rejects.toThrow(
       'AUTHOR_VIABILITY_COLLECTION_INTEGRITY',
     );
+  });
+
+  it('rejects substituted protocol-v3 provenance even when the completed terminal does not require review', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-protocol-v3-terminal-identity-'));
+    const campaign = frozenProtocolV3CanaryPreparation();
+    await prepareProtocolV3CanaryWorkspace(repositoryRoot, campaign);
+    await persistCompletedProtocolV3CanaryCollection(repositoryRoot, campaign);
+    const snapshot = await createSkillSnapshot({ rootDirectory: join(repositoryRoot, campaign.skillPath) });
+    const context = JSON.parse(await readFile(join(repositoryRoot, campaign.authoringContextPath), 'utf8')) as AuthoringContext;
+    const foreign = await authorEvaluationBlueprint({
+      authoringContext: context,
+      campaignId: campaign.campaignId,
+      condition: { model: 'gpt-5.6-luna', reasoningEffort: 'max' },
+      invoke: () => Promise.resolve({ observedModel: null, output: JSON.stringify(completeProtocolV3CanaryCandidate()) }),
+      protocolVersion: 3,
+      snapshot,
+    });
+    if (foreign.status !== 'COMPLETED') throw new Error('expected foreign completed Blueprint');
+    const collectionPath = join(repositoryRoot, campaign.outputDirectory, 'collection.json');
+    const collection = JSON.parse(await readFile(collectionPath, 'utf8')) as Record<string, unknown>;
+    const forged = {
+      ...collection,
+      blueprint: foreign.blueprint,
+      elapsedMs: 700_000,
+      historicalTargetMet: false,
+      operabilityOutcome: 'NOT_COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
+      target300SecondsMet: false,
+      target600SecondsMet: false,
+      viabilityDecision: 'NOT_VIABLE_FOR_AUTHOR',
+    };
+    await writeFile(collectionPath, JSON.stringify(forged));
+    const receiptPath = join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json'));
+    const receipt = JSON.parse(await readFile(receiptPath, 'utf8')) as Record<string, unknown>;
+    await writeFile(
+      receiptPath,
+      JSON.stringify({
+        ...receipt,
+        collectionDigest: sha256(forged),
+        operabilityOutcome: forged.operabilityOutcome,
+        viabilityDecision: forged.viabilityDecision,
+      }),
+    );
+
+    await expect(scoreAuthorViability({ outputPath: campaign.sanitizedReportPath, preparation: campaign, repositoryRoot })).rejects.toThrow(
+      'AUTHOR_VIABILITY_COLLECTION_INTEGRITY',
+    );
+  });
+
+  it('rejects a favorable protocol-v3 collection without its canonical reservation and terminal receipt chain', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-protocol-v3-review-receipt-'));
+    const campaign = frozenProtocolV3CanaryPreparation();
+    await prepareProtocolV3CanaryWorkspace(repositoryRoot, campaign);
+    await persistCompletedProtocolV3CanaryCollection(repositoryRoot, campaign, false);
+
+    await expect(prepareAuthorViabilityReview({ preparation: campaign, repositoryRoot })).rejects.toThrow(
+      'AUTHOR_VIABILITY_RECEIPT_INVALID',
+    );
+  });
+
+  it('rejects a canonical-digest protocol-v3 error terminal with impossible timing and target evidence', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-protocol-v3-error-evidence-'));
+    const campaign = frozenProtocolV3CanaryPreparation();
+    await prepareProtocolV3CanaryWorkspace(repositoryRoot, campaign);
+    await persistCompletedProtocolV3CanaryCollection(repositoryRoot, campaign);
+    const collectionPath = join(repositoryRoot, campaign.outputDirectory, 'collection.json');
+    const completed = JSON.parse(await readFile(collectionPath, 'utf8')) as Record<string, unknown>;
+    const shared = Object.fromEntries(Object.entries(completed).filter(([key]) => key !== 'actualLifecycle' && key !== 'blueprint'));
+    const impossible = {
+      ...shared,
+      diagnostic: { code: 'PROVIDER_ERROR', diagnostic: { category: 'TIMEOUT', code: 'ABORTED', stage: 'EVALUATION' } },
+      elapsedMs: -1,
+      historicalTargetMet: true,
+      lifecycleExpectationMet: false,
+      operabilityOutcome: 'NOT_COMPLETED_WITHIN_DIAGNOSTIC_BUDGET',
+      target1800SecondsMet: 'yes',
+      target300SecondsMet: false,
+      target600SecondsMet: false,
+      viabilityDecision: 'NOT_VIABLE_FOR_AUTHOR',
+    };
+    await writeFile(collectionPath, JSON.stringify(impossible));
+    const receiptPath = join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json'));
+    const receipt = JSON.parse(await readFile(receiptPath, 'utf8')) as Record<string, unknown>;
+    await writeFile(
+      receiptPath,
+      JSON.stringify({
+        ...receipt,
+        collectionDigest: sha256(impossible),
+        operabilityOutcome: impossible.operabilityOutcome,
+        viabilityDecision: impossible.viabilityDecision,
+      }),
+    );
+
+    await expect(scoreAuthorViability({ outputPath: campaign.sanitizedReportPath, preparation: campaign, repositoryRoot })).rejects.toThrow(
+      'AUTHOR_VIABILITY_RECEIPT_INVALID',
+    );
+
+    const infiniteTiming = {
+      ...impossible,
+      elapsedMs: Number.POSITIVE_INFINITY,
+      historicalTargetMet: null,
+      lifecycleExpectationMet: null,
+      target1800SecondsMet: false,
+    };
+    const encodedInfiniteTiming = JSON.stringify({ ...infiniteTiming, elapsedMs: 'INFINITE_NUMBER' }).replace(
+      '"INFINITE_NUMBER"',
+      '1e9999',
+    );
+    await writeFile(collectionPath, encodedInfiniteTiming);
+    await writeFile(
+      receiptPath,
+      JSON.stringify({
+        ...receipt,
+        collectionDigest: sha256(infiniteTiming),
+        operabilityOutcome: infiniteTiming.operabilityOutcome,
+        viabilityDecision: infiniteTiming.viabilityDecision,
+      }),
+    );
+    await expect(scoreAuthorViability({ outputPath: campaign.sanitizedReportPath, preparation: campaign, repositoryRoot })).rejects.toThrow(
+      'AUTHOR_VIABILITY_RECEIPT_INVALID',
+    );
+  });
+
+  it('rejects terminal diagnostics outside the exact protocol-v3 error enums', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-protocol-v3-error-enum-'));
+    const campaign = frozenProtocolV3CanaryPreparation();
+    await prepareProtocolV3CanaryWorkspace(repositoryRoot, campaign);
+    await runAuthorOperabilityCampaign({
+      approval: '1',
+      currentCommit: () => Promise.resolve(commit),
+      expectedCommit: commit,
+      invoke: () => Promise.resolve({ observedModel: null, output: 'not-json' }),
+      preparation: campaign,
+      preflight: evaluateAuthorOperabilityPreflight(campaign, { ...evidence(), derivedFingerprints: campaign.fingerprints }),
+      repositoryRoot,
+      workingTreeClean: () => Promise.resolve(true),
+    });
+    const collectionPath = join(repositoryRoot, campaign.outputDirectory, 'collection.json');
+    const collection = JSON.parse(await readFile(collectionPath, 'utf8')) as Record<string, unknown>;
+    const receiptPath = join(repositoryRoot, campaign.reservationPath.replace(/\.json$/u, '.terminal.json'));
+    const receipt = JSON.parse(await readFile(receiptPath, 'utf8')) as Record<string, unknown>;
+    for (const forged of [
+      {
+        ...collection,
+        diagnostic: { code: 'PROVIDER_ERROR', diagnostic: { category: 'MYSTERY', code: 'NOPE', stage: 'ELSE' } },
+        operabilityOutcome: 'INSUFFICIENT',
+        viabilityDecision: 'INSUFFICIENT',
+      },
+      {
+        ...collection,
+        providerObservation: {
+          cancellationObserved: null,
+          cancellationRequested: null,
+          firstProgressAtMs: null,
+          lastObservedStage: 'ELSE',
+          lastProgressAtMs: null,
+          progressObserved: null,
+          timeoutOwner: 'SOMEONE_ELSE',
+        },
+      },
+    ] as Array<Record<string, unknown>>) {
+      await writeFile(collectionPath, JSON.stringify(forged));
+      await writeFile(
+        receiptPath,
+        JSON.stringify({
+          ...receipt,
+          collectionDigest: sha256(forged),
+          operabilityOutcome: forged.operabilityOutcome,
+          viabilityDecision: forged.viabilityDecision,
+        }),
+      );
+
+      await expect(
+        scoreAuthorViability({ outputPath: campaign.sanitizedReportPath, preparation: campaign, repositoryRoot }),
+      ).rejects.toThrow('AUTHOR_VIABILITY_RECEIPT_INVALID');
+    }
+  });
+
+  it('confines protocol-v3 review publication and rejects symlinked artifact directories', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-protocol-v3-review-confined-'));
+    const outside = await mkdtemp(join(tmpdir(), 'skill-evidence-protocol-v3-review-outside-'));
+    const campaign = frozenProtocolV3CanaryPreparation();
+    await prepareProtocolV3CanaryWorkspace(repositoryRoot, campaign);
+    await persistCompletedProtocolV3CanaryCollection(repositoryRoot, campaign);
+    const reviewDirectory = join(repositoryRoot, campaign.outputDirectory, 'review');
+    await mkdir(dirname(reviewDirectory), { recursive: true });
+    await symlink(outside, reviewDirectory, 'dir');
+
+    await expect(prepareAuthorViabilityReview({ preparation: campaign, repositoryRoot })).rejects.toThrow('AUTHOR_ARTIFACT_PATH_UNSAFE');
+    await expect(access(join(outside, 'qualification.packet.json'))).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('rejects a protocol-v3 qualification source read through a leaf symlink', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-protocol-v3-review-leaf-symlink-'));
+    const campaign = frozenProtocolV3CanaryPreparation();
+    await prepareProtocolV3CanaryWorkspace(repositoryRoot, campaign);
+    await persistCompletedProtocolV3CanaryCollection(repositoryRoot, campaign);
+    const probesPath = join(repositoryRoot, campaign.review.reviewerProbesPath);
+    const outsideProbes = join(await mkdtemp(join(tmpdir(), 'skill-evidence-protocol-v3-outside-probes-')), 'probes.json');
+    await writeFile(outsideProbes, await readFile(probesPath, 'utf8'));
+    await unlink(probesPath);
+    await symlink(outsideProbes, probesPath);
+
+    await expect(prepareAuthorViabilityReview({ preparation: campaign, repositoryRoot })).rejects.toThrow('AUTHOR_ARTIFACT_PATH_UNSAFE');
+  });
+
+  it('rejects a symlinked preparation before parsing while preserving regular schema-1 loading', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-preparation-leaf-symlink-'));
+    const outsidePreparation = join(await mkdtemp(join(tmpdir(), 'skill-evidence-outside-preparation-')), 'campaign-preparation.json');
+    const symlinkedPreparation = join(repositoryRoot, 'symlinked-campaign-preparation.json');
+    await writeFile(outsidePreparation, '{');
+    await symlink(outsidePreparation, symlinkedPreparation);
+
+    await expect(loadAuthorViabilityPreparation(repositoryRoot, symlinkedPreparation)).rejects.toThrow('AUTHOR_ARTIFACT_PATH_UNSAFE');
+
+    const schema1Preparation = viabilityPreparation();
+    const regularPreparation = join(repositoryRoot, 'regular-campaign-preparation.json');
+    await writeFile(regularPreparation, JSON.stringify(schema1Preparation));
+    await expect(loadAuthorViabilityPreparation(repositoryRoot, regularPreparation)).resolves.toEqual(schema1Preparation);
+  });
+
+  it('binds protocol-v3 materialization to the reserved commit and a clean tracked worktree', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-protocol-v3-materialization-freeze-'));
+    const campaign = frozenProtocolV3CanaryPreparation();
+    await prepareProtocolV3CanaryWorkspace(repositoryRoot, campaign);
+    await persistCompletedProtocolV3CanaryCollection(repositoryRoot, campaign);
+
+    await expect(
+      prepareAuthorViabilityReview({
+        inspectRepositoryState: () => Promise.resolve({ currentCommit: 'c'.repeat(40), trackedWorktreeClean: true }),
+        preparation: campaign,
+        repositoryRoot,
+      }),
+    ).rejects.toThrow('AUTHOR_VIABILITY_MATERIALIZATION_COMMIT_DRIFT');
+    await expect(
+      prepareAuthorViabilityReview({
+        inspectRepositoryState: () => Promise.resolve({ currentCommit: commit, trackedWorktreeClean: false }),
+        preparation: campaign,
+        repositoryRoot,
+      }),
+    ).rejects.toThrow('AUTHOR_VIABILITY_MATERIALIZATION_COMMIT_DRIFT');
+    await expect(access(join(repositoryRoot, campaign.outputDirectory, 'review'))).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('recovers an interrupted protocol-v3 component publication without replacing durable components', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'skill-evidence-protocol-v3-review-recovery-'));
+    const campaign = frozenProtocolV3CanaryPreparation();
+    await prepareProtocolV3CanaryWorkspace(repositoryRoot, campaign);
+    await persistCompletedProtocolV3CanaryCollection(repositoryRoot, campaign);
+    const reviewDirectory = join(repositoryRoot, campaign.outputDirectory, 'review');
+
+    await prepareAuthorViabilityReview({ preparation: campaign, repositoryRoot });
+    const packetBefore = await readFile(join(reviewDirectory, 'qualification.packet.json'), 'utf8');
+    await unlink(join(reviewDirectory, 'manifest.json'));
+
+    await expect(prepareAuthorViabilityReview({ preparation: campaign, repositoryRoot })).resolves.toMatchObject({
+      status: 'PENDING_REVIEWER_QUALIFICATION',
+    });
+    expect(await readFile(join(reviewDirectory, 'qualification.packet.json'), 'utf8')).toBe(packetBefore);
+    await expect(access(join(reviewDirectory, 'manifest.json'))).resolves.toBeUndefined();
   });
 
   it('qualifies two independent reviewers before exposing the protocol-v3 candidate', async () => {
@@ -1614,13 +2320,31 @@ describe('Evaluation Author operability canary', () => {
       probes: Array<{ id: string; observation: string }>;
     };
     expect(JSON.stringify(qualificationPacket)).not.toMatch(/ALTERNATIVE_VALID|KNOWN_INVALID|expected/u);
+    expect(qualificationPacket.probes.every((probe) => /^q-[a-f0-9]{8}$/u.test(probe.id))).toBe(true);
+    expect(qualificationPacket.probes.map((probe) => probe.id).join(' ')).not.toMatch(/valid|invalid|stability|uncertainty|evidence/u);
     const probes = JSON.parse(await readFile(join(repositoryRoot, campaign.review.reviewerProbesPath), 'utf8')) as {
       probes: Array<{ expected: string; id: string }>;
     };
     const judgments = probes.probes.map((probe) => ({ probeId: probe.id, verdict: probe.expected }));
     await Promise.all([
-      writeFile(join(reviewDirectory, 'reviewer-a.qualification.input.json'), JSON.stringify({ judgments, reviewerId: 'reviewer-a' })),
-      writeFile(join(reviewDirectory, 'reviewer-b.qualification.input.json'), JSON.stringify({ judgments, reviewerId: 'reviewer-b' })),
+      writeFile(
+        join(reviewDirectory, 'reviewer-a.qualification.input.json'),
+        JSON.stringify({
+          judgments,
+          principalFingerprint: reviewerPrincipalA,
+          reviewerId: 'reviewer-a',
+          sessionFingerprint: reviewerSessionA,
+        }),
+      ),
+      writeFile(
+        join(reviewDirectory, 'reviewer-b.qualification.input.json'),
+        JSON.stringify({
+          judgments,
+          principalFingerprint: reviewerPrincipalB,
+          reviewerId: 'reviewer-b',
+          sessionFingerprint: reviewerSessionB,
+        }),
+      ),
     ]);
 
     const second = (await prepareAuthorViabilityReview({ preparation: campaign, repositoryRoot })) as Record<string, unknown>;
@@ -1633,6 +2357,27 @@ describe('Evaluation Author operability canary', () => {
     ]);
     expect(left).toBe(right);
     expect(JSON.parse(qualification) as unknown).toMatchObject({ result: 'QUALIFIED', reviewerCount: 2 });
+    const [qualifiedA, qualifiedB] = await Promise.all([
+      readFile(join(reviewDirectory, 'reviewer-a.qualification.json'), 'utf8').then(
+        (value) => JSON.parse(value) as Record<string, unknown>,
+      ),
+      readFile(join(reviewDirectory, 'reviewer-b.qualification.json'), 'utf8').then(
+        (value) => JSON.parse(value) as Record<string, unknown>,
+      ),
+    ]);
+    expect(qualifiedA).toMatchObject({ principalFingerprint: reviewerPrincipalA, sessionFingerprint: reviewerSessionA });
+    expect(qualifiedB).toMatchObject({ principalFingerprint: reviewerPrincipalB, sessionFingerprint: reviewerSessionB });
+  });
+
+  it('rejects semantically revealing reviewer probe identifiers before packet exposure', async () => {
+    const campaign = frozenProtocolV3CanaryPreparation();
+    const probes = JSON.parse(await readFile(campaign.review.reviewerProbesPath, 'utf8')) as {
+      probes: Array<Record<string, unknown>>;
+      schemaVersion: number;
+    };
+    probes.probes[0]!.id = 'probe-known-invalid';
+
+    expect(validateAuthorViabilityReviewerProbeSet(probes)).toBe(false);
   });
 
   it('scores one append-only sanitized E22 report after qualified independent review', async () => {
@@ -1649,11 +2394,21 @@ describe('Evaluation Author operability canary', () => {
     await Promise.all([
       writeFile(
         join(reviewDirectory, 'reviewer-a.qualification.input.json'),
-        JSON.stringify({ judgments: qualificationJudgments, reviewerId: 'reviewer-a' }),
+        JSON.stringify({
+          judgments: qualificationJudgments,
+          principalFingerprint: reviewerPrincipalA,
+          reviewerId: 'reviewer-a',
+          sessionFingerprint: reviewerSessionA,
+        }),
       ),
       writeFile(
         join(reviewDirectory, 'reviewer-b.qualification.input.json'),
-        JSON.stringify({ judgments: qualificationJudgments, reviewerId: 'reviewer-b' }),
+        JSON.stringify({
+          judgments: qualificationJudgments,
+          principalFingerprint: reviewerPrincipalB,
+          reviewerId: 'reviewer-b',
+          sessionFingerprint: reviewerSessionB,
+        }),
       ),
     ]);
     await prepareAuthorViabilityReview({ preparation: campaign, repositoryRoot });
@@ -1667,10 +2422,135 @@ describe('Evaluation Author operability canary', () => {
       verdict: 'ACCEPT',
     }));
     await Promise.all([
-      writeFile(join(reviewDirectory, 'reviewer-a.input.json'), JSON.stringify({ judgments: accepted, reviewerId: 'reviewer-a' })),
-      writeFile(join(reviewDirectory, 'reviewer-b.input.json'), JSON.stringify({ judgments: accepted, reviewerId: 'reviewer-b' })),
+      writeFile(
+        join(reviewDirectory, 'reviewer-a.input.json'),
+        JSON.stringify({
+          judgments: accepted,
+          principalFingerprint: reviewerPrincipalA,
+          reviewerId: 'reviewer-a',
+          sessionFingerprint: reviewerSessionA,
+        }),
+      ),
+      writeFile(
+        join(reviewDirectory, 'reviewer-b.input.json'),
+        JSON.stringify({
+          judgments: accepted,
+          principalFingerprint: reviewerPrincipalB,
+          reviewerId: 'reviewer-b',
+          sessionFingerprint: reviewerSessionB,
+        }),
+      ),
     ]);
-    const resolution = await prepareAuthorViabilityResolution({ repositoryRoot, reviewDirectory });
+    const reviewerBPacketPath = join(reviewDirectory, 'reviewer-b.packet.json');
+    const reviewerBPacket = await readFile(reviewerBPacketPath, 'utf8');
+    const divergentReviewerBPacket = {
+      ...(JSON.parse(reviewerBPacket) as Record<string, unknown>),
+      purpose: 'DIVERGENT_REVIEW_PACKET',
+    };
+    await writeFile(reviewerBPacketPath, JSON.stringify(divergentReviewerBPacket));
+    await expect(prepareAuthorViabilityResolution({ preparation: campaign, repositoryRoot })).rejects.toThrow(
+      'AUTHOR_VIABILITY_PACKET_INVALID',
+    );
+    await writeFile(reviewerBPacketPath, reviewerBPacket);
+    const reviewerBInputPath = join(reviewDirectory, 'reviewer-b.input.json');
+    const reviewerBInput = await readFile(reviewerBInputPath, 'utf8');
+    const outsideReviewerBInput = join(await mkdtemp(join(tmpdir(), 'skill-evidence-outside-review-input-')), 'reviewer-b.input.json');
+    await writeFile(outsideReviewerBInput, reviewerBInput);
+    await unlink(reviewerBInputPath);
+    await symlink(outsideReviewerBInput, reviewerBInputPath);
+    await expect(prepareAuthorViabilityResolution({ preparation: campaign, repositoryRoot })).rejects.toThrow(
+      'AUTHOR_ARTIFACT_PATH_UNSAFE',
+    );
+    await unlink(reviewerBInputPath);
+    await writeFile(reviewerBInputPath, reviewerBInput);
+    for (const repositoryState of [
+      { currentCommit: 'c'.repeat(40), trackedWorktreeClean: true },
+      { currentCommit: commit, trackedWorktreeClean: false },
+    ]) {
+      await expect(
+        prepareAuthorViabilityResolution({
+          inspectRepositoryState: () => Promise.resolve(repositoryState),
+          preparation: campaign,
+          repositoryRoot,
+        }),
+      ).rejects.toThrow('AUTHOR_VIABILITY_MATERIALIZATION_COMMIT_DRIFT');
+    }
+    const resolution = await prepareAuthorViabilityResolution({ preparation: campaign, repositoryRoot });
+    const resolutionManifestPath = join(reviewDirectory, 'resolution.manifest.json');
+    const resolutionManifest = await readFile(resolutionManifestPath, 'utf8');
+    const reviewerBPath = join(reviewDirectory, 'reviewer-b.json');
+    const resolutionPacketPath = join(reviewDirectory, 'resolution.packet.json');
+    const reviewerBBefore = await readFile(reviewerBPath, 'utf8');
+    const resolutionPacketBefore = await readFile(resolutionPacketPath, 'utf8');
+    const reviewerA = JSON.parse(await readFile(join(reviewDirectory, 'reviewer-a.json'), 'utf8')) as AuthorViabilityReviewerSubmission;
+    const reviewerB = JSON.parse(reviewerBBefore) as AuthorViabilityReviewerSubmission;
+    for (const repositoryState of [
+      { currentCommit: 'c'.repeat(40), trackedWorktreeClean: true },
+      { currentCommit: commit, trackedWorktreeClean: false },
+    ]) {
+      await expect(
+        scoreAuthorViability({
+          inspectRepositoryState: () => Promise.resolve(repositoryState),
+          outputPath: campaign.sanitizedReportPath,
+          preparation: campaign,
+          repositoryRoot,
+        }),
+      ).rejects.toThrow('AUTHOR_VIABILITY_MATERIALIZATION_COMMIT_DRIFT');
+    }
+    const duplicateIdentityBody = {
+      ...reviewerB,
+      principalFingerprint: reviewerPrincipalA,
+      sessionFingerprint: reviewerSessionA,
+    };
+    const duplicateIdentityWithoutFingerprint = Object.fromEntries(
+      Object.entries(duplicateIdentityBody).filter(([key]) => key !== 'fingerprint'),
+    );
+    const duplicateIdentity = {
+      ...duplicateIdentityBody,
+      fingerprint: sha256(duplicateIdentityWithoutFingerprint),
+    };
+    const fullyRehashedResolution = createAuthorViabilityResolutionPacket(packet as AuthorViabilityReviewPacket, [
+      reviewerA,
+      duplicateIdentity,
+    ]);
+    await Promise.all([
+      writeFile(reviewerBPath, JSON.stringify(duplicateIdentity)),
+      writeFile(resolutionPacketPath, JSON.stringify(fullyRehashedResolution)),
+      writeFile(
+        resolutionManifestPath,
+        JSON.stringify({
+          campaignFingerprint: sha256(campaign),
+          packetFingerprint: (packet as AuthorViabilityReviewPacket).fingerprint,
+          resolutionPacketFingerprint: fullyRehashedResolution.fingerprint,
+          reviewerSubmissionFingerprints: [reviewerA.fingerprint, duplicateIdentity.fingerprint].sort(),
+          schemaVersion: 2,
+        }),
+      ),
+    ]);
+    await expect(scoreAuthorViability({ outputPath: campaign.sanitizedReportPath, preparation: campaign, repositoryRoot })).rejects.toThrow(
+      'AUTHOR_VIABILITY_REVIEWER_IDENTITY_INVALID',
+    );
+    await Promise.all([
+      writeFile(reviewerBPath, reviewerBBefore),
+      writeFile(resolutionPacketPath, resolutionPacketBefore),
+      writeFile(resolutionManifestPath, resolutionManifest),
+    ]);
+    const reviewerAPath = join(reviewDirectory, 'reviewer-a.json');
+    const reviewerABefore = await readFile(reviewerAPath, 'utf8');
+    const outsideReviewerA = join(await mkdtemp(join(tmpdir(), 'skill-evidence-outside-review-submission-')), 'reviewer-a.json');
+    await writeFile(outsideReviewerA, reviewerABefore);
+    await unlink(reviewerAPath);
+    await symlink(outsideReviewerA, reviewerAPath);
+    await expect(scoreAuthorViability({ outputPath: campaign.sanitizedReportPath, preparation: campaign, repositoryRoot })).rejects.toThrow(
+      'AUTHOR_ARTIFACT_PATH_UNSAFE',
+    );
+    await unlink(reviewerAPath);
+    await writeFile(reviewerAPath, reviewerABefore);
+    await writeFile(resolutionManifestPath, JSON.stringify({ ...JSON.parse(resolutionManifest), rawReasoning: 'forged' }));
+    await expect(scoreAuthorViability({ outputPath: campaign.sanitizedReportPath, preparation: campaign, repositoryRoot })).rejects.toThrow(
+      'AUTHOR_VIABILITY_MANIFEST_INVALID',
+    );
+    await writeFile(resolutionManifestPath, resolutionManifest);
 
     const report = await scoreAuthorViability({
       outputPath: campaign.sanitizedReportPath,
@@ -1681,6 +2561,7 @@ describe('Evaluation Author operability canary', () => {
     expect(resolution.disagreements).toEqual([]);
     expect(report).toMatchObject({
       decisionEligible: false,
+      reservedCommit: commit,
       result: 'VIABLE_CANDIDATE',
       schemaVersion: 2,
       review: {
@@ -1766,8 +2647,8 @@ describe('Evaluation Author operability canary', () => {
       writeFile(join(prepared.reviewDirectory, 'reviewer-b.input.json'), JSON.stringify({ judgments: accepted, reviewerId: 'reviewer-b' })),
     ]);
     const resolutionPacket = await prepareAuthorViabilityResolution({
+      preparation: campaign,
       repositoryRoot,
-      reviewDirectory: prepared.reviewDirectory,
     });
     expect(resolutionPacket.disagreements).toEqual([]);
     const report = await scoreAuthorViability({
@@ -1853,7 +2734,7 @@ describe('Evaluation Author operability canary', () => {
       writeFile(join(prepared.reviewDirectory, 'reviewer-a.input.json'), JSON.stringify({ judgments: accepted, reviewerId: 'reviewer-a' })),
       writeFile(join(prepared.reviewDirectory, 'reviewer-b.input.json'), JSON.stringify({ judgments: accepted, reviewerId: 'reviewer-b' })),
     ]);
-    await prepareAuthorViabilityResolution({ repositoryRoot, reviewDirectory: prepared.reviewDirectory });
+    await prepareAuthorViabilityResolution({ preparation: campaign, repositoryRoot });
     const report = await scoreAuthorViability({
       outputPath: campaign.sanitizedReportPath,
       preparation: campaign,

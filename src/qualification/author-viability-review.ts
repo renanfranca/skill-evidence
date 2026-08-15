@@ -46,8 +46,10 @@ export interface AuthorViabilityReviewerSubmission {
   fingerprint: string;
   judgments: AuthorViabilityJudgment[];
   packetFingerprint: string;
+  principalFingerprint?: string;
   reviewerId: 'reviewer-a' | 'reviewer-b';
   schemaVersion: 1;
+  sessionFingerprint?: string;
 }
 
 export interface AuthorViabilityResolutionPacket {
@@ -86,7 +88,9 @@ export interface AuthorViabilityReviewerQualificationPacket {
 
 export interface AuthorViabilityReviewerQualificationInput {
   judgments: Array<{ probeId: string; verdict: 'ACCEPT' | 'REJECT' }>;
+  principalFingerprint: string;
   reviewerId: 'reviewer-a' | 'reviewer-b';
+  sessionFingerprint: string;
 }
 
 export interface AuthorViabilityReviewerQualificationSubmission extends AuthorViabilityReviewerQualificationInput {
@@ -97,9 +101,92 @@ export interface AuthorViabilityReviewerQualificationSubmission extends AuthorVi
 
 const mechanicalCriterionId = 'system-controlled-lifecycle-and-provenance';
 const verdicts = new Set<AuthorViabilityVerdict>(['ACCEPT', 'NEEDS_ADJUDICATION', 'REJECT']);
+const opaqueFingerprint = /^[a-f0-9]{64}$/u;
+const protocolV3CandidateKeys = [
+  'activationRegions',
+  'analysisPlan',
+  'claims',
+  'contrasts',
+  'contracts',
+  'evidencePlan',
+  'exclusions',
+  'oracleQualificationPlan',
+  'policies',
+  'samplingPlan',
+  'skill',
+  'stoppingConditions',
+  'stressFamilies',
+  'unresolvedRequirements',
+  'untestedRisks',
+  'usageFamilies',
+] as const;
+const blindForbiddenKeys = new Set([
+  'authorProvenance',
+  'blueprintId',
+  'campaign',
+  'campaignId',
+  'claimRequirementId',
+  'claimRequirements',
+  'conditionFingerprint',
+  'credential',
+  'credentials',
+  'decisionContext',
+  'identity',
+  'identities',
+  'lifecycle',
+  'missingEvidenceSemantics',
+  'model',
+  'observedModel',
+  'population',
+  'populationScopeIds',
+  'principalFingerprint',
+  'provenance',
+  'rawReasoning',
+  'rawResponse',
+  'reasoning',
+  'reasoningEffort',
+  'requestedModel',
+  'responseRaw',
+  'reviewerId',
+  'secret',
+  'secrets',
+  'sessionFingerprint',
+  'snapshotFingerprint',
+]);
+
+function hasExactKeys(value: object, keys: string[]): boolean {
+  return canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+}
+
+function isBlindValue(value: unknown): boolean {
+  if (typeof value === 'string') {
+    return !/gpt-5\.6-(?:luna|terra)|\bxhigh\b|\be(?:18|19|20|22)-|\b(?:blocked|draft|ready)\b|SYSTEM_AUTHORING_CONTEXT|system:authoring-context/iu.test(
+      value,
+    );
+  }
+  if (Array.isArray(value)) return value.every(isBlindValue);
+  if (typeof value !== 'object' || value === null) return true;
+  return Object.entries(value).every(([key, nested]) => {
+    const normalizedKey = key.replaceAll(/[^a-z0-9]/giu, '').toLowerCase();
+    const forbiddenVariant =
+      /(?:campaign|credential|identity|lifecycle|model|provenance|rawreasoning|rawresponse|reasoning|responseraw|secret)/u.test(
+        normalizedKey,
+      );
+    const conditionVariant =
+      normalizedKey.includes('condition') && !['condition', 'conditions', 'preconditions', 'stoppingconditions'].includes(normalizedKey);
+    return !blindForbiddenKeys.has(key) && !forbiddenVariant && !conditionVariant && isBlindValue(nested);
+  });
+}
 
 export function validateAuthorViabilityReviewerProbeSet(value: unknown): value is AuthorViabilityReviewerProbeSet {
-  if (typeof value !== 'object' || value === null || !('schemaVersion' in value) || value.schemaVersion !== 1 || !('probes' in value)) {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    !hasExactKeys(value, ['probes', 'schemaVersion']) ||
+    !('schemaVersion' in value) ||
+    value.schemaVersion !== 1 ||
+    !('probes' in value)
+  ) {
     return false;
   }
   if (!Array.isArray(value.probes) || value.probes.length !== 4) return false;
@@ -111,9 +198,10 @@ export function validateAuthorViabilityReviewerProbeSet(value: unknown): value i
       if (
         typeof probe !== 'object' ||
         probe === null ||
+        !hasExactKeys(probe, ['expected', 'family', 'id', 'observation']) ||
         !('id' in probe) ||
         typeof probe.id !== 'string' ||
-        probe.id.length === 0 ||
+        !/^q-[a-f0-9]{8}$/u.test(probe.id) ||
         ids.has(probe.id) ||
         !('observation' in probe) ||
         typeof probe.observation !== 'string' ||
@@ -153,8 +241,10 @@ export function createAuthorViabilityReviewerQualificationSubmission(input: {
   const body = {
     judgments: [...input.input.judgments].sort((left, right) => left.probeId.localeCompare(right.probeId)),
     packetFingerprint: input.packet.fingerprint,
+    principalFingerprint: input.input.principalFingerprint,
     reviewerId: input.input.reviewerId,
     schemaVersion: 1 as const,
+    sessionFingerprint: input.input.sessionFingerprint,
   };
   return { ...body, fingerprint: sha256(body) };
 }
@@ -174,14 +264,31 @@ export function qualifyAuthorViabilityReviewers(input: {
   const valid =
     input.submissions.length === 2 &&
     new Set(input.submissions.map((submission) => submission.reviewerId)).size === 2 &&
+    new Set(input.submissions.map((submission) => submission.principalFingerprint)).size === 2 &&
+    new Set(input.submissions.map((submission) => submission.sessionFingerprint)).size === 2 &&
     input.submissions.every(
       (submission) =>
+        hasExactKeys(submission, [
+          'fingerprint',
+          'judgments',
+          'packetFingerprint',
+          'principalFingerprint',
+          'reviewerId',
+          'schemaVersion',
+          'sessionFingerprint',
+        ]) &&
         submission.schemaVersion === 1 &&
+        typeof submission.principalFingerprint === 'string' &&
+        opaqueFingerprint.test(submission.principalFingerprint) &&
+        typeof submission.sessionFingerprint === 'string' &&
+        opaqueFingerprint.test(submission.sessionFingerprint) &&
         submission.packetFingerprint === input.packet.fingerprint &&
         submission.fingerprint === fingerprintWithoutFingerprint(submission) &&
         submission.judgments.length === expected.size &&
         new Set(submission.judgments.map((judgment) => judgment.probeId)).size === expected.size &&
-        submission.judgments.every((judgment) => expected.get(judgment.probeId) === judgment.verdict),
+        submission.judgments.every(
+          (judgment) => hasExactKeys(judgment, ['probeId', 'verdict']) && expected.get(judgment.probeId) === judgment.verdict,
+        ),
     );
   const body = {
     result: valid ? ('QUALIFIED' as const) : ('BLOCKED' as const),
@@ -193,25 +300,21 @@ export function qualifyAuthorViabilityReviewers(input: {
 }
 
 function candidateFromBlueprint(blueprint: EvaluationBlueprint): Record<string, unknown> {
-  const candidate = Object.fromEntries(
-    Object.entries(blueprint).filter(
-      ([key]) =>
-        ![
-          'authorProvenance',
-          'blueprintId',
-          'claimRequirements',
-          'decisionContext',
-          'lifecycle',
-          'population',
-          'schemaVersion',
-          'snapshotFingerprint',
-        ].includes(key),
-    ),
+  if (blueprint.schemaVersion !== 3) {
+    return Object.fromEntries(
+      Object.entries(blueprint).filter(
+        ([key]) => !['authorProvenance', 'blueprintId', 'lifecycle', 'schemaVersion', 'snapshotFingerprint'].includes(key),
+      ),
+    );
+  }
+  const candidate: Record<string, unknown> = Object.fromEntries(
+    Object.entries(blueprint).filter(([key]) => protocolV3CandidateKeys.includes(key as (typeof protocolV3CandidateKeys)[number])),
   );
-  if (blueprint.schemaVersion !== 3) return candidate;
   candidate.claims = blueprint.claims.map((claim) =>
     Object.fromEntries(
-      Object.entries(claim).filter(([key]) => !['decisionCritical', 'mandatory', 'populationScopeIds', 'status'].includes(key)),
+      Object.entries(claim).filter(
+        ([key]) => !['claimRequirementId', 'decisionCritical', 'mandatory', 'populationScopeIds', 'status'].includes(key),
+      ),
     ),
   );
   candidate.evidencePlan = blueprint.evidencePlan.map((requirement) =>
@@ -237,13 +340,19 @@ function orderedJudgments(judgments: AuthorViabilityJudgment[]): AuthorViability
 
 function validPointer(candidate: Record<string, unknown>, pointer: string): boolean {
   if (!pointer.startsWith('/candidate/')) return false;
-  const segments = pointer
-    .slice('/candidate/'.length)
-    .split('/')
-    .map((segment) => segment.replaceAll('~1', '/').replaceAll('~0', '~'));
+  const encodedSegments = pointer.slice('/candidate/'.length).split('/');
+  if (encodedSegments.some((segment) => /~(?:[^01]|$)/u.test(segment))) return false;
+  const segments = encodedSegments.map((segment) => segment.replaceAll('~1', '/').replaceAll('~0', '~'));
   let current: unknown = candidate;
   for (const segment of segments) {
-    if (typeof current !== 'object' || current === null || !(segment in current)) return false;
+    if (Array.isArray(current)) {
+      if (!/^(?:0|[1-9][0-9]*)$/u.test(segment)) return false;
+      const index = Number(segment);
+      if (!Number.isSafeInteger(index) || index >= current.length || !Object.hasOwn(current, index)) return false;
+      current = current[index];
+      continue;
+    }
+    if (typeof current !== 'object' || current === null || !Object.hasOwn(current, segment)) return false;
     current = (current as Record<string, unknown>)[segment];
   }
   return true;
@@ -325,10 +434,16 @@ export function validateAuthorViabilityReviewPacket(packet: AuthorViabilityRevie
     (packet.schemaVersion === 1 || packet.schemaVersion === 2) &&
     packet.purpose === 'AUTHOR_VIABILITY_BLIND_REVIEW' &&
     packet.criteria.length > 0 &&
-    packet.criteria.every((criterion) => criterion.id !== mechanicalCriterionId) &&
+    packet.criteria.every(
+      (criterion) => hasExactKeys(criterion, ['critical', 'id', 'statement']) && criterion.id !== mechanicalCriterionId,
+    ) &&
+    packet.skillFiles.every(
+      (file) => hasExactKeys(file, ['content', 'path']) && typeof file.content === 'string' && typeof file.path === 'string',
+    ) &&
     candidateKeys.every((key) => !['authorProvenance', 'blueprintId', 'lifecycle', 'schemaVersion', 'snapshotFingerprint'].includes(key)) &&
     !/gpt-5\.6-(?:luna|terra)|e18-|e19-|e20-|e22-|expectedLifecycle|authorProvenance/u.test(packetText) &&
-    (packet.schemaVersion === 1 || !forbiddenV3Keys.test(packetText)) &&
+    (packet.schemaVersion === 1 ||
+      (hasExactKeys(packet.candidate, [...protocolV3CandidateKeys]) && !forbiddenV3Keys.test(packetText) && isBlindValue(packet))) &&
     packet.fingerprint === fingerprintWithoutFingerprint(packet)
   );
 }
@@ -336,13 +451,17 @@ export function validateAuthorViabilityReviewPacket(packet: AuthorViabilityRevie
 export function createAuthorViabilityReviewerSubmission(input: {
   judgments: AuthorViabilityJudgment[];
   packet: AuthorViabilityReviewPacket;
+  principalFingerprint?: string;
   reviewerId: 'reviewer-a' | 'reviewer-b';
+  sessionFingerprint?: string;
 }): AuthorViabilityReviewerSubmission {
   const body = {
     judgments: orderedJudgments(input.judgments),
     packetFingerprint: input.packet.fingerprint,
+    ...(input.principalFingerprint === undefined ? {} : { principalFingerprint: input.principalFingerprint }),
     reviewerId: input.reviewerId,
     schemaVersion: 1 as const,
+    ...(input.sessionFingerprint === undefined ? {} : { sessionFingerprint: input.sessionFingerprint }),
   };
   return { ...body, fingerprint: sha256(body) };
 }
@@ -354,13 +473,25 @@ export function validateAuthorViabilityReviewerSubmission(
   const expectedIds = packet.criteria.map((criterion) => criterion.id).sort();
   const actualIds = submission.judgments.map((judgment) => judgment.criterionId).sort();
   return (
+    hasExactKeys(
+      submission,
+      packet.schemaVersion === 2
+        ? ['fingerprint', 'judgments', 'packetFingerprint', 'principalFingerprint', 'reviewerId', 'schemaVersion', 'sessionFingerprint']
+        : ['fingerprint', 'judgments', 'packetFingerprint', 'reviewerId', 'schemaVersion'],
+    ) &&
     submission.schemaVersion === 1 &&
     (submission.reviewerId === 'reviewer-a' || submission.reviewerId === 'reviewer-b') &&
     submission.packetFingerprint === packet.fingerprint &&
     canonicalJson(actualIds) === canonicalJson(expectedIds) &&
     new Set(actualIds).size === actualIds.length &&
+    (packet.schemaVersion === 1 ||
+      (typeof submission.principalFingerprint === 'string' &&
+        opaqueFingerprint.test(submission.principalFingerprint) &&
+        typeof submission.sessionFingerprint === 'string' &&
+        opaqueFingerprint.test(submission.sessionFingerprint))) &&
     submission.judgments.every(
       (judgment) =>
+        hasExactKeys(judgment, ['criterionId', 'evidencePaths', 'rationale', 'verdict']) &&
         verdicts.has(judgment.verdict) &&
         judgment.rationale.trim().length > 0 &&
         judgment.evidencePaths.length > 0 &&
@@ -368,6 +499,33 @@ export function validateAuthorViabilityReviewerSubmission(
     ) &&
     submission.fingerprint === fingerprintWithoutFingerprint(submission)
   );
+}
+
+export function validateAuthorViabilityReviewerContinuity(
+  qualificationSubmissions: AuthorViabilityReviewerQualificationSubmission[],
+  reviewSubmissions: AuthorViabilityReviewerSubmission[],
+): boolean {
+  if (
+    qualificationSubmissions.length !== 2 ||
+    reviewSubmissions.length !== 2 ||
+    new Set(qualificationSubmissions.map((submission) => submission.reviewerId)).size !== 2 ||
+    new Set(reviewSubmissions.map((submission) => submission.reviewerId)).size !== 2 ||
+    new Set(qualificationSubmissions.map((submission) => submission.principalFingerprint)).size !== 2 ||
+    new Set(qualificationSubmissions.map((submission) => submission.sessionFingerprint)).size !== 2 ||
+    new Set(reviewSubmissions.map((submission) => submission.principalFingerprint)).size !== 2 ||
+    new Set(reviewSubmissions.map((submission) => submission.sessionFingerprint)).size !== 2
+  ) {
+    return false;
+  }
+  const qualifiedByReviewer = new Map(qualificationSubmissions.map((submission) => [submission.reviewerId, submission]));
+  return reviewSubmissions.every((submission) => {
+    const qualified = qualifiedByReviewer.get(submission.reviewerId);
+    return (
+      qualified !== undefined &&
+      submission.principalFingerprint === qualified.principalFingerprint &&
+      submission.sessionFingerprint === qualified.sessionFingerprint
+    );
+  });
 }
 
 export function createAuthorViabilityResolutionPacket(
@@ -424,6 +582,7 @@ export function resolveAuthorViabilityReview(
     new Set(actualIds).size !== actualIds.length ||
     resolutions.some(
       (resolution) =>
+        !hasExactKeys(resolution, ['criterionId', 'evidencePaths', 'rationale', 'verdict']) ||
         resolution.verdict === 'NEEDS_ADJUDICATION' ||
         !verdicts.has(resolution.verdict) ||
         resolution.rationale.trim().length === 0 ||

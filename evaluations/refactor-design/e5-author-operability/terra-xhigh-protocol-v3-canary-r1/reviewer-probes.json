@@ -2,25 +2,25 @@
   "schemaVersion": 1,
   "probes": [
     {
-      "id": "probe-alternative-valid",
+      "id": "q-a91c2e40",
       "family": "ALTERNATIVE_VALID",
       "expected": "ACCEPT",
       "observation": "The candidate uses equivalent terminology, explicitly preserves original order for priority ties, retains every received invalid value and reason, separates captured JSON from assessment, and keeps the missing uncertainty limit unresolved."
     },
     {
-      "id": "probe-missing-stability",
+      "id": "q-2bd470e1",
       "family": "KNOWN_INVALID",
       "expected": "REJECT",
       "observation": "The candidate requires descending priority order but says nothing about original input order when two valid records have the same priority."
     },
     {
-      "id": "probe-invented-uncertainty",
+      "id": "q-6f83aa19",
       "family": "KNOWN_INVALID",
       "expected": "REJECT",
       "observation": "The candidate supplies a 95% uncertainty threshold and treats it as decision-owner context even though no such limit was provided."
     },
     {
-      "id": "probe-conflated-evidence-path",
+      "id": "q-d4037bc2",
       "family": "KNOWN_INVALID",
       "expected": "REJECT",
       "observation": "The candidate calls correctness a DIRECT observation even though the path captures only rendered JSON and defines no separate assessment that compares it with stable sorting and preservation requirements."
